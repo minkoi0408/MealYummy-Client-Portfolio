@@ -6,24 +6,7 @@ import { mockRecipes } from "../data/mock-recipes";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
-
-// ─── Tags (flat list) ─────────────────────────────────────────────────────────
-
-const ALL_TAGS = [
-  { id: "viet",  label: "🇻🇳 Việt Nam",   match: (r: any) => r.cuisine === "Việt Nam" },
-  { id: "thai",  label: "🇹🇭 Thái Lan",   match: (r: any) => r.cuisine === "Thái Lan" },
-  { id: "an",    label: "🇮🇳 Ấn Độ",      match: (r: any) => r.cuisine === "Ấn Độ" },
-  { id: "y",     label: "🇮🇹 Ý",          match: (r: any) => r.cuisine === "Ý" },
-  { id: "achau", label: "🥢 Á châu",      match: (r: any) => r.cuisine === "Á châu" },
-  { id: "fast",  label: "⚡ < 20 phút",  match: (r: any) => parseInt(r.cookTime) < 20 },
-  { id: "mid",   label: "⏱ 20–45 phút", match: (r: any) => { const t = parseInt(r.cookTime); return t >= 20 && t <= 45; } },
-  { id: "slow",  label: "🍲 > 45 phút",  match: (r: any) => parseInt(r.cookTime) > 45 },
-  { id: "low",   label: "🥗 Ít calo",    match: (r: any) => parseInt(r.calories) < 400 },
-  { id: "chay",  label: "🌿 Ăn chay",    match: (r: any) => !r.ingredients?.some((i: string) => /thịt|bò|gà|tôm|cá|mực/i.test(i)) },
-  { id: "easy",  label: "😊 Dễ làm",    match: (r: any) => r.difficulty === "Dễ" },
-  { id: "sang",  label: "🌅 Bữa sáng",   match: (r: any) => parseInt(r.cookTime) <= 20 },
-  { id: "anvat", label: "🍡 Ăn vặt",     match: (r: any) => parseInt(r.calories) < 300 },
-];
+import { tagAPI, type Tag } from "../../apis/tag.api";
 
 const QUICK_PROMPTS = [
   "Món Việt đơn giản",
@@ -39,6 +22,8 @@ const QUICK_PROMPTS = [
 export function MainAppPage() {
   const [prompt, setPrompt] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState(mockRecipes);
   const [isTyping, setIsTyping] = useState(false);
@@ -54,6 +39,20 @@ export function MainAppPage() {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [prompt]);
 
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const res = await tagAPI.getAll();
+        if (res.data && res.data.data) {
+          setTags(res.data.data);
+        }
+      } catch (error) {
+        toast.error("Lỗi khi lấy danh sách phân loại (Tags)");
+      }
+    };
+    fetchTags();
+  }, []);
+
   function toggleTag(id: string) {
     setActiveTags((prev) => {
       const next = new Set(prev);
@@ -63,7 +62,7 @@ export function MainAppPage() {
   }
 
   function getActiveTagObjects() {
-    return ALL_TAGS.filter((t) => activeTags.has(t.id));
+    return tags.filter((t) => activeTags.has(t.id)); ``
   }
 
   function computeResults() {
@@ -77,9 +76,16 @@ export function MainAppPage() {
         r.ingredients?.some((i: string) => i.toLowerCase().includes(q))
       );
     }
+    // Vì dữ liệu Tag nay đến từ BE, logic match hiện tại chỉ thực hiện text so khớp:
     const activeTagObjs = getActiveTagObjects();
     if (activeTagObjs.length > 0) {
-      filtered = filtered.filter((r) => activeTagObjs.every((tag) => tag.match(r)));
+      filtered = filtered.filter((r) =>
+        activeTagObjs.every((tag) =>
+          r.name.toLowerCase().includes(tag.name.toLowerCase()) ||
+          r.cuisine.toLowerCase().includes(tag.name.toLowerCase()) ||
+          r.description.toLowerCase().includes(tag.name.toLowerCase())
+        )
+      );
     }
     if (q) filtered = filtered.sort(() => Math.random() - 0.5);
     return filtered;
@@ -140,11 +146,10 @@ export function MainAppPage() {
         {/* ── AI Input bar ──────────────────────────────────────────── */}
         <div className="mb-3">
           <div
-            className={`flex items-end gap-3 bg-white/80 backdrop-blur-xl border rounded-2xl px-4 py-3 shadow-lg transition-all ${
-              isTyping
-                ? "border-amber-400 shadow-amber-100/60 shadow-xl"
-                : "border-amber-200/60 hover:border-amber-300"
-            }`}
+            className={`flex items-end gap-3 bg-white/80 backdrop-blur-xl border rounded-2xl px-4 py-3 shadow-lg transition-all ${isTyping
+              ? "border-amber-400 shadow-amber-100/60 shadow-xl"
+              : "border-amber-200/60 hover:border-amber-300"
+              }`}
           >
             <div className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
               <Sparkles className="w-4 h-4 text-white" />
@@ -201,11 +206,14 @@ export function MainAppPage() {
 
         {/* ── Compact Tag filter strip ──────────────────────────────── */}
         <div className="flex items-center gap-2 mb-6">
-          {/* Icon label */}
-          <div className="flex-shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground/70 font-medium pr-2 border-r border-border/50">
+          {/* Button Toggle Dropdown Mở rộng */}
+          <button
+            onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+            className="flex-shrink-0 flex items-center gap-1.5 text-xs text-muted-foreground/70 font-medium pr-4 border-r border-border/50 hover:text-amber-600 transition-colors focus:outline-none"
+          >
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Lọc</span>
-          </div>
+            <span className="hidden sm:inline">Lọc theo tag</span>
+          </button>
 
           {/* Scrollable chip row */}
           <div
@@ -213,25 +221,28 @@ export function MainAppPage() {
             className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar"
             style={{ scrollbarWidth: "none" }}
           >
-            {ALL_TAGS.map((tag) => {
-              const active = activeTags.has(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all select-none whitespace-nowrap ${
-                    active
+            {tags.length === 0 ? (
+              <span className="text-xs text-muted-foreground">Đang tải tag...</span>
+            ) : (
+              tags.map((tag) => {
+                const active = activeTags.has(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.id)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-all select-none whitespace-nowrap ${active
                       ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white border-transparent shadow-sm"
                       : "bg-white/60 text-foreground/70 border-border/50 hover:border-amber-300 hover:text-amber-700 hover:bg-amber-50/50"
-                  }`}
-                >
-                  {tag.label}
-                  {active && (
-                    <span className="ml-1 opacity-70">×</span>
-                  )}
-                </button>
-              );
-            })}
+                      }`}
+                  >
+                    {tag.name}
+                    {active && (
+                      <span className="ml-1 opacity-70">×</span>
+                    )}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {/* Clear active tags */}
@@ -249,30 +260,68 @@ export function MainAppPage() {
           )}
         </div>
 
+        {/* ── Expandable Filter Panel ──────────────────────────────── */}
+        {
+          isFilterExpanded && (
+            <div className="mb-6 p-4 bg-amber-50/50 border border-amber-100 rounded-2xl animate-in slide-in-from-top-2 fade-in duration-200">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-200/50">
+                <span className="font-semibold text-sm text-amber-900">Tất cả tag ({tags.length})</span>
+                <button
+                  onClick={() => setIsFilterExpanded(false)}
+                  className="text-amber-700/60 hover:text-red-500 rounded-full p-1 transition-colors focus:outline-none"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => {
+                  const active = activeTags.has(tag.id);
+                  return (
+                    <button
+                      key={`expanded-${tag.id}`}
+                      onClick={() => toggleTag(tag.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all select-none ${active
+                        ? "bg-gradient-to-r from-amber-400 to-orange-500 text-white border-transparent shadow-sm"
+                        : "bg-white/80 text-foreground/70 border-amber-200/50 hover:border-amber-300 hover:text-amber-700 hover:bg-amber-100/50"
+                        }`}
+                    >
+                      {tag.name}
+                      {active && <span className="ml-1 opacity-70">×</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )
+        }
+
         {/* ── Active filter pills (when any filter applied) ─────────── */}
-        {activeCnt > 0 && (
-          <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
-            <span className="text-xs text-muted-foreground/60">Đang lọc:</span>
-            {prompt.trim() && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs border border-amber-200/60">
-                <Sparkles className="w-3 h-3" />
-                "{prompt.trim().slice(0, 24)}{prompt.trim().length > 24 ? "…" : ""}"
-              </span>
-            )}
-            {getActiveTagObjects().map((tag) => (
-              <button
-                key={tag.id}
-                onClick={() => toggleTag(tag.id)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs border border-orange-200/60 hover:bg-orange-200 transition-colors"
-              >
-                {tag.label} <X className="w-2.5 h-2.5" />
+        {
+          activeCnt > 0 && (
+            <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
+              <span className="text-xs text-muted-foreground/60">Đang lọc:</span>
+              {prompt.trim() && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs border border-amber-200/60">
+                  <Sparkles className="w-3 h-3" />
+                  "{prompt.trim().slice(0, 24)}{prompt.trim().length > 24 ? "…" : ""}"
+                </span>
+              )}
+              {getActiveTagObjects().map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => toggleTag(tag.id)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full text-xs border border-orange-200/60 hover:bg-orange-200 transition-colors"
+                >
+                  {tag.name} <X className="w-2.5 h-2.5" />
+                </button>
+              ))}
+              <button onClick={handleReset} className="text-xs text-muted-foreground/60 hover:text-red-500 transition-colors">
+                Đặt lại
               </button>
-            ))}
-            <button onClick={handleReset} className="text-xs text-muted-foreground/60 hover:text-red-500 transition-colors">
-              Đặt lại
-            </button>
-          </div>
-        )}
+            </div>
+          )
+        }
 
         {/* ── CTA Button ───────────────────────────────────────────── */}
         <button
@@ -344,8 +393,8 @@ export function MainAppPage() {
             </>
           )}
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
 
@@ -366,9 +415,8 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
         </span>
         <button
           onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-          className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-all ${
-            isFav ? "bg-red-500 text-white shadow-md" : "bg-white/80 text-muted-foreground hover:bg-white hover:text-red-500"
-          }`}
+          className={`absolute top-3 right-3 w-8 h-8 rounded-full backdrop-blur-sm flex items-center justify-center transition-all ${isFav ? "bg-red-500 text-white shadow-md" : "bg-white/80 text-muted-foreground hover:bg-white hover:text-red-500"
+            }`}
         >
           <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
         </button>

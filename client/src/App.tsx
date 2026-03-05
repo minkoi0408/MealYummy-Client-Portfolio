@@ -1,5 +1,5 @@
 import { RouterProvider } from "react-router";
-import { router } from "./routes";
+import { router } from "./routes/routes";
 import { FavoritesProvider } from "./app/contexts/favorites-context";
 import { MealPlanProvider } from "./app/contexts/meal-plan-context";
 import { Toaster } from "./app/components/ui/sonner";
