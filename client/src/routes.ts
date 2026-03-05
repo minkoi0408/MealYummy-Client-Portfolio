@@ -1,0 +1,58 @@
+import { createBrowserRouter } from "react-router";
+import { LandingPage } from "./app/pages/landing-page";
+import { LoginPage } from "./app/pages/login-page";
+import { MainAppPage } from "./app/pages/main-app-page";
+import { ResultsPage } from "./app/pages/results-page";
+import { DashboardPage } from "./app/pages/dashboard-page";
+import { RecipeDetailPage } from "./app/pages/recipe-detail-page";
+import { MealPlanPage } from "./app/pages/meal-plan-page";
+import { ProfilePage } from "./app/pages/profile-page";
+import { NearbyRestaurantsPage } from "./app/pages/nearby-restaurants-page";
+import { ShoppingPage } from "./app/pages/shopping-page";
+
+export const router = createBrowserRouter([
+  {
+    path: "/",
+    Component: LandingPage,
+  },
+  {
+    path: "/home",
+    Component: LandingPage,
+  },
+  {
+    path: "/login",
+    Component: LoginPage,
+  },
+  {
+    path: "/app",
+    Component: MainAppPage,
+  },
+  {
+    path: "/results",
+    Component: ResultsPage,
+  },
+  {
+    path: "/dashboard",
+    Component: DashboardPage,
+  },
+  {
+    path: "/recipe/:id",
+    Component: RecipeDetailPage,
+  },
+  {
+    path: "/meal-plan",
+    Component: MealPlanPage,
+  },
+  {
+    path: "/profile",
+    Component: ProfilePage,
+  },
+  {
+    path: "/recipe/:id/nearby",
+    Component: NearbyRestaurantsPage,
+  },
+  {
+    path: "/shopping",
+    Component: ShoppingPage,
+  },
+]);
