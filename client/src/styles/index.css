@@ -1,7 +1,6 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,1..1000&display=swap');
 
 @theme {
     --color-border: var(--color-gray-700);
