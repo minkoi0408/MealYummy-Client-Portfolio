@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router";
 import { useState } from "react";
 import {
-  UtensilsCrossed,
+  Dumbbell,
   Sparkles,
   Trophy,
   Heart,
@@ -13,11 +13,11 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Gợi ý",    icon: Sparkles,     link: "/app",       activeColor: "text-amber-500",  activeBg: "bg-amber-50",  dot: "bg-amber-400"  },
-  { label: "Xếp hạng", icon: Trophy,       link: "/results",   activeColor: "text-green-600",  activeBg: "bg-green-50",  dot: "bg-green-400"  },
-  { label: "Yêu thích",icon: Heart,        link: "/dashboard", activeColor: "text-pink-500",   activeBg: "bg-pink-50",   dot: "bg-pink-400"   },
-  { label: "Thực đơn", icon: Calendar,     link: "/meal-plan", activeColor: "text-blue-500",   activeBg: "bg-blue-50",   dot: "bg-blue-400"   },
-  { label: "Đi chợ",   icon: ShoppingCart, link: "/shopping",  activeColor: "text-purple-500", activeBg: "bg-purple-50", dot: "bg-purple-400" },
+  { label: "Gợi ý", icon: Sparkles, link: "/app", activeColor: "text-lime-400", activeBg: "bg-lime-950/60", dot: "bg-lime-400" },
+  { label: "Xếp hạng", icon: Trophy, link: "/results", activeColor: "text-amber-400", activeBg: "bg-amber-950/60", dot: "bg-amber-400" },
+  { label: "Yêu thích", icon: Heart, link: "/dashboard", activeColor: "text-pink-400", activeBg: "bg-pink-950/60", dot: "bg-pink-400" },
+  { label: "Thực đơn", icon: Calendar, link: "/meal-plan", activeColor: "text-cyan-400", activeBg: "bg-cyan-950/60", dot: "bg-cyan-400" },
+  { label: "Đi chợ", icon: ShoppingCart, link: "/shopping", activeColor: "text-violet-400", activeBg: "bg-violet-950/60", dot: "bg-violet-400" },
 ];
 
 export function AppHeader() {
@@ -26,26 +26,49 @@ export function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-amber-100/50 bg-white/70 backdrop-blur-xl shadow-sm shadow-amber-100/40">
+      <header
+        className="sticky top-0 z-50"
+        style={{
+          background: "rgba(15,17,23,0.85)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          borderBottom: "1px solid rgba(163,230,53,0.12)",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center gap-2 sm:gap-4">
 
           {/* ── Logo ─────────────────────────────────────── */}
           <Link to="/home" className="flex items-center gap-2 sm:gap-2.5 group flex-shrink-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-              <UtensilsCrossed className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform"
+              style={{
+                background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                boxShadow: "0 0 16px rgba(163,230,53,0.4)",
+              }}
+            >
+              <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900" />
             </div>
             <div className="flex flex-col leading-none">
-              <span className="font-bold text-sm sm:text-base bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent leading-tight">
+              <span
+                className="font-bold text-sm sm:text-base leading-tight"
+                style={{
+                  background: "linear-gradient(90deg, #a3e635, #4ade80)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  letterSpacing: "0.02em",
+                }}
+              >
                 MealYummy
               </span>
-              <span className="hidden sm:block text-[10px] text-amber-500/70 tracking-wide italic">
-                Ăn Ngon Mê Ly
+              <span className="hidden sm:block text-[10px] text-lime-500/60 tracking-widest italic">
+                EAT RIGHT. TRAIN HARD.
               </span>
             </div>
           </Link>
 
           {/* ── Divider (desktop only) ──────────────────────────────────── */}
-          <div className="hidden lg:block w-px h-7 bg-amber-100 flex-shrink-0 mx-1" />
+          <div className="hidden lg:block w-px h-7 flex-shrink-0 mx-1" style={{ background: "rgba(163,230,53,0.15)" }} />
 
           {/* ── Nav items (desktop) ────────────────────────────────── */}
           <nav className="hidden lg:flex items-center gap-1 flex-1">
@@ -60,7 +83,7 @@ export function AppHeader() {
                     text-sm font-medium transition-all select-none
                     ${isActive
                       ? `${activeColor} ${activeBg} shadow-sm`
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                      : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
                     }
                   `}
                 >
@@ -78,21 +101,27 @@ export function AppHeader() {
           {/* ── User profile & Mobile menu toggle ─────────────────────────────── */}
           <div className="flex items-center gap-2 sm:gap-3 ml-auto">
             <Link to="/profile" className="flex-shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center border border-amber-200/80 hover:scale-105 hover:shadow-md transition-all cursor-pointer">
-                <User className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-amber-600" />
+              <div
+                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+                style={{
+                  background: "linear-gradient(135deg, rgba(163,230,53,0.15), rgba(74,222,128,0.15))",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                }}
+              >
+                <User className="w-4 h-4 text-lime-400" />
               </div>
             </Link>
 
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-amber-50 transition-colors"
+              className="lg:hidden w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
-                <X className="w-5 h-5 text-foreground" />
+                <X className="w-5 h-5 text-slate-300" />
               ) : (
-                <Menu className="w-5 h-5 text-foreground" />
+                <Menu className="w-5 h-5 text-slate-300" />
               )}
             </button>
           </div>
@@ -101,7 +130,15 @@ export function AppHeader() {
 
         {/* ── Mobile Navigation Menu ────────────────────────────────── */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-amber-100/50 bg-white/95 backdrop-blur-xl">
+          <div
+            className="lg:hidden"
+            style={{
+              borderTop: "1px solid rgba(163,230,53,0.12)",
+              background: "rgba(15,17,23,0.97)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+            }}
+          >
             <nav className="max-w-7xl mx-auto px-4 py-3 space-y-1">
               {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg }) => {
                 const isActive = location.pathname === link;
@@ -115,7 +152,7 @@ export function AppHeader() {
                       text-sm font-medium transition-all
                       ${isActive
                         ? `${activeColor} ${activeBg} shadow-sm`
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
                       }
                     `}
                   >

@@ -1,61 +1,105 @@
 import { Link } from "react-router";
 import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Sparkles, BookOpen, Heart, Calendar, ShoppingCart, ChefHat } from "lucide-react";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import {
+  Sparkles,
+  BookOpen,
+  Heart,
+  Calendar,
+  ShoppingCart,
+  Zap,
+  Target,
+  Flame,
+  Dumbbell,
+  Apple,
+  ChevronRight,
+  Star,
+} from "lucide-react";
 import { AppHeader } from "../components/app-header";
+import { motion } from "motion/react";
 
 const features = [
   {
     id: 1,
     icon: Sparkles,
-    title: "Gợi ý món ăn bằng AI",
-    description: "Nhập sở thích, ngân sách và chế độ ăn. AI sẽ gợi ý món phù hợp với bạn trong vài giây!",
-    color: "from-amber-500 to-orange-500",
-    bgColor: "bg-amber-50",
+    title: "Gợi ý bằng AI",
+    description: "AI phân tích mục tiêu fitness và gợi ý lịch ăn phù hợp với chế độ tập luyện của bạn.",
+    gradient: "linear-gradient(135deg, #a3e635, #4ade80)",
+    glowColor: "rgba(163,230,53,0.25)",
     link: "/app",
-    image: "https://images.unsplash.com/photo-1756361629888-90596c86fd79?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZWxpY2lvdXMlMjBmb29kJTIwcGxhdGUlMjBjb2xvcmZ1bHxlbnwxfHx8fDE3NzI0NDE5MTJ8MA&ixlib=rb-4.1.0&q=80&w=400",
-    badge: "Chức năng chính",
+    badge: "Chính",
   },
   {
     id: 2,
     icon: BookOpen,
-    title: "Xem chi tiết món ăn",
-    description: "Khám phá thành phần, hướng dẫn nấu, thông tin dinh dưỡng và chi phí của mỗi món ăn.",
-    color: "from-green-500 to-emerald-500",
-    bgColor: "bg-green-50",
+    title: "Chi tiết món ăn",
+    description: "Thành phần, macro dinh dưỡng (Protein / Carb / Fat) và calo chi tiết từng món.",
+    gradient: "linear-gradient(135deg, #22d3ee, #6366f1)",
+    glowColor: "rgba(34,211,238,0.25)",
     link: "/results",
-    image: "https://images.unsplash.com/photo-1590587754541-a3a4f2e0d06f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxyZWNpcGUlMjBjb29rYm9vayUyMGNvb2tpbmd8ZW58MXx8fHwxNzcyNDIxNTU1fDA&ixlib=rb-4.1.0&q=80&w=400",
   },
   {
     id: 3,
     icon: Heart,
-    title: "Lưu món yêu thích",
-    description: "Lưu lại những món ăn bạn thích để xem lại sau. Quản lý danh sách món ăn yêu thích của bạn.",
-    color: "from-pink-500 to-rose-500",
-    bgColor: "bg-pink-50",
+    title: "Món yêu thích",
+    description: "Lưu lại các món ăn sạch phù hợp với thể trạng và lưu vào danh sách cá nhân.",
+    gradient: "linear-gradient(135deg, #f472b6, #ec4899)",
+    glowColor: "rgba(244,114,182,0.25)",
     link: "/dashboard",
-    image: "https://images.unsplash.com/photo-1638720772346-b745bcd72f5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwZnJlc2glMjBtZWFsfGVufDF8fHx8MTc3MjQ0MTkxM3ww&ixlib=rb-4.1.0&q=80&w=400",
   },
   {
     id: 4,
     icon: Calendar,
-    title: "Lập thực đơn theo tuần",
-    description: "Tạo thực đơn tự động cho cả tuần. AI tính tổng calo và chi phí cho bạn.",
-    color: "from-blue-500 to-cyan-500",
-    bgColor: "bg-blue-50",
-    link: "/app",
-    image: "https://images.unsplash.com/photo-1540921002383-b2a7ff6a716d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtZWFsJTIwcGxhbm5pbmclMjBjYWxlbmRhciUyMGZvb2R8ZW58MXx8fHwxNzcyNDA4Mjg0fDA&ixlib=rb-4.1.0&q=80&w=400",
+    title: "Thực đơn tuần",
+    description: "Tạo meal plan tự động 7 ngày. AI cân bằng calo và macro theo mục tiêu thể hình.",
+    gradient: "linear-gradient(135deg, #60a5fa, #818cf8)",
+    glowColor: "rgba(96,165,250,0.25)",
+    link: "/meal-plan",
   },
   {
     id: 5,
     icon: ShoppingCart,
-    title: "Tạo danh sách đi chợ",
-    description: "Tự động tổng hợp nguyên liệu từ thực đơn. Biết chính xác cần mua gì và hết bao nhiêu tiền.",
-    color: "from-purple-500 to-violet-500",
-    bgColor: "bg-purple-50",
-    link: "/app",
-    image: "https://images.unsplash.com/photo-1701914446310-8b63a547ab37?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzaG9wcGluZyUyMGxpc3QlMjBncm9jZXJpZXMlMjBiYXNrZXR8ZW58MXx8fHwxNzcyNDQyNjIyfDA&ixlib=rb-4.1.0&q=80&w=400",
+    title: "Danh sách đi chợ",
+    description: "Tự động tổng hợp nguyên liệu từ thực đơn. Biết chính xác cần mua gì.",
+    gradient: "linear-gradient(135deg, #a78bfa, #c084fc)",
+    glowColor: "rgba(167,139,250,0.25)",
+    link: "/shopping",
+  },
+];
+
+const stats = [
+  { value: "500+", label: "Công thức High-Protein", icon: Dumbbell },
+  { value: "98%", label: "Calo chính xác", icon: Flame },
+  { value: "7-Day", label: "Meal Prep Plan", icon: Calendar },
+  { value: "4.9★", label: "Đánh giá từ VĐV", icon: Star },
+];
+
+const macros = [
+  { label: "PROTEIN", value: "35%", color: "#a3e635", bg: "rgba(163,230,53,0.1)" },
+  { label: "CARBS", value: "45%", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+  { label: "FAT", value: "20%", color: "#f472b6", bg: "rgba(244,114,182,0.1)" },
+];
+
+const testimonials = [
+  {
+    name: "Minh Hiếu",
+    role: "Powerlifter · 3 năm",
+    text: "MealYummy giúp mình track macro cực kỳ dễ. Tăng 8kg cơ sau 6 tháng dùng app.",
+    avatar: "MH",
+    rating: 5,
+  },
+  {
+    name: "Thu Hà",
+    role: "CrossFit Athlete · 2 năm",
+    text: "Meal plan tự động tiết kiệm cả tiếng mỗi tuần. Chế độ ăn khoa học hơn hẳn.",
+    avatar: "TH",
+    rating: 5,
+  },
+  {
+    name: "Bảo Long",
+    role: "Runner · Marathon",
+    text: "AI gợi ý đúng nhu cầu carb trước race và protein phục hồi sau chạy. Tuyệt vời!",
+    avatar: "BL",
+    rating: 5,
   },
 ];
 
@@ -63,110 +107,501 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-transparent">
       <AppHeader />
-      {/* Welcome Hero */}
-      <section className="py-12 px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-12 text-white relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
 
-            <div className="relative z-10 max-w-3xl">
-              <div className="flex items-center gap-2 mb-4">
-                <ChefHat className="w-8 h-8" />
-                <span className="text-lg font-medium">Xin chào!</span>
+      {/* ── HERO SECTION ──────────────────────────────────── */}
+      <section className="relative py-20 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+
+            {/* Left content */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7 }}
+              className="relative z-10"
+            >
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-6"
+                style={{
+                  background: "rgba(163,230,53,0.1)",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                }}
+              >
+                <Zap className="w-4 h-4 text-lime-400" />
+                <span className="text-lime-400 text-sm font-semibold tracking-wide">AI-POWERED NUTRITION</span>
               </div>
-              <h1 className="text-5xl font-bold mb-4">
-                Hôm nay bạn muốn ăn gì?
+
+              {/* Heading */}
+              <h1
+                className="text-6xl lg:text-7xl font-black leading-none mb-6"
+              >
+                <span className="text-white">ĂN ĐÚNG.</span>
+                <br />
+                <span className="text-lime-400">
+                  TẬP HIỆU QUẢ.
+                </span>
               </h1>
-              <p className="text-xl text-white/90 mb-8">
-                MealYummy sẵn sàng giúp bạn lên kế hoạch bữa ăn hoàn hảo. Khám phá 5 tính năng tuyệt vời bên dưới!
+
+              <p className="text-lg text-slate-400 mb-8 leading-relaxed max-w-lg">
+                Nền tảng dinh dưỡng thông minh dành riêng cho người tập thể thao. AI của chúng tôi lập thực đơn phù hợp với mục tiêu thể hình và lịch tập của bạn.
               </p>
-              <Link to="/app">
-                <Button size="lg" className="bg-white text-amber-600 hover:bg-white/90 shadow-xl h-14 px-8 text-lg">
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Bắt đầu ngay
-                </Button>
-              </Link>
-            </div>
+
+              {/* CTAs */}
+              <div className="flex flex-wrap gap-4">
+                <Link to="/app">
+                  <Button
+                    size="lg"
+                    className="h-14 px-8 text-base font-bold rounded-xl text-gray-900 border-0 shadow-lg hover:scale-105 transition-all"
+                    style={{
+                      background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                      boxShadow: "0 0 30px rgba(163,230,53,0.4)",
+                    }}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Bắt đầu ngay
+                  </Button>
+                </Link>
+                <Link to="/meal-plan">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 px-8 text-base font-semibold rounded-xl border-slate-600 text-slate-300 hover:bg-white/5 hover:text-white transition-all"
+                  >
+                    <Target className="w-5 h-5 mr-2 text-lime-400" />
+                    Tạo Meal Plan
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
+
+            {/* Right — Macro card floating */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative hidden lg:block"
+            >
+              {/* Main card */}
+              <div
+                className="relative rounded-3xl p-8 overflow-hidden"
+                style={{
+                  background: "rgba(26,31,46,0.9)",
+                  border: "1px solid rgba(163,230,53,0.15)",
+                  backdropFilter: "blur(20px)",
+                  boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 80px rgba(163,230,53,0.05)",
+                }}
+              >
+                {/* Glow accent */}
+                <div className="absolute top-0 right-0 w-48 h-48 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle, rgba(163,230,53,0.12) 0%, transparent 70%)",
+                  }}
+                />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: "rgba(163,230,53,0.15)", border: "1px solid rgba(163,230,53,0.3)" }}>
+                      <Target className="w-5 h-5 text-lime-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-widest">Daily Target</p>
+                      <p className="text-white font-bold">Muscle Gain Plan</p>
+                    </div>
+                    <div className="ml-auto px-3 py-1 rounded-full text-xs font-semibold"
+                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                      Active
+                    </div>
+                  </div>
+
+                  {/* Calorie ring */}
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="relative">
+                      <svg width="140" height="140" viewBox="0 0 140 140">
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="url(#grad1)" strokeWidth="10"
+                          strokeDasharray="364" strokeDashoffset="91" strokeLinecap="round"
+                          transform="rotate(-90 70 70)" />
+                        <defs>
+                          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#a3e635" />
+                            <stop offset="100%" stopColor="#4ade80" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-3xl font-black text-white">2,450</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">KCAL / ngày</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Macros */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {macros.map((m) => (
+                      <div key={m.label} className="rounded-xl p-3 text-center"
+                        style={{ background: m.bg, border: `1px solid ${m.color}30` }}>
+                        <p className="text-lg font-black" style={{ color: m.color }}>{m.value}</p>
+                        <p className="text-xs text-slate-500 font-semibold tracking-wider mt-0.5">{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* AI badge */}
+                  <div className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl"
+                    style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)" }}>
+                    <Sparkles className="w-4 h-4 text-lime-400" />
+                    <span className="text-sm text-slate-300">AI đã tối ưu cho mục tiêu của bạn</span>
+                    <ChevronRight className="w-4 h-4 text-slate-500 ml-auto" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating mini cards */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-6 -left-8 rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: "rgba(26,31,46,0.95)",
+                  border: "1px solid rgba(96,165,250,0.3)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(96,165,250,0.15)" }}>
+                  <Dumbbell className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold">Protein hôm nay</p>
+                  <p className="text-blue-400 text-xs font-semibold">152g / 180g</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute -bottom-6 -right-6 rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: "rgba(26,31,46,0.95)",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(163,230,53,0.15)" }}>
+                  <Flame className="w-5 h-5 text-lime-400" />
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold">Calo đã nạp</p>
+                  <p className="text-lime-400 text-xs font-semibold">1,840 / 2,450 kcal</p>
+                </div>
+              </motion.div>
+            </motion.div>
+
           </div>
         </div>
       </section>
 
-      {/* Main Features */}
-      <section className="py-12 px-8">
+      {/* ── STATS SECTION ──────────────────────────────────── */}
+      <section className="py-14 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">5 Chức năng chính</h2>
-            <p className="text-xl text-muted-foreground">
-              Khám phá những tính năng giúp bạn lên kế hoạch bữa ăn thông minh
-            </p>
-          </div>
-
-          {/* Feature Icons Row */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
-            {features.map((feature) => {
-              const Icon = feature.icon;
+          <div
+            className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden"
+            style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.12)" }}
+          >
+            {stats.map((stat, i) => {
+              const Icon = stat.icon;
               return (
-                <Link key={feature.id} to={feature.link}>
-                  <Card className="hover:shadow-2xl transition-all group cursor-pointer border-2 hover:border-primary/50 h-full">
-                    <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                      <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-10 h-10 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-base mb-2 leading-tight">{feature.title}</h3>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{feature.description}</p>
-                      </div>
-                      {feature.badge && (
-                        <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold rounded-full">
-                          ⭐ {feature.badge}
-                        </span>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
+                <div
+                  key={i}
+                  className="flex flex-col items-center justify-center gap-2 py-8 px-4 text-center"
+                  style={{ background: "#0f1117" }}
+                >
+                  <Icon className="w-6 h-6 text-lime-400 mb-1" />
+                  <p
+                    className="text-3xl font-black"
+                    style={{
+                      background: "linear-gradient(90deg, #a3e635, #4ade80)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {stat.value}
+                  </p>
+                  <p className="text-sm text-slate-400 font-medium">{stat.label}</p>
+                </div>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* Quick Stats */}
-      <section className="py-16 px-8 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50">
+      {/* ── FEATURES SECTION ──────────────────────────────────── */}
+      <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                1000+
-              </div>
-              <p className="text-muted-foreground">Công thức nấu ăn</p>
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4"
+              style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)" }}>
+              <Apple className="w-4 h-4 text-lime-400" />
+              <span className="text-lime-400 text-xs font-bold uppercase tracking-widest">5 Tính Năng</span>
             </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                50K+
+            <h2
+              className="text-4xl lg:text-5xl font-black text-white mb-3"
+            >
+              CÔNG CỤ DINH DƯỠNG CHO VĐV
+            </h2>
+            <p className="text-slate-400 text-lg max-w-xl mx-auto">
+              Tất cả công cụ bạn cần để tối ưu chế độ ăn, hỗ trợ quá trình tập luyện và phục hồi.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={feature.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.08 }}
+                >
+                  <Link to={feature.link}>
+                    <div
+                      className="group relative rounded-2xl p-6 h-full cursor-pointer transition-all duration-300 hover:-translate-y-1"
+                      style={{
+                        background: "rgba(26,31,46,0.8)",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.border = `1px solid ${feature.glowColor.replace("0.25", "0.5")}`;
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = `0 8px 32px rgba(0,0,0,0.4), 0 0 24px ${feature.glowColor}`;
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(255,255,255,0.06)";
+                        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
+                      }}
+                    >
+                      {feature.badge && (
+                        <span
+                          className="absolute top-3 right-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-gray-900 uppercase tracking-wide"
+                          style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+                        >
+                          {feature.badge}
+                        </span>
+                      )}
+
+                      <div
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300"
+                        style={{ background: feature.gradient, boxShadow: `0 8px 20px ${feature.glowColor}` }}
+                      >
+                        <Icon className="w-7 h-7 text-white" />
+                      </div>
+
+                      <h3 className="text-white font-bold text-base mb-2 leading-tight">{feature.title}</h3>
+                      <p className="text-slate-500 text-xs leading-relaxed">{feature.description}</p>
+
+                      <div className="mt-4 flex items-center gap-1 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ color: "#a3e635" }}>
+                        <span>Khám phá</span>
+                        <ChevronRight className="w-3 h-3" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MACRO TRACKER BANNER ──────────────────────────────────── */}
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div
+            className="rounded-3xl p-10 lg:p-14 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, rgba(26,31,46,0.95) 0%, rgba(15,17,23,0.95) 100%)",
+              border: "1px solid rgba(163,230,53,0.2)",
+              boxShadow: "0 0 80px rgba(163,230,53,0.08)",
+            }}
+          >
+            {/* Decorative glow */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 rounded-full"
+              style={{ background: "radial-gradient(ellipse, rgba(163,230,53,0.08) 0%, transparent 70%)" }}
+            />
+
+            <div className="relative z-10 grid lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-5"
+                  style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)" }}>
+                  <Target className="w-3.5 h-3.5 text-lime-400" />
+                  <span className="text-lime-400 text-xs font-bold uppercase tracking-widest">Macro Tracker</span>
+                </div>
+                <h2
+                  className="text-4xl lg:text-5xl font-black text-white mb-4"
+                >
+                  TRACK MACRO<br />
+                  <span className="text-lime-400">
+                    THÔNG MINH HƠN
+                  </span>
+                </h2>
+                <p className="text-slate-400 text-base mb-8 leading-relaxed">
+                  Không chỉ đếm calo — MealYummy phân tích chi tiết Protein, Carbohydrate và Fat để bạn đạt mục tiêu thể hình nhanh nhất.
+                </p>
+                <Link to="/app">
+                  <Button
+                    className="h-12 px-7 font-bold rounded-xl text-gray-900 border-0 hover:scale-105 transition-all"
+                    style={{
+                      background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                      boxShadow: "0 0 24px rgba(163,230,53,0.35)",
+                    }}
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    Thử ngay miễn phí
+                  </Button>
+                </Link>
               </div>
-              <p className="text-muted-foreground">Gợi ý mỗi ngày</p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                10K+
+
+              {/* Macro visual */}
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "Protein", pct: 35, color: "#a3e635", desc: "Phục hồi cơ", icon: "💪" },
+                  { label: "Carbs", pct: 45, color: "#60a5fa", desc: "Năng lượng tập", icon: "⚡" },
+                  { label: "Fat", pct: 20, color: "#f472b6", desc: "Nội tiết tố", icon: "🫀" },
+                ].map((m) => (
+                  <div key={m.label}
+                    className="rounded-2xl p-5 flex flex-col items-center text-center"
+                    style={{
+                      background: `${m.color}0d`,
+                      border: `1px solid ${m.color}30`,
+                    }}
+                  >
+                    <span className="text-2xl mb-2">{m.icon}</span>
+                    <p className="text-2xl font-black" style={{ color: m.color }}>
+                      {m.pct}%
+                    </p>
+                    <p className="text-white font-bold text-sm mt-1">{m.label}</p>
+                    <p className="text-slate-500 text-xs mt-1">{m.desc}</p>
+                  </div>
+                ))}
               </div>
-              <p className="text-muted-foreground">Người dùng hài lòng</p>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent mb-2">
-                4.9★
-              </div>
-              <p className="text-muted-foreground">Đánh giá trung bình</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-card py-8 px-8">
-        <div className="max-w-7xl mx-auto text-center text-muted-foreground">
-          <p>© 2026 MealYummy. Tất cả quyền được bảo lưu.</p>
+      {/* ── TESTIMONIALS SECTION ──────────────────────────────────── */}
+      <section className="py-16 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-10">
+            <h2
+              className="text-4xl font-black text-white mb-2"
+            >
+              VĐV NÓI GÌ VỀ CHÚNG TÔI?
+            </h2>
+            <p className="text-slate-500">Hơn 10,000+ người tập hài lòng</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {testimonials.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="rounded-2xl p-6"
+                style={{
+                  background: "rgba(26,31,46,0.8)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-lime-400 fill-lime-400" />
+                  ))}
+                </div>
+                <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-gray-900"
+                    style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+                  >
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">{t.name}</p>
+                    <p className="text-slate-500 text-xs">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FINAL CTA ──────────────────────────────────── */}
+      <section className="py-20 px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 shadow-lg"
+            style={{
+              background: "linear-gradient(135deg, #a3e635, #4ade80)",
+              boxShadow: "0 0 40px rgba(163,230,53,0.4)",
+            }}
+          >
+            <Dumbbell className="w-8 h-8 text-gray-900" />
+          </div>
+          <h2
+            className="text-5xl font-black text-white mb-4"
+          >
+            SẴN SÀNG BẮT ĐẦU?
+          </h2>
+          <p className="text-slate-400 text-lg mb-8">
+            Tham gia cùng hàng ngàn VĐV đang tối ưu hóa chế độ dinh dưỡng với MealYummy.
+          </p>
+          <Link to="/app">
+            <Button
+              size="lg"
+              className="h-14 px-10 text-base font-black rounded-xl text-gray-900 border-0 hover:scale-105 transition-all"
+              style={{
+                background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                boxShadow: "0 0 40px rgba(163,230,53,0.4)",
+                letterSpacing: "0.05em",
+                fontSize: "1.1rem",
+              }}
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              BẮT ĐẦU MIỄN PHÍ
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ── FOOTER ──────────────────────────────────── */}
+      <footer
+        className="py-8 px-6"
+        style={{
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          background: "rgba(15,17,23,0.8)",
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+            >
+              <Dumbbell className="w-4 h-4 text-gray-900" />
+            </div>
+            <span
+              className="font-black text-white"
+              style={{ letterSpacing: "0.05em" }}
+            >
+              MEALYUMMY
+            </span>
+          </div>
+          <p className="text-slate-600 text-sm">© 2026 MealYummy. Eat Right. Train Hard.</p>
         </div>
       </footer>
     </div>
