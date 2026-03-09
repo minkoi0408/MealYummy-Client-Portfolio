@@ -10,6 +10,7 @@ import { ProfilePage } from "../app/pages/profile-page";
 import { NearbyRestaurantsPage } from "../app/pages/nearby-restaurants-page";
 import { ShoppingPage } from "../app/pages/shopping-page";
 import { MealDetailPage } from "../app/pages/meal-detail-page";
+import { NotFoundPage } from "../app/pages/not-found-page";
 
 export const router = createBrowserRouter([
   {
@@ -59,5 +60,9 @@ export const router = createBrowserRouter([
   {
     path: "/meal/:id",
     Component: MealDetailPage,
+  },
+  {
+    path: "*",
+    Component: NotFoundPage,
   },
 ]);

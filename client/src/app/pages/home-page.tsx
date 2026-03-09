@@ -349,7 +349,7 @@ export function HomePage() {
             <h2
               className="text-4xl lg:text-5xl font-black text-white mb-3"
             >
-              CÔNG CỤ DINH DƯỠNG CHO VĐV
+              CÔNG CỤ DINH DƯỠNG
             </h2>
             <p className="text-slate-400 text-lg max-w-xl mx-auto">
               Tất cả công cụ bạn cần để tối ưu chế độ ăn, hỗ trợ quá trình tập luyện và phục hồi.
