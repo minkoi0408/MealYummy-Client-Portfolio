@@ -66,7 +66,7 @@ export function DashboardPage() {
                   (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
                 }}
               >
-                <Link to={`/recipe/${recipe.id}`}>
+                <Link to={`/meal/${recipe.id}`}>
                   <div className="relative overflow-hidden h-48">
                     <ImageWithFallback
                       src={recipe.image} alt={recipe.name}
@@ -106,7 +106,7 @@ export function DashboardPage() {
                       <Calendar className="w-3.5 h-3.5" />
                       Thêm thực đơn
                     </button>
-                    <Link to={`/recipe/${recipe.id}`} className="flex-1">
+                    <Link to={`/meal/${recipe.id}`} className="flex-1">
                       <button className="w-full h-9 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all"
                         style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}
                         onMouseEnter={(e) => {
