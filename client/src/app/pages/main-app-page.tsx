@@ -121,7 +121,7 @@ export function MainAppPage() {
   const activeCnt = activeTags.size + (prompt.trim() ? 1 : 0);
 
   return (
-    <div className="min-h-screen" style={{ background: "#0f1117" }}>
+    <div className="min-h-screen">
       <AppHeader />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">

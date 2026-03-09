@@ -1,25 +1,12 @@
-import { Link } from "react-router";
-import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
-import { Badge } from "../components/ui/badge";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { 
-  User, Crown, Star, Zap, Check, X, Settings, Lock, 
-  Bell, Shield, LogOut, Edit2, Mail, Phone, Calendar,
-  Sparkles, ArrowRight, Trophy, Rocket
-} from "lucide-react";
+
+import { Check, X, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Sparkles, ArrowRight, Trophy, Rocket, User, Crown, Star } from "lucide-react";
 import { AppHeader } from "../components/app-header";
 
 const plans = [
   {
-    id: "free",
-    name: "Free",
-    icon: "🥉",
-    price: "0đ",
-    priceDetail: "/tháng",
-    subtitle: "Gói miễn phí",
-    description: "Phù hợp để trải nghiệm",
+    id: "free", name: "Free", icon: "🥉", price: "0đ", priceDetail: "/tháng",
+    subtitle: "Gói miễn phí", description: "Phù hợp để trải nghiệm", popular: false,
+    accentColor: "rgba(100,116,139,0.2)", borderColor: "rgba(100,116,139,0.3)", textColor: "#94a3b8",
     features: [
       { text: "Thực đơn 1 ngày", available: true },
       { text: "3 lượt AI/ngày", available: true },
@@ -27,18 +14,11 @@ const plans = [
       { text: "AI không giới hạn", available: false },
       { text: "Danh sách đi chợ", available: false },
     ],
-    gradient: "from-gray-400 to-gray-500",
-    bgGradient: "from-gray-50 to-gray-100",
-    popular: false,
   },
   {
-    id: "plus",
-    name: "Plus",
-    icon: "🥈",
-    price: "99.000đ",
-    priceDetail: "/tháng",
-    subtitle: "Gói phổ biến",
-    description: "Cho người dùng thường xuyên",
+    id: "plus", name: "Plus", icon: "🥈", price: "99.000đ", priceDetail: "/tháng",
+    subtitle: "Gói phổ biến", description: "Cho người dùng thường xuyên", popular: true,
+    accentColor: "rgba(163,230,53,0.08)", borderColor: "rgba(163,230,53,0.3)", textColor: "#a3e635",
     features: [
       { text: "Thực đơn 7 ngày", available: true },
       { text: "AI không giới hạn", available: true },
@@ -46,18 +26,11 @@ const plans = [
       { text: "Thống kê tuần", available: true },
       { text: "Phân tích dinh dưỡng", available: false },
     ],
-    gradient: "from-amber-400 to-orange-500",
-    bgGradient: "from-amber-50 to-orange-50",
-    popular: true,
   },
   {
-    id: "pro",
-    name: "Pro",
-    icon: "🥇",
-    price: "199.000đ",
-    priceDetail: "/tháng",
-    subtitle: "Gói chuyên nghiệp",
-    description: "Tối ưu sức khỏe toàn diện",
+    id: "pro", name: "Pro", icon: "🥇", price: "199.000đ", priceDetail: "/tháng",
+    subtitle: "Gói chuyên nghiệp", description: "Tối ưu sức khỏe toàn diện", popular: false,
+    accentColor: "rgba(251,191,36,0.08)", borderColor: "rgba(251,191,36,0.3)", textColor: "#fbbf24",
     features: [
       { text: "Thực đơn 30 ngày", available: true },
       { text: "Phân tích dinh dưỡng", available: true },
@@ -65,293 +38,224 @@ const plans = [
       { text: "Xuất PDF", available: true },
       { text: "Hỗ trợ ưu tiên", available: true },
     ],
-    gradient: "from-yellow-400 to-amber-600",
-    bgGradient: "from-yellow-50 to-amber-50",
-    popular: false,
   },
+];
+
+const SETTINGS_MENU = [
+  { icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
+  { icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
+  { icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
+  { icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật" },
 ];
 
 export function ProfilePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-amber-50/30 via-white to-orange-50/20">
+    <div className="min-h-screen">
       <AppHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-          
-          {/* ═══════════════ LEFT SIDEBAR: Profile & Settings ═══════════════ */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-6">
-            
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* ── LEFT: Profile + Settings ─────────────────────────────── */}
+          <div className="lg:col-span-1 space-y-4">
+
             {/* Profile Card */}
-            <Card className="bg-white/80 backdrop-blur-sm border-amber-200/40 shadow-xl overflow-hidden">
+            <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
               {/* Header gradient */}
-              <div className="h-20 sm:h-24 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 relative">
-                <div className="absolute inset-0 opacity-20" style={{ 
-                  backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", 
-                  backgroundSize: "20px 20px" 
-                }} />
+              <div className="h-20 relative" style={{ background: "linear-gradient(135deg, #a3e635, #4ade80, #22d3ee)" }}>
+                <div className="absolute inset-0 opacity-20"
+                  style={{ backgroundImage: "radial-gradient(circle, rgba(0,0,0,0.3) 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
               </div>
-              
-              <CardContent className="pt-0 pb-4 sm:pb-6 px-4 sm:px-6 relative">
+
+              <div className="px-5 pb-5 relative">
                 {/* Avatar */}
-                <div className="flex justify-center -mt-10 sm:-mt-12 mb-3 sm:mb-4">
+                <div className="flex justify-center -mt-10 mb-4">
                   <div className="relative">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center border-4 border-white shadow-xl">
-                      <User className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-xl"
+                      style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", borderColor: "#0f1117" }}>
+                      <User className="w-10 h-10 text-gray-900" />
                     </div>
-                    <button className="absolute bottom-0 right-0 w-7 h-7 sm:w-8 sm:h-8 bg-white rounded-full border-2 border-amber-200 shadow-md flex items-center justify-center hover:bg-amber-50 transition-colors">
-                      <Edit2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
+                    <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 shadow-md transition-all hover:scale-110"
+                      style={{ background: "#1a1f2e", borderColor: "rgba(163,230,53,0.4)" }}>
+                      <Edit2 className="w-3.5 h-3.5 text-lime-400" />
                     </button>
                   </div>
                 </div>
 
                 {/* User info */}
-                <div className="text-center mb-4 sm:mb-6">
-                  <h2 className="text-lg sm:text-xl font-bold text-foreground mb-1">Nguyễn Văn A</h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">user@mealyummy.com</p>
-                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-md text-xs">
-                    <Crown className="w-3 h-3 mr-1" />
-                    Gói Free
-                  </Badge>
+                <div className="text-center mb-5">
+                  <h2 className="text-lg font-black text-white mb-1">Nguyễn Văn A</h2>
+                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>user@mealyummy.com</p>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+                    style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)", color: "#a3e635" }}>
+                    <Crown className="w-3 h-3" /> Gói Free
+                  </span>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <div className="text-center p-2 sm:p-3 bg-amber-50/50 rounded-xl border border-amber-200/30">
-                    <div className="text-lg sm:text-xl font-bold text-amber-600">12</div>
-                    <div className="text-[10px] sm:text-xs text-muted-foreground">Món đã lưu</div>
-                  </div>
-                  <div className="text-center p-2 sm:p-3 bg-orange-50/50 rounded-xl border border-orange-200/30">
-                    <div className="text-lg sm:text-xl font-bold text-orange-600">47</div>
-                    <div className="text-[10px] sm:text-xs text-muted-foreground">Lượt AI</div>
-                  </div>
-                  <div className="text-center p-2 sm:p-3 bg-amber-50/50 rounded-xl border border-amber-200/30">
-                    <div className="text-lg sm:text-xl font-bold text-amber-600">8</div>
-                    <div className="text-[10px] sm:text-xs text-muted-foreground">Ngày dùng</div>
-                  </div>
+                <div className="grid grid-cols-3 gap-2 mb-5">
+                  {[
+                    { val: "12", label: "Món đã lưu", color: "#a3e635" },
+                    { val: "47", label: "Lượt AI", color: "#4ade80" },
+                    { val: "8", label: "Ngày dùng", color: "#22d3ee" },
+                  ].map((s) => (
+                    <div key={s.label} className="text-center p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
+                      <div className="text-xl font-black mb-0.5" style={{ color: s.color }}>{s.val}</div>
+                      <div className="text-[10px]" style={{ color: "#64748b" }}>{s.label}</div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Quick info */}
-                <div className="space-y-2 text-xs sm:text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" />
+                {/* Contact info */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
+                    <Mail className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
                     <span className="truncate">user@mealyummy.com</span>
                   </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500 flex-shrink-0" />
+                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
+                    <Calendar className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
                     <span>Tham gia: 15/02/2026</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Settings Card */}
-            <Card className="bg-white/80 backdrop-blur-sm border-amber-200/40 shadow-lg">
-              <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
-                  Cài đặt tài khoản
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-1.5 sm:space-y-2 px-4 sm:px-6">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm sm:text-base text-foreground hover:bg-amber-50/50 hover:text-amber-600 h-9 sm:h-10"
-                >
-                  <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5 sm:mr-3 text-amber-500" />
-                  Chỉnh sửa hồ sơ
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm sm:text-base text-foreground hover:bg-amber-50/50 hover:text-amber-600 h-9 sm:h-10"
-                >
-                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5 sm:mr-3 text-amber-500" />
-                  Thay đổi mật khẩu
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm sm:text-base text-foreground hover:bg-amber-50/50 hover:text-amber-600 h-9 sm:h-10"
-                >
-                  <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5 sm:mr-3 text-amber-500" />
-                  Thông báo
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm sm:text-base text-foreground hover:bg-amber-50/50 hover:text-amber-600 h-9 sm:h-10"
-                >
-                  <Shield className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5 sm:mr-3 text-amber-500" />
-                  Bảo mật
-                </Button>
-                <div className="pt-2 sm:pt-3 border-t border-amber-200/30">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-sm sm:text-base text-destructive hover:bg-red-50 hover:text-destructive h-9 sm:h-10"
+            <div className="rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <h3 className="font-bold text-white text-base mb-3 flex items-center gap-2">
+                <Settings className="w-4 h-4 text-lime-400" /> Cài đặt tài khoản
+              </h3>
+              <div className="space-y-1">
+                {SETTINGS_MENU.map((item) => (
+                  <button key={item.label}
+                    className="w-full flex items-center gap-3 text-sm px-3 py-2.5 rounded-xl transition-all text-left"
+                    style={{ color: "#94a3b8" }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)";
+                      (e.currentTarget as HTMLButtonElement).style.color = "#f1f5f9";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                      (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                    }}
                   >
-                    <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2.5 sm:mr-3" />
-                    Đăng xuất
-                  </Button>
+                    {item.icon} {item.label}
+                  </button>
+                ))}
+                <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <button className="w-full flex items-center gap-3 text-sm px-3 py-2.5 rounded-xl transition-all"
+                    style={{ color: "#f87171" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,113,113,0.08)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                  >
+                    <LogOut className="w-4 h-4" /> Đăng xuất
+                  </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* ═══════════════ RIGHT CONTENT: Pricing Plans ═══════════════ */}
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
-            
+          {/* ── RIGHT: Pricing Plans ─────────────────────────────────── */}
+          <div className="lg:col-span-2 space-y-6">
+
             {/* Section header */}
-            <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-gradient-to-r from-amber-500/10 to-orange-500/10 rounded-full border border-amber-200/50 mb-3 sm:mb-4">
-                <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600" />
-                <span className="text-[10px] sm:text-xs font-semibold text-amber-700 tracking-wide uppercase">Nâng cấp tài khoản</span>
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
+                style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
+                <Rocket className="w-3.5 h-3.5" /> Nâng cấp tài khoản
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black text-foreground mb-1.5 sm:mb-2">
-                Chọn gói phù hợp với bạn
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Nâng cấp để mở khóa toàn bộ tính năng và trải nghiệm tốt nhất
-              </p>
+              <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">Chọn gói phù hợp</h2>
+              <p className="text-sm" style={{ color: "#64748b" }}>Nâng cấp để mở khóa toàn bộ tính năng</p>
             </div>
 
             {/* Pricing cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {plans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`relative group ${plan.popular ? "sm:col-span-2 md:col-span-1 md:-translate-y-3" : ""}`}
-                >
-                  {/* Popular badge */}
+                <div key={plan.id} className={`relative ${plan.popular ? "sm:-translate-y-2" : ""}`}>
                   {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs font-bold">
-                        <Star className="w-3.5 h-3.5 fill-white" />
-                        Phổ biến nhất
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
+                      <div className="px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 text-gray-900"
+                        style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
+                        <Star className="w-3 h-3 fill-current" /> Phổ biến nhất
                       </div>
                     </div>
                   )}
-
-                  {/* Card */}
-                  <Card 
-                    className={`relative overflow-hidden border-2 transition-all duration-300 h-full flex flex-col ${
-                      plan.popular 
-                        ? "border-amber-400 shadow-2xl shadow-amber-500/20 bg-white" 
-                        : "border-amber-200/40 hover:border-amber-300/60 hover:shadow-xl bg-white/80 backdrop-blur-sm"
-                    }`}
-                  >
-                    {/* Gradient header */}
-                    <div className={`h-2 bg-gradient-to-r ${plan.gradient}`} />
-                    
-                    {/* Top accent pattern */}
-                    <div className={`absolute top-2 inset-x-0 h-32 bg-gradient-to-b ${plan.bgGradient} opacity-40 rounded-t-3xl`} />
-
-                    <CardHeader className="text-center pb-3 relative z-10">
-                      {/* Icon */}
+                  <div className="relative rounded-2xl p-5 h-full flex flex-col transition-all hover:scale-[1.02]"
+                    style={{ background: plan.accentColor, border: `1px solid ${plan.borderColor}` }}>
+                    {/* Icon + name */}
+                    <div className="text-center mb-4">
                       <div className="text-4xl mb-2">{plan.icon}</div>
-                      
-                      {/* Plan name */}
-                      <CardTitle className="text-xl font-black mb-0.5">{plan.name}</CardTitle>
-                      <CardDescription className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                        {plan.subtitle}
-                      </CardDescription>
-                      
-                      {/* Price */}
-                      <div className="mt-3">
-                        <div className="flex items-baseline justify-center gap-1">
-                          <span className={`text-3xl font-black bg-gradient-to-r ${plan.gradient} bg-clip-text text-transparent`}>
-                            {plan.price.replace("đ", "")}
-                          </span>
-                          <span className="text-lg font-bold text-muted-foreground">đ</span>
+                      <h3 className="text-xl font-black text-white">{plan.name}</h3>
+                      <p className="text-xs uppercase tracking-wide mt-0.5" style={{ color: "#64748b" }}>{plan.subtitle}</p>
+                    </div>
+
+                    {/* Price */}
+                    <div className="text-center mb-5">
+                      <span className="text-3xl font-black" style={{ color: plan.textColor }}>
+                        {plan.price.replace("đ", "")}
+                      </span>
+                      <span className="text-lg font-bold" style={{ color: "#64748b" }}>đ</span>
+                      <p className="text-[10px]" style={{ color: "#64748b" }}>{plan.priceDetail}</p>
+                    </div>
+
+                    {/* Features */}
+                    <div className="space-y-2 flex-1 mb-5">
+                      {plan.features.map((feature, i) => (
+                        <div key={i} className={`flex items-center gap-2 ${!feature.available ? "opacity-35" : ""}`}>
+                          {feature.available ? (
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: plan.textColor }}>
+                              <Check className="w-2.5 h-2.5 text-gray-900" strokeWidth={3} />
+                            </div>
+                          ) : (
+                            <div className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                              style={{ background: "rgba(255,255,255,0.08)" }}>
+                              <X className="w-2.5 h-2.5" style={{ color: "#475569" }} strokeWidth={2.5} />
+                            </div>
+                          )}
+                          <span className="text-xs" style={{ color: "#cbd5e1" }}>{feature.text}</span>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">{plan.priceDetail}</span>
-                      </div>
-                    </CardHeader>
+                      ))}
+                    </div>
 
-                    <CardContent className="space-y-2 flex-1 py-4">
-                      {/* Features list */}
-                      <div className="space-y-1.5">
-                        {plan.features.map((feature, index) => (
-                          <div
-                            key={index}
-                            className={`flex items-start gap-2 ${
-                              !feature.available ? "opacity-40" : ""
-                            }`}
-                          >
-                            {feature.available ? (
-                              <div className={`flex-shrink-0 w-4 h-4 rounded-full bg-gradient-to-br ${plan.gradient} flex items-center justify-center mt-0.5`}>
-                                <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
-                              </div>
-                            ) : (
-                              <div className="flex-shrink-0 w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center mt-0.5">
-                                <X className="w-2.5 h-2.5 text-gray-400" strokeWidth={2.5} />
-                              </div>
-                            )}
-                            <span className="text-xs leading-tight">{feature.text}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-
-                    <CardFooter className="flex flex-col gap-2 pt-4 pb-5">
-                      <Button
-                        className={`w-full group/btn font-bold ${
-                          plan.id === "free"
-                            ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                            : `bg-gradient-to-r ${plan.gradient} text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all`
-                        }`}
-                        size="lg"
-                        disabled={plan.id === "free"}
-                      >
-                        {plan.id === "free" ? (
-                          <>
-                            <Check className="w-4 h-4 mr-2" />
-                            Gói hiện tại
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-4 h-4 mr-2 group-hover/btn:rotate-12 transition-transform" />
-                            Nâng cấp ngay
-                            <ArrowRight className="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
-                          </>
-                        )}
-                      </Button>
-                      <p className="text-xs text-center text-muted-foreground leading-relaxed">
-                        {plan.description}
-                      </p>
-                    </CardFooter>
-                  </Card>
+                    {/* CTA */}
+                    <button
+                      disabled={plan.id === "free"}
+                      className="w-full h-10 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-default"
+                      style={plan.id === "free"
+                        ? { background: "rgba(255,255,255,0.06)", color: "#64748b" }
+                        : { background: `linear-gradient(135deg, ${plan.textColor}, ${plan.id === "plus" ? "#4ade80" : "#f59e0b"})`, color: "#0f1117", fontWeight: 700 }
+                      }
+                    >
+                      {plan.id === "free" ? <><Check className="w-4 h-4" /> Gói hiện tại</> : <><Sparkles className="w-4 h-4" /> Nâng cấp ngay <ArrowRight className="w-4 h-4" /></>}
+                    </button>
+                    <p className="text-[10px] text-center mt-2" style={{ color: "#64748b" }}>{plan.description}</p>
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Bottom info */}
-            <Card className="bg-gradient-to-r from-amber-50/80 to-orange-50/60 border-amber-200/40">
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Trophy className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-bold text-foreground mb-1 text-base">Đảm bảo hoàn tiền trong 7 ngày</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-                      Không hài lòng? Chúng tôi hoàn lại 100% chi phí, không cần lý do. Hỗ trợ 24/7 cho tất cả gói trả phí.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        <Check className="w-3 h-3 mr-1" />
-                        Thanh toán an toàn
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        <Check className="w-3 h-3 mr-1" />
-                        Hủy bất kỳ lúc nào
-                      </Badge>
-                      <Badge variant="secondary" className="text-xs">
-                        <Check className="w-3 h-3 mr-1" />
-                        Không ràng buộc dài hạn
-                      </Badge>
-                    </div>
+            {/* Guarantee */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(163,230,53,0.04)", border: "1px solid rgba(163,230,53,0.15)" }}>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
+                  style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
+                  <Trophy className="w-6 h-6 text-gray-900" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white mb-1">Đảm bảo hoàn tiền trong 7 ngày</h3>
+                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>Không hài lòng? Chúng tôi hoàn lại 100% chi phí, không cần lý do.</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["Thanh toán an toàn", "Hủy bất kỳ lúc nào", "Không ràng buộc"].map((b) => (
+                      <span key={b} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                        style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                        <Check className="w-3 h-3" /> {b}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </main>
