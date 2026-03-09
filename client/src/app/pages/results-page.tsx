@@ -139,12 +139,12 @@ function DishCard({ dish, showRegion = false }: { dish: RankedDish; showRegion?:
             <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-lime-400" />{dish.cookTime} phút</span>
             <TrendBadge trend={dish.trend} value={dish.trendValue} />
           </div>
-          <Link to={dish.recipeId ? `/recipe/${dish.recipeId}` : "#"}>
+          <Link to={`/meal/${dish.id}`}>
             <button className="h-7 px-2 text-xs flex items-center gap-0.5 rounded-lg transition-colors"
               style={{ color: "#a3e635" }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}>
-              Xem công thức <ChevronRight className="w-3 h-3" />
+              Xem dinh dưỡng <ChevronRight className="w-3 h-3" />
             </button>
           </Link>
         </div>
@@ -168,11 +168,12 @@ const TABS = [
 export function ResultsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("season");
 
-  const dishes = activeTab === "season" ? SEASONAL_DISHES
+  const allDishes = activeTab === "season" ? SEASONAL_DISHES
     : activeTab === "bestseller" ? BESTSELLER_DISHES
       : REGIONAL_DISHES;
+  const dishes = allDishes.slice(0, 10);
 
-  const activeTabConfig = TABS.find((t) => t.id === activeTab)!;
+  const activeTabConfig = TABS.find((t) => t.id === activeTab)!
 
   return (
     <div className="min-h-screen">
@@ -229,7 +230,7 @@ export function ResultsPage() {
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold"
             style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }}>
-            TOP {dishes.length}
+            TOP {Math.min(allDishes.length, 10)}
           </span>
         </div>
 

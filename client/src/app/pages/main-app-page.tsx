@@ -45,6 +45,7 @@ export function MainAppPage() {
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState(mockRecipes);
   const [isTyping, setIsTyping] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(4);
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -124,260 +125,265 @@ export function MainAppPage() {
     <div className="min-h-screen">
       <AppHeader />
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
 
-        {/* ── Hero ──────────────────────────────────────────────────────── */}
-        <div className="text-center pt-12 pb-8">
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 text-xs font-bold uppercase tracking-widest"
-            style={{
-              background: "rgba(163,230,53,0.08)",
-              border: "1px solid rgba(163,230,53,0.25)",
-              color: "#a3e635",
-            }}
-          >
-            <Zap className="w-3.5 h-3.5" />
-            AI Gợi Ý Món Ăn
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 leading-tight">
-            Hôm nay ăn gì cho{" "}
-            <span className="text-lime-400">đúng mục tiêu?</span>
-          </h1>
-          <p className="text-slate-400 text-sm">
-            Nhập mô tả hoặc chọn tag để AI gợi ý món phù hợp với thể trạng của bạn
-          </p>
-        </div>
+        {/* ── Narrow wrapper: Hero + Search + Tags ──────────────────────── */}
+        <div className="max-w-3xl mx-auto">
 
-        {/* ── AI Search Input ────────────────────────────────────────────── */}
-        <div className="mb-4">
-          <div
-            className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all"
-            style={{
-              background: "rgba(26,31,46,0.9)",
-              border: isTyping
-                ? "1px solid rgba(163,230,53,0.5)"
-                : "1px solid rgba(255,255,255,0.08)",
-              boxShadow: isTyping
-                ? "0 0 24px rgba(163,230,53,0.12)"
-                : "0 4px 24px rgba(0,0,0,0.3)",
-            }}
-          >
-            {/* Icon */}
+          {/* ── Hero ──────────────────────────────────────────────────────── */}
+          <div className="text-center pt-12 pb-8">
             <div
-              className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4 text-xs font-bold uppercase tracking-widest"
+              style={{
+                background: "rgba(163,230,53,0.08)",
+                border: "1px solid rgba(163,230,53,0.25)",
+                color: "#a3e635",
+              }}
             >
-              <Sparkles className="w-4 h-4 text-gray-900" />
+              <Zap className="w-3.5 h-3.5" />
+              AI Gợi Ý Món Ăn
             </div>
-
-            <textarea
-              ref={inputRef}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsTyping(true)}
-              onBlur={() => setIsTyping(false)}
-              placeholder="Ví dụ: Món giàu protein ít béo, dưới 30 phút..."
-              rows={1}
-              className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed min-h-[28px] max-h-[120px] py-0.5"
-              style={{ color: "#f1f5f9" }}
-            />
-
-            {prompt && (
-              <button
-                onClick={() => setPrompt("")}
-                className="flex-shrink-0 mb-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
-                style={{ background: "rgba(255,255,255,0.08)" }}
-              >
-                <X className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-            )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={!prompt.trim() && activeTags.size === 0}
-              className="flex-shrink-0 mb-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
-            >
-              <ArrowUp className="w-4 h-4 text-gray-900" />
-            </button>
+            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 leading-tight">
+              Hôm nay ăn gì cho{" "}
+              <span className="text-lime-400">đúng mục tiêu?</span>
+            </h1>
+            <p className="text-slate-400 text-sm">
+              Nhập mô tả hoặc chọn tag để AI gợi ý món phù hợp với thể trạng của bạn
+            </p>
           </div>
 
-          <p className="text-[11px] mt-1.5 ml-1" style={{ color: "rgba(148,163,184,0.5)" }}>
-            <kbd
-              className="px-1 py-0.5 rounded font-mono text-[10px]"
-              style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-            >Enter</kbd>{" "}gửi ·{" "}
-            <kbd
-              className="px-1 py-0.5 rounded font-mono text-[10px]"
-              style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
-            >Shift+Enter</kbd>{" "}xuống dòng
-          </p>
-        </div>
-
-        {/* ── Quick Prompts ──────────────────────────────────────────────── */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {QUICK_PROMPTS.map((p) => (
-            <button
-              key={p.q}
-              onClick={() => handleQuickPrompt(p.q)}
-              className="text-xs px-3 py-1.5 rounded-full font-medium transition-all hover:-translate-y-0.5"
+          {/* ── AI Search Input ────────────────────────────────────────────── */}
+          <div className="mb-4">
+            <div
+              className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all"
               style={{
                 background: "rgba(26,31,46,0.9)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                color: "#94a3b8",
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.4)";
-                (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.06)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(255,255,255,0.08)";
-                (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,31,46,0.9)";
+                border: isTyping
+                  ? "1px solid rgba(163,230,53,0.5)"
+                  : "1px solid rgba(255,255,255,0.08)",
+                boxShadow: isTyping
+                  ? "0 0 24px rgba(163,230,53,0.12)"
+                  : "0 4px 24px rgba(0,0,0,0.3)",
               }}
             >
-              {p.label}
-            </button>
-          ))}
-        </div>
+              {/* Icon */}
+              <div
+                className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+              >
+                <Sparkles className="w-4 h-4 text-gray-900" />
+              </div>
 
-        {/* ── Tag Filter Strip ───────────────────────────────────────────── */}
-        <div
-          className="flex items-center gap-3 mb-6 rounded-xl px-4 py-3"
-          style={{
-            background: "rgba(26,31,46,0.6)",
-            border: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          {/* Label */}
-          <div
-            className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium pr-3"
-            style={{
-              color: "#64748b",
-              borderRight: "1px solid rgba(255,255,255,0.08)",
-            }}
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Lọc</span>
+              <textarea
+                ref={inputRef}
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setIsTyping(true)}
+                onBlur={() => setIsTyping(false)}
+                placeholder="Ví dụ: Món giàu protein ít béo, dưới 30 phút..."
+                rows={1}
+                className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed min-h-[28px] max-h-[120px] py-0.5"
+                style={{ color: "#f1f5f9" }}
+              />
+
+              {prompt && (
+                <button
+                  onClick={() => setPrompt("")}
+                  className="flex-shrink-0 mb-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                  style={{ background: "rgba(255,255,255,0.08)" }}
+                >
+                  <X className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={!prompt.trim() && activeTags.size === 0}
+                className="flex-shrink-0 mb-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+              >
+                <ArrowUp className="w-4 h-4 text-gray-900" />
+              </button>
+            </div>
+
+            <p className="text-[11px] mt-1.5 ml-1" style={{ color: "rgba(148,163,184,0.5)" }}>
+              <kbd
+                className="px-1 py-0.5 rounded font-mono text-[10px]"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
+              >Enter</kbd>{" "}gửi ·{" "}
+              <kbd
+                className="px-1 py-0.5 rounded font-mono text-[10px]"
+                style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}
+              >Shift+Enter</kbd>{" "}xuống dòng
+            </p>
           </div>
 
-          {/* Scrollable chips */}
+          {/* ── Quick Prompts ──────────────────────────────────────────────── */}
+          <div className="flex flex-wrap gap-2 mb-5">
+            {QUICK_PROMPTS.map((p) => (
+              <button
+                key={p.q}
+                onClick={() => handleQuickPrompt(p.q)}
+                className="text-xs px-3 py-1.5 rounded-full font-medium transition-all hover:-translate-y-0.5"
+                style={{
+                  background: "rgba(26,31,46,0.9)",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  color: "#94a3b8",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.4)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.06)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(255,255,255,0.08)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
+                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,31,46,0.9)";
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Tag Filter Strip ───────────────────────────────────────────── */}
           <div
-            className="flex-1 flex items-center gap-1.5 overflow-x-auto"
-            style={{ scrollbarWidth: "none" }}
+            className="flex items-center gap-3 mb-6 rounded-xl px-4 py-3"
+            style={{
+              background: "rgba(26,31,46,0.6)",
+              border: "1px solid rgba(255,255,255,0.06)",
+            }}
           >
-            {ALL_TAGS.map((tag) => {
-              const active = activeTags.has(tag.id);
-              return (
+            {/* Label */}
+            <div
+              className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium pr-3"
+              style={{
+                color: "#64748b",
+                borderRight: "1px solid rgba(255,255,255,0.08)",
+              }}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Lọc</span>
+            </div>
+
+            {/* Scrollable chips */}
+            <div
+              className="flex-1 flex items-center gap-1.5 overflow-x-auto"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {ALL_TAGS.map((tag) => {
+                const active = activeTags.has(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => toggleTag(tag.id)}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none whitespace-nowrap"
+                    style={
+                      active
+                        ? {
+                          background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                          color: "#0f1117",
+                          border: "1px solid transparent",
+                          fontWeight: 700,
+                        }
+                        : {
+                          background: "rgba(255,255,255,0.04)",
+                          color: "#94a3b8",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                        }
+                    }
+                  >
+                    {tag.label}
+                    {active && <span className="ml-1 opacity-70">×</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Clear */}
+            {activeTags.size > 0 && (
+              <button
+                onClick={() => setActiveTags(new Set())}
+                className="flex-shrink-0 flex items-center gap-1 text-xs transition-colors pl-3"
+                style={{
+                  color: "#64748b",
+                  borderLeft: "1px solid rgba(255,255,255,0.08)",
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span className="hidden sm:inline">Xoá</span>
+                <span
+                  className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}
+                >
+                  {activeTags.size}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* ── Active filter pills ────────────────────────────────────────── */}
+          {activeCnt > 0 && (
+            <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
+              <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc:</span>
+              {prompt.trim() && (
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  style={{
+                    background: "rgba(163,230,53,0.1)",
+                    border: "1px solid rgba(163,230,53,0.25)",
+                    color: "#a3e635",
+                  }}
+                >
+                  <Search className="w-3 h-3" />
+                  "{prompt.trim().slice(0, 24)}{prompt.trim().length > 24 ? "…" : ""}"
+                </span>
+              )}
+              {getActiveTagObjects().map((tag) => (
                 <button
                   key={tag.id}
                   onClick={() => toggleTag(tag.id)}
-                  className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none whitespace-nowrap"
-                  style={
-                    active
-                      ? {
-                        background: "linear-gradient(135deg, #a3e635, #4ade80)",
-                        color: "#0f1117",
-                        border: "1px solid transparent",
-                        fontWeight: 700,
-                      }
-                      : {
-                        background: "rgba(255,255,255,0.04)",
-                        color: "#94a3b8",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                      }
-                  }
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
+                  style={{
+                    background: "rgba(163,230,53,0.08)",
+                    border: "1px solid rgba(163,230,53,0.2)",
+                    color: "#a3e635",
+                  }}
                 >
-                  {tag.label}
-                  {active && <span className="ml-1 opacity-70">×</span>}
+                  {tag.label} <X className="w-2.5 h-2.5" />
                 </button>
-              );
-            })}
-          </div>
-
-          {/* Clear */}
-          {activeTags.size > 0 && (
-            <button
-              onClick={() => setActiveTags(new Set())}
-              className="flex-shrink-0 flex items-center gap-1 text-xs transition-colors pl-3"
-              style={{
-                color: "#64748b",
-                borderLeft: "1px solid rgba(255,255,255,0.08)",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span className="hidden sm:inline">Xoá</span>
-              <span
-                className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
-                style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}
-              >
-                {activeTags.size}
-              </span>
-            </button>
-          )}
-        </div>
-
-        {/* ── Active filter pills ────────────────────────────────────────── */}
-        {activeCnt > 0 && (
-          <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
-            <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc:</span>
-            {prompt.trim() && (
-              <span
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                style={{
-                  background: "rgba(163,230,53,0.1)",
-                  border: "1px solid rgba(163,230,53,0.25)",
-                  color: "#a3e635",
-                }}
-              >
-                <Search className="w-3 h-3" />
-                "{prompt.trim().slice(0, 24)}{prompt.trim().length > 24 ? "…" : ""}"
-              </span>
-            )}
-            {getActiveTagObjects().map((tag) => (
+              ))}
               <button
-                key={tag.id}
-                onClick={() => toggleTag(tag.id)}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
-                style={{
-                  background: "rgba(163,230,53,0.08)",
-                  border: "1px solid rgba(163,230,53,0.2)",
-                  color: "#a3e635",
-                }}
+                onClick={handleReset}
+                className="text-xs transition-colors"
+                style={{ color: "rgba(148,163,184,0.6)" }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(148,163,184,0.6)"; }}
               >
-                {tag.label} <X className="w-2.5 h-2.5" />
+                Đặt lại
               </button>
-            ))}
-            <button
-              onClick={handleReset}
-              className="text-xs transition-colors"
-              style={{ color: "rgba(148,163,184,0.6)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(148,163,184,0.6)"; }}
-            >
-              Đặt lại
-            </button>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* ── CTA Button ────────────────────────────────────────────────── */}
-        <button
-          onClick={handleSubmit}
-          disabled={!prompt.trim() && activeTags.size === 0}
-          className="w-full h-12 mb-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{
-            background: "linear-gradient(135deg, #a3e635, #4ade80)",
-            color: "#0f1117",
-            boxShadow: "0 0 30px rgba(163,230,53,0.25)",
-          }}
-        >
-          <Sparkles className="w-4 h-4" />
-          Gợi ý món cho tôi
-        </button>
+          {/* ── CTA Button ────────────────────────────────────────────────── */}
+          <button
+            onClick={handleSubmit}
+            disabled={!prompt.trim() && activeTags.size === 0}
+            className="w-full h-12 mb-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: "linear-gradient(135deg, #a3e635, #4ade80)",
+              color: "#0f1117",
+              boxShadow: "0 0 30px rgba(163,230,53,0.25)",
+            }}
+          >
+            <Sparkles className="w-4 h-4" />
+            Gợi ý món cho tôi
+          </button>
+
+        </div>{/* end narrow wrapper */}
 
         {/* ── Results ───────────────────────────────────────────────────── */}
         <div ref={resultsRef}>
@@ -423,11 +429,16 @@ export function MainAppPage() {
           ) : (
             <>
               <div className="flex items-center justify-between mb-5">
-                <h2 className="font-bold text-base text-white">Tất cả công thức</h2>
-                <span className="text-sm" style={{ color: "#64748b" }}>{mockRecipes.length} món</span>
+                <div>
+                  <h2 className="font-bold text-base text-white">Một vài món bạn có thể thích</h2>
+                </div>
+                <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                  style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }}>
+                  {Math.min(visibleCount, mockRecipes.length)} món
+                </span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {mockRecipes.map((r) => (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {mockRecipes.slice(0, visibleCount).map((r) => (
                   <RecipeCard
                     key={r.id}
                     recipe={r}
@@ -439,6 +450,22 @@ export function MainAppPage() {
                   />
                 ))}
               </div>
+              {visibleCount < mockRecipes.length && (
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={() => setVisibleCount((c) => c + 4)}
+                    className="h-11 px-8 rounded-2xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
+                  >
+                    Xem thêm {Math.min(4, mockRecipes.length - visibleCount)} món ↓
+                  </button>
+                </div>
+              )}
+              {visibleCount >= mockRecipes.length && mockRecipes.length > 16 && (
+                <p className="text-center text-xs mt-4" style={{ color: "#475569" }}>— Đã hiển thị tất cả {mockRecipes.length} món —</p>
+              )}
             </>
           )}
         </div>
@@ -538,7 +565,7 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
         </div>
 
         {/* CTA */}
-        <Link to={`/recipe/${recipe.id}`}>
+        <Link to={`/meal/${recipe.id}`}>
           <button
             className="w-full h-9 rounded-xl text-xs font-semibold transition-all"
             style={{
@@ -555,7 +582,7 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
               (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.2)";
             }}
           >
-            Xem công thức →
+            Xem dinh dưỡng →
           </button>
         </Link>
       </div>
