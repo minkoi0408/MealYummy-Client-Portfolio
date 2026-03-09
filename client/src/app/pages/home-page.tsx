@@ -69,7 +69,7 @@ export function HomePage() {
           <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-12 text-white relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/10 rounded-full blur-3xl"></div>
-            
+
             <div className="relative z-10 max-w-3xl">
               <div className="flex items-center gap-2 mb-4">
                 <ChefHat className="w-8 h-8" />
