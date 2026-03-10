@@ -501,4 +501,254 @@ export const mockRecipes: Recipe[] = [
     instructions: ["Nấu cơm, trộn giấm gạo đường ít muối khi cơm còn nóng", "Trộn cá ngừ với ít nước tương dầu mè", "Múc cơm vào tô", "Xếp cá ngừ lên giữa", "Thêm dưa muối, vừng", "Cuộn rong biển xung quanh hoặc cắt nhỏ rắc lên"],
     tips: "Cơm phải mới nấu và còn ấm để dễ vo cuộn — cơm nguội sẽ rời và không kết dính."
   },
+  {
+    id: "51", name: "Cơm sắn ức gà xào sả ớt",
+    description: "Sắn luộc thay cơm giúp tinh bột chuyển hóa chậm, kèm ức gà xào sả ớt đậm vị Việt.",
+    image: "https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "25 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "450 kcal", cuisine: "Việt Nam",
+    ingredients: ["300g ức gà", "200g sắn (khoai mì)", "Sả băm, ớt băm, tỏi", "Nước mắm, đường kiêng", "Dầu olive", "Rau luộc kèm theo"],
+    instructions: ["Sắn gọt vỏ luộc chín tới, cắt miếng", "Ức gà thái cục ướp sả ớt mắm 10 phút", "Phi thơm tỏi sả xào gà săn lại", "Dùng sắn ăn thay cơm trắng cùng gà xào"],
+    tips: "Luộc sắn với chút muối để ngon hơn, bỏ lõi sắn."
+  },
+  {
+    id: "52", name: "Salad bò Úc nướng sốt chanh leo",
+    description: "Thịt thăn bò nướng mềm trộn xà lách, vị sốt chanh leo chua ngọt không béo.",
+    image: "https://images.unsplash.com/photo-1603360946279-d579b2a75fb2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "10 phút", servings: "1 người", difficulty: "Trung bình",
+    calories: "320 kcal", cuisine: "Fusion",
+    ingredients: ["150g thăn bò Úc", "Rau hỗn hợp xà lách", "Cà chua bi, dưa leo", "1 quả chanh leo", "Mật ong, muối tiêu, dầu olive"],
+    instructions: ["Bò ướp muối tiêu áp chảo chín tới, thái mỏng", "Chắt nước chanh leo, pha mật ong dầu olive làm sốt", "Xếp rau ra đĩa, xếp thịt bò, rưới sốt trộn đều"],
+    tips: "Để thịt bò nghỉ 3 phút trước khi thái để giữ nước thịt ngọt."
+  },
+  {
+    id: "53", name: "Bánh kếp lúa mạch việt quất",
+    description: "Bánh pancake làm từ yến mạch và chuối tươi, topping việt quất cho bữa sáng nhiều năng lượng.",
+    image: "https://images.unsplash.com/photo-1528207776546-32248a4f4718?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "10 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "350 kcal", cuisine: "Quốc tế",
+    ingredients: ["100g bột yến mạch", "1 quả chuối chín", "1 quả trứng", "100ml sữa hạt", "Việt quất tươi", "Mật ong"],
+    instructions: ["Xay nhuyễn yến mạch, chuối, trứng, sữa", "Chảo chống dính phết xíu dầu, đổ bột nướng vàng 2 mặt", "Xếp bánh, thêm việt quất và rưới ít mật ong"],
+    tips: "Chảo phải nóng vừa để bánh xốp và không bị cháy mặt."
+  },
+  {
+    id: "54", name: "Mì khoai lang thịt băm Hàn Quốc",
+    description: "Mì làm từ sợi khoai lang (dangmyeon) dai ngon calo thấp trộn ức gà băm.",
+    image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "20 phút", cookTime: "15 phút", servings: "2 người", difficulty: "Trung bình",
+    calories: "380 kcal", cuisine: "Hàn Quốc",
+    ingredients: ["150g miến khoai lang", "150g ức gà băm", "Cải bó xôi, cà rốt", "Nước tương tương đen, dầu mè", "Tỏi, tiêu, vừng rang"],
+    instructions: ["Luộc miến 6 phút, xả nước lạnh", "Xào rau củ cho chín tới", "Xào ức gà băm với tỏi và gia vị", "Trộn chung miến, rau, thịt băm với tương đen dầu mè"],
+    tips: "Luộc miến xong nên trộn xíu dầu mè ngay để sợi không bị dính vào nhau."
+  },
+  {
+    id: "55", name: "Cơm rang tôm gạo súp lơ",
+    description: "Thay vì dùng cơm gạo trắng, dùng súp lơ trắng xay vụn xào cùng tôm cực ít tinh bột (Keto/Lowcarb).",
+    image: "https://images.unsplash.com/photo-1623961988960-9d04defcefd5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "15 phút", servings: "1 người", difficulty: "Dễ",
+    calories: "280 kcal", cuisine: "Châu Á",
+    ingredients: ["200g súp lơ trắng", "150g tôm sú bóc vỏ", "1 quả trứng", "Hành lá, hạt đậu hà lan", "Nước tương, tiêu"],
+    instructions: ["Xay súp lơ trắng thành hạt nhỏ cỡ hạt gạo", "Chiên trứng lốc qua để riêng", "Xào chín tôm, cho súp lơ vụn vào đảo 4-5 phút", "Trộn trứng, hành lá nêm nếm tắt bếp"],
+    tips: "Súp lơ xào nhanh tay lửa lớn, không nên để quá lâu sẽ bị chảy nước bấy."
+  },
+  {
+    id: "56", name: "Wrap gà nướng sữa chua",
+    description: "Bánh cuộn bắp tortilla với ức gà áp chảo ăn kèm sốt sữa chua Hy Lạp thanh mát.",
+    image: "https://images.unsplash.com/photo-1628840042765-356cda07504e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "10 phút", servings: "1 người", difficulty: "Dễ",
+    calories: "410 kcal", cuisine: "Mexico/Fusion",
+    ingredients: ["1 vỏ bánh tortilla nguyên cám", "150g ức gà xé", "Xà lách, mùi ta", "3 muỗng sữa chua Hy Lạp không đường", "Tỏi băm, chanh, ớt"],
+    instructions: ["Trộn sữa chua với cốt chanh, tỏi băm làm sốt", "Chảo khô làm nóng ấm vỏ bánh tortilla", "Trải vỏ bánh, lót rau, xếp gà xé, rưới sốt cuộn chặt"],
+    tips: "Vỏ bánh úp chảo 15s mỗi mặt là đủ, lâu hơn vỏ gãy."
+  },
+  {
+    id: "57", name: "Súp bí đỏ kem cốt dừa",
+    description: "Súp bí ngô mịn thơm với chút cốt dừa, phù hợp cho ngày nhẹ bụng hoặc Eat Clean chay.",
+    image: "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "30 phút", servings: "3 người", difficulty: "Dễ",
+    calories: "220 kcal", cuisine: "Phương Tây",
+    ingredients: ["500g bí đỏ", "100ml nước cốt dừa light", "1 củ hành tây", "Nước cốt hầm rau quả", "Muối, tiêu sọ, hạt bí rang"],
+    instructions: ["Bí đỏ gọt vỏ, thái khối hấp hoặc xào với hành tây cho thơm", "Đổ nước dùng ninh mềm bí 15 phút", "Xay nhuyễn mịn vớt cốt dừa nêm nếm", "Múc ra tô rắc hạt bí"],
+    tips: "Muốn súp ngậy mùi có thể nướng bí đỏ trước khi nấu súp."
+  },
+  {
+    id: "58", name: "Sandwich nguyên cám bơ trứng",
+    description: "Sandwich quốc dân của giới fitness: Bánh mì nâu giòn ăn kèm quả bơ béo tốt và trứng gà ốp.",
+    image: "https://images.unsplash.com/photo-1525351484163-7529414344d8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "5 phút", cookTime: "5 phút", servings: "1 người", difficulty: "Rất dễ",
+    calories: "380 kcal", cuisine: "Phương Tây",
+    ingredients: ["2 lát bánh mì nguyên cám", "1/2 quả bơ sáp chín", "1-2 quả trứng gà", "Muối hồng, tiêu, chanh"],
+    instructions: ["Bánh mì nướng giòn bằng lò nướng dẹt hoặc áp chảo", "Bơ dầm nhuyễn với xíu muối, chanh, phết lên bánh", "Trứng ốp la đặt lên trên bơ, rắc tiêu"],
+    tips: "Sử dụng dầu xịt (cook spray) để trứng ốp la giảm tối đa calo dẫu mỡ."
+  },
+  {
+    id: "59", name: "Thịt heo luộc cuộn cải bẹ xanh",
+    description: "Món ăn thanh tao cực Việt Nam: Nạc thăn heo luộc cuộn lá cải chấm mù tạt chua cay.",
+    image: "https://images.unsplash.com/photo-1510693245450-428612140e43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "20 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "310 kcal", cuisine: "Việt Nam",
+    ingredients: ["300g thăn nạc heo (không mỡ)", "Cải bẹ xanh lá bản to", "Hành lá chần", "Pha nước chấm chanh tỏi ớt, ít mù tạt (wasabi)"],
+    instructions: ["Heo luộc gừng hành cho thơm, vớt ra thái con chì dài", "Cải bẹ rửa sạch chia lá", "Dùng lá cải cuộn miếng thịt, buộc bằng cọng hành chần", "Chấm nước chấm pha loãng"],
+    tips: "Luộc thăn nạc đừng lâu quá thịt bị xơ, nên ngâm nước đá lạnh cho giòn."
+  },
+  {
+    id: "60", name: "Đậu phụ Tứ Xuyên chay ức gà",
+    description: "Phiên bản Mapo Tofu cay nồng giảm calo: dùng ức gà băm thay thịt lợn mỡ.",
+    image: "https://images.unsplash.com/photo-1513442542250-854d436a73f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "15 phút", servings: "2 người", difficulty: "Trung bình",
+    calories: "250 kcal", cuisine: "Trung Quốc",
+    ingredients: ["1 hộp đậu hũ non", "150g ức gà băm mịn", "Sốt tương cay Tứ Xuyên (Doubanjiang)", "Hành lá, gừng, tỏi, bột hoa tiêu", "Bột năng nêm xíu nước"],
+    instructions: ["Đậu thái vuông chần nước muối ấm nóng", "Phi thơm tỏi gừng, xào thịt gà áp vàng", "Cho tương cay vào xào ra màu dầu, hế nước dùng đun sôi", "Trút đậu hũ vào lắc nhẹ chảo, chế bột năng làm sệt sốt", "Rắc hành lá, tiêu Tứ Xuyên"],
+    tips: "Không dùng đũa khuấy mạnh sẽ nát đậu non, chỉ cầm cán chảo lắc nhẹ."
+  },
+  {
+    id: "61", name: "Cá basa áp chảo sốt chanh tây",
+    description: "Thịt cá fillet mềm áp chảo sốt chua dịu bơ chanh tây không ngấy mỡ.",
+    image: "https://images.unsplash.com/photo-1594041680534-e8c8cdebd659?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "15 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "280 kcal", cuisine: "Quốc tế",
+    ingredients: ["300g phi lê cá basa/cá trắng", "Nửa quả chanh vàng tây", "10g bơ lạt", "Mùi tây băm nhỏ", "Muối, tiêu sọ đen"],
+    instructions: ["Phi lê cá ướp muối tiêu, áp chảo chín vàng 2 mặt vớt ra", "Dùng chảo đó, vắt chanh thả bơ lạt khuấy tan tắt lửa", "Rưới sốt bơ chanh lên cá, rắc mùi tây xắt nhỏ"],
+    tips: "Cá basa khá mềm nên để lửa hơi lớn áp nhanh tạo lớp vỏ áp chảo săn."
+  },
+  {
+    id: "62", name: "Khoai tây bỏ lò thảo mộc",
+    description: "Khoai tây nướng giòn thay vì chiên ngập dầu, nguồn tinh bột tốt ăn kèm các món chính.",
+    image: "https://images.unsplash.com/photo-1593560708920-61dd98c46a4e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "35 phút", servings: "3 người", difficulty: "Dễ",
+    calories: "160 kcal", cuisine: "Phương Tây",
+    ingredients: ["3 củ khoai tây vừa", "1 muỗng dầu olive", "Hương thảo mộc (rosemary/thyme)", "Bột tỏi, muối hạt to, tiêu"],
+    instructions: ["Khoai tây để nguyên vỏ rửa kĩ, bổ múi cau", "Sơ luộc khoai 5 phút lọc ráo", "Xóc khoai với dầu olive và mộc thảo", "Nướng bằng nồi chiên không dầu 200°C 20-25 phút cho xém cạnh"],
+    tips: "Luộc sơ trước khi nướng giúp khoai tây mềm trong bột và ngoài giòn tan."
+  },
+  {
+    id: "63", name: "Smothie Bowl hạt chia quả mọng",
+    description: "Sinh tố tô sền sệt siêu topping ăn như kem mà rất heathy, calo đẹp cho buổi sáng.",
+    image: "https://images.unsplash.com/photo-1556881286-fc6915169721?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "0 phút", servings: "1 người", difficulty: "Rất dễ",
+    calories: "320 kcal", cuisine: "Hiện đại",
+    ingredients: ["1 quả chuối đông đá cứng", "100g dâu tây việt quất đông lạnh", "50ml sữa tươi không đường/nước dừa", "Hạt chia, hạnh nhân lát, quả tươi làm topping"],
+    instructions: ["Bỏ trái cây đông đá và ít rữa vào cối nghiền nhuyễn", "Đổ hỗn hợp ra tô nông", "Xếp topping hạt quả cắt dẹp trên mặt", "Xúc ăn bằng muỗng để cảm nhận độ lạnh dẻo"],
+    tips: "Trái cây bắt buộc đông đá cứng mới ra được chất sánh dẻo như kem."
+  },
+  {
+    id: "64", name: "Cơm trộn Hàn Quốc Bibimbap lứt",
+    description: "Bibimbap healthy với toàn rau và thịt nạc, dùng gạo lứt và sốt gochujang pha ít đường.",
+    image: "https://images.unsplash.com/photo-1553163147-622ab57ecd16?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "25 phút", cookTime: "15 phút", servings: "1 người", difficulty: "Trung bình",
+    calories: "450 kcal", cuisine: "Hàn Quốc",
+    ingredients: ["1 chén con cơm gạo lứt", "1 quả trứng ốp la", "50g thịt bò xào", "Cải bó xôi, giá đỗ, nấm kim châm, cà rốt", "Tương ớt Hàn, dầu mè"],
+    instructions: ["Các loại rau củ thái sợi, chần/xào riêng từng món nêm xíu muối", "Thịt bò xào nhanh", "Lót cơm ở đáy tô, xếp rau thịt hoa văn vòng tròn", "Thêm trứng ốp ở giữa, rưới tương ớt và dầu mè trộn đều"],
+    tips: "Pha loãng Gochujang với chút nước lọc và đường kiêng để sốt dễ trộn và bớt calo."
+  },
+  {
+    id: "65", name: "Nộm gà xé hoa chuối",
+    description: "Hoa chuối chống oxy hóa mạnh trộn cùng ức gà xé, mắm chua ngọt, cực tốt cho người ăn eat-clean.",
+    image: "https://images.unsplash.com/photo-1548841445-56faea257b44?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "20 phút", cookTime: "20 phút", servings: "3 người", difficulty: "Trung bình",
+    calories: "210 kcal", cuisine: "Việt Nam",
+    ingredients: ["300g ức gà luộc xé phay", "300g hoa chuối thái mỏng", "Cà rốt bào sợi", "Rau răm, ngò rí, đậu phộng rang", "Nước cốt chanh, nước mắm, tỏi ớt băm"],
+    instructions: ["Hoa chuối thái tới đâu ngâm nước chanh pha loãng tới đó bớt chát, vớt vắt kiệt", "Hòa mắm chanh tỏi ớt chua ngọt nêm vừa", "Trộn gà, hoa chuối, cà rốt với sốt cho thấm", "Nhặt rau thơm rắc lên trên, rắc đậu phộng"],
+    tips: "Hoa chuối ngâm chanh/đá giúp trắng hoa và vô cùng giòn sật."
+  },
+  {
+    id: "66", name: "Pudding hạt chia trà xanh matcha",
+    description: "Tráng miệng nhưng đủ chất macro: pudding hạt chia nức matcha chống lão hóa.",
+    image: "https://images.unsplash.com/photo-1582046294717-d5d144dbec0a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "5 phút", cookTime: "0 phút", servings: "1 người", difficulty: "Rất dễ",
+    calories: "260 kcal", cuisine: "Fusion",
+    ingredients: ["3 muỗng hạt chia", "150ml sữa tươi/sữa hạnh nhân", "1 muỗng bột matcha nguyên chất", "Mật ong, xoài ngọt xắt lựu"],
+    instructions: ["Hòa tan bột matcha với lớp nước ấm xíu", "Đổ sữa và mật ong, quấy chia đều", "Giữ tủ lạnh ít nhất 4 tiếng hoặc qua đêm để chia ngậm nước nở nhuyễn mượt", "Trang trí xoài tươi bên trên"],
+    tips: "Nhớ khuấy hạt chia làm 2 lần cách nhau 15 phút đầu tiên để chia không bị quón cục."
+  },
+  {
+    id: "67", name: "Súp lơ nhồi ức gà đút lò",
+    description: "Thịt gà băm nhét vô giữa hoa bông cải xanh, rắc chút phô mai đút lò ăn không bị khô gắt.",
+    image: "https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "20 phút", cookTime: "25 phút", servings: "2 người", difficulty: "Trung bình",
+    calories: "340 kcal", cuisine: "Âu",
+    ingredients: ["1 búp súp lơ xanh lớn", "200g ức gà xay nhuyễn", "Hành tây, mộc nhĩ dăm", "Muối, tiêu tây, phô mai lát giảm béo"],
+    instructions: ["Súp lơ chẻ nhẽ gốc, trần nước sôi", "Ức gà ướp gia vị bóp nhuyễn nhét nhẹ giữa các nhánh súp lơ", "Đặt súp lơ lên khay lò nướng 180°C 20 phút", "5 phút cuối phủ lát phô mai cho chảy mặt"],
+    tips: "Dùng tăm đâm ức gà nhét đều vô lõi để bông cải xanh chín không rớt thịt ra."
+  },
+  {
+    id: "68", name: "Cà tím nướng mỡ hành",
+    description: "Món phụ đậm chất chay xơ, nướng thơm lừng nhưng dùng xịt olive thay dầu mỡ độc hại.",
+    image: "https://images.unsplash.com/photo-1579691370838-89547d79b900?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "15 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "90 kcal", cuisine: "Việt Nam",
+    ingredients: ["2 trái cà tím", "Hành lá", "Nước tương, 1 xíu dầu olive"],
+    instructions: ["Cà tím để nguyên vỏ rửa sạch, xăm đâm nướng bằng nồi chiên lột xác chảo nhôm", "Hành lá trụng dầu olive nóng làm mỡ hành healthy", "Cà chín xé dọc dầm nước tương, trét mỡ hành lên"],
+    tips: "Bỏ cà tím vô nồi chiên không dầu nướng nhàn và nhanh hơn than nướng xưa."
+  },
+  {
+    id: "69", name: "Tôm rim củ đậu (sắn dừa)",
+    description: "Món mặn mâm cơm Eat-clean với củ đậu thanh mát gỡ ngán tôm sú săn chắc mặn mà.",
+    image: "https://images.unsplash.com/photo-1564834744159-ff0ea41ba4b9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "20 phút", servings: "3 người", difficulty: "Trung bình",
+    calories: "250 kcal", cuisine: "Việt Nam",
+    ingredients: ["300g tôm thẻ lột sạch", "1 củ đậu (củ sắn) thái vuông xóc", "Nước màu dừa, tỏi, tiêu, nước mắm", "Hành lá chẻ"],
+    instructions: ["Tôm rang sơ cho chẻ", "Nêm phi tỏi, mắm, mầu", "Dội củ đậu, xào lửa hơi to đảo mặn mòi giòn mềm thì ngưng", "Rắc tiêu sọ cho thơm"],
+    tips: "Củ đậu ra nước nên khi rim tôm bật lửa riu riu rút cạn nước sệt."
+  },
+  {
+    id: "70", name: "Nem lụi ức gà nướng sả",
+    description: "Phiên bản nem lụi miền Trung siêu dồi dào đạm, thay heo tôm mỡ bằng ức gà bọc sả nướng lụi than.",
+    image: "https://images.unsplash.com/photo-1546793665-c74683f339c1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "25 phút", cookTime: "15 phút", servings: "3 người", difficulty: "Khó",
+    calories: "320 kcal", cuisine: "Việt Nam",
+    ingredients: ["400g ức gà xay nhuyễn", "Sả cây", "Giò sống (rất nhỏ để dính)", "Hành tím, tỏi, bột ngọt mắm", "Rau cuốn"],
+    instructions: ["Trộn thịt bò gà với cốt hành, tỏi, bóp dẻo dai nhuyễn quết tốt", "Bọc thịt quấn quanh que thân sả", "Nướng áp chảo/Air Fryer 180°C xịt một chút dầu olive cho bóng", "Cuốn rau xà lách dưa leo"],
+    tips: "Bóp gà thêm dầu xíu quết sẽ dẻo không bị bã bờ khô vỡ."
+  },
+  {
+    id: "71", name: "Chả giò nướng healthy",
+    description: "Chả giò (nem rán) không ngập dầu phi mỡ, nhân cực kì nạc thanh.",
+    image: "https://images.unsplash.com/photo-1601314167389-8a58a9e40049?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "40 phút", cookTime: "20 phút", servings: "4 người", difficulty: "Trung bình",
+    calories: "280 kcal", cuisine: "Việt Nam",
+    ingredients: ["Thịt băm nạc vai/tôm", "Miến, mộc nhĩ", "Cà rốt su hào", "Bánh đa nem", "Lòng đỏ trứng phết"],
+    instructions: ["Nhân trộn đều cuốn chặt bằng bánh tráng", "Phết sệt lòng đỏ trứng ở khe cuốn chả lên vỏ bánh tạo màu nướng", "Lò chiên không dầu 180°C 15 phút đảo mặt nướng tiếp 5 phút"],
+    tips: "Phết vỏ bánh đa bằng trứng chút giấm giúp màu chả giò bóng rộm ngon không mỡ."
+  },
+  {
+    id: "72", name: "Bò kho gân ít béo",
+    description: "Bò kho thơm sả lừng lẫy, nhiều gân thăn nạc không dùng mỡ, collagen chực nhiều.",
+    image: "https://images.unsplash.com/photo-1615486171448-4fd67ac0a3fc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "30 phút", cookTime: "120 phút", servings: "4 người", difficulty: "Khó",
+    calories: "450 kcal", cuisine: "Việt Nam",
+    ingredients: ["500g bắp bò nạc lõi hoa gân", "Cà chua sả quế hồi", "Cà rốt tỏi", "Bột bò kho ngũ vị hương"],
+    instructions: ["Sơ chế thịt xắn cục, ướp ngũ vị 2 tiếng", "Hầm nhừ với hoa hồi gừng sả lá thơm trong vòng 2 giờ (nồi áp suất 30')", "Châm cà rốt vô luộc sôi lút là chín mềm"],
+    tips: "Hớt sạch lớp váng bò dầu mỡ nổi khi ninh sôi thì tô thập cẩm bò kho siêu gầy nạc mĩ miều."
+  },
+  {
+    id: "73", name: "Trà đào chanh sả quế",
+    description: "Nước detox giải nhiệt thay giải bia khát cực phê mà lượng đường ZERO.",
+    image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "10 phút", cookTime: "15 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "10 kcal", cuisine: "VietNam/Tea",
+    ingredients: ["Trà đen oolong", "Sả đập dập đun", "Đào tươi ngâm diet", "Syrup đường ăn kiêng lỏng", "Chanh"],
+    instructions: ["Đun cành sả ngâm quế sôi thơm hãm trà đen", "Để nguội lọc nước", "Pha vào cốc đã đá viên róc rót, si-ro lỏng quấy đều", "Thả vài cọng sả miếng đào"],
+    tips: "Đào phải giòn cắn tươi chứ đào đóng lon hộp thiếc ốp là đường hóa học sệt rất béo."
+  },
+  {
+    id: "74", name: "Muffin chuối đậu gà",
+    description: "Bánh bông lan nướng dạng muffin ngọt thay bột tẻ bằng đậu gà hầm say cực ngon hi-protein.",
+    image: "https://images.unsplash.com/photo-1621236378699-8597faf6a176?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "25 phút", cookTime: "25 phút", servings: "6 cái", difficulty: "Mức cao",
+    calories: "180 kcal", cuisine: "Âu-Bánh",
+    ingredients: ["1 hộp đậu gà đã hấp xay cực nhuyễn ko vỏ", "Ban chuối chín tán", "2 trứng", "Vani bột nổi, đường mật bưởi dừa", "Mảnh chocola vụn đen đắng 80%"],
+    instructions: ["Trộn tán đều khô với ướt, xay cho nổi xốp", "Thả chocolate chips vào lộn quấy tròn", "Đổ chia khuôn cupcakes nướng 180°C tầm 20-30 phút xiên que thấy khô ráo rãnh"],
+    tips: "Đậu gà làm vỏ lõi thay bột nở nên ăn bánh hơi cứng nhẹ ẩm ẩm chớ mềm bục vì ko bơ sữa."
+  },
+  {
+    id: "75", name: "Đậu cuộn rong tía tô chay",
+    description: "Thanh mát vị tía tô bọc đậu mềm dăm nhúng sốt me đậu đen, Vegan Pro",
+    image: "https://images.unsplash.com/photo-1547496502-affa22d38842?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
+    prepTime: "15 phút", cookTime: "10 phút", servings: "2 người", difficulty: "Dễ",
+    calories: "150 kcal", cuisine: "Việt/Phật",
+    ingredients: ["Đậu hũ truyền thống bào mảnh", "Lá bọc tía tô / rong mỏng", "Hành baro, sắn mộc nhĩ làm nhân", "Sốt tương dừa"],
+    instructions: ["Dầm đậu với sắn nhĩ nêm mặn chay vừa quết", "Thả vo miếng bọc lá tía tô dán kín", "Chiên khẽ chảo tefel ko mỡ lăn mặt", "Gởi sốt tương me rim lướt thơm rắc hành"],
+    tips: "Lá tía tô rất rễ rách khi gặp nhiệt, quấn khéo chít mặt hở đè trượt chảo teflon 1 xíu thôi."
+  }
 ];

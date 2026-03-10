@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useState, useRef, useEffect } from "react";
 import {
   Sparkles, Clock, Heart, ArrowUp, X, Flame, ChefHat,
-  RotateCcw, SlidersHorizontal, Search, Zap,
+  RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
 import { mockRecipes } from "../data/mock-recipes";
@@ -12,21 +12,36 @@ import { toast } from "sonner";
 
 // ─── Tags ─────────────────────────────────────────────────────────────────────
 
-const ALL_TAGS = [
-  { id: "viet", label: "🇻🇳 Việt Nam", match: (r: any) => r.cuisine === "Việt Nam" },
-  { id: "thai", label: "🇹🇭 Thái Lan", match: (r: any) => r.cuisine === "Thái Lan" },
-  { id: "an", label: "🇮🇳 Ấn Độ", match: (r: any) => r.cuisine === "Ấn Độ" },
-  { id: "y", label: "🇮🇹 Ý", match: (r: any) => r.cuisine === "Ý" },
-  { id: "achau", label: "🥢 Á châu", match: (r: any) => r.cuisine === "Á châu" },
-  { id: "fast", label: "⚡ < 20 phút", match: (r: any) => parseInt(r.cookTime) < 20 },
-  { id: "mid", label: "⏱ 20–45 phút", match: (r: any) => { const t = parseInt(r.cookTime); return t >= 20 && t <= 45; } },
-  { id: "slow", label: "🍲 > 45 phút", match: (r: any) => parseInt(r.cookTime) > 45 },
-  { id: "low", label: "🥗 Ít calo", match: (r: any) => parseInt(r.calories) < 400 },
-  { id: "chay", label: "🌿 Ăn chay", match: (r: any) => !r.ingredients?.some((i: string) => /thịt|bò|gà|tôm|cá|mực/i.test(i)) },
-  { id: "easy", label: "😊 Dễ làm", match: (r: any) => r.difficulty === "Dễ" },
-  { id: "sang", label: "🌅 Bữa sáng", match: (r: any) => parseInt(r.cookTime) <= 20 },
-  { id: "anvat", label: "🍡 Ăn vặt", match: (r: any) => parseInt(r.calories) < 300 },
+const CATEGORY_TAGS = [
+  {
+    category: "Mục tiêu & Chế độ",
+    tags: [
+      { id: "high-protein", label: "💪 Giàu Protein", match: (r: any) => parseInt(r.calories) > 0 && (r.description.includes("protein") || r.description.includes("cơ")) },
+      { id: "low-calo", label: "🥗 Ít Calo (<400)", match: (r: any) => parseInt(r.calories) < 400 },
+      { id: "eat-clean", label: "🌿 Eat Clean", match: (r: any) => r.description.includes("clean") || r.description.includes("sạch") },
+      { id: "chay", label: "🥬 Thuần Chay", match: (r: any) => !r.ingredients?.some((i: string) => /thịt|bò|gà|tôm|cá|mực|heo|trứng/i.test(i)) },
+    ]
+  },
+  {
+    category: "Thời gian nấu",
+    tags: [
+      { id: "fast", label: "⚡ Siêu tốc (<15p)", match: (r: any) => parseInt(r.cookTime) <= 15 },
+      { id: "mid", label: "⏱ Vừa phải (15-30p)", match: (r: any) => { const t = parseInt(r.cookTime); return t > 15 && t <= 30; } },
+      { id: "slow", label: "🍲 Nấu chậm (>30p)", match: (r: any) => parseInt(r.cookTime) > 30 },
+    ]
+  },
+  {
+    category: "Ẩm thực",
+    tags: [
+      { id: "viet", label: "🇻🇳 Việt Nam", match: (r: any) => r.cuisine === "Việt Nam" },
+      { id: "han", label: "🇰🇷 Hàn Quốc", match: (r: any) => r.cuisine === "Hàn Quốc" },
+      { id: "tay", label: "🥩 Phương Tây", match: (r: any) => r.cuisine === "Âu" || r.cuisine === "Ý" || r.cuisine === "Phương Tây" },
+      { id: "fusion", label: "✨ Fusion", match: (r: any) => r.cuisine === "Fusion" || r.cuisine === "Quốc tế" },
+    ]
+  }
 ];
+
+const ALL_TAGS = CATEGORY_TAGS.flatMap(g => g.tags);
 
 const QUICK_PROMPTS = [
   { label: "💪 High protein", q: "protein" },
@@ -45,6 +60,7 @@ export function MainAppPage() {
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState(mockRecipes);
   const [isTyping, setIsTyping] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -247,85 +263,68 @@ export function MainAppPage() {
             ))}
           </div>
 
-          {/* ── Tag Filter Strip ───────────────────────────────────────────── */}
-          <div
-            className="flex items-center gap-3 mb-6 rounded-xl px-4 py-3"
-            style={{
-              background: "rgba(26,31,46,0.6)",
-              border: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            {/* Label */}
-            <div
-              className="flex-shrink-0 flex items-center gap-1.5 text-xs font-medium pr-3"
+          {/* ── Advanced Filter Toggle ─────────────────────────────────────── */}
+          <div className="mb-4">
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
               style={{
-                color: "#64748b",
-                borderRight: "1px solid rgba(255,255,255,0.08)",
+                background: filterOpen ? "rgba(163,230,53,0.08)" : "rgba(26,31,46,0.6)",
+                border: filterOpen ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Lọc</span>
-            </div>
+              <div className="flex items-center gap-2" style={{ color: filterOpen ? "#a3e635" : "#94a3b8" }}>
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className="text-sm font-semibold">{filterOpen ? "Đóng bộ lọc" : "Lọc theo nhu cầu"}</span>
+                {activeTags.size > 0 && !filterOpen && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "#a3e635", color: "#0f1117" }}>
+                    {activeTags.size}
+                  </span>
+                )}
+              </div>
+              <ChevronDown className="w-4 h-4 transition-transform" style={{ color: filterOpen ? "#a3e635" : "#475569", transform: filterOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </button>
 
-            {/* Scrollable chips */}
-            <div
-              className="flex-1 flex items-center gap-1.5 overflow-x-auto"
-              style={{ scrollbarWidth: "none" }}
-            >
-              {ALL_TAGS.map((tag) => {
-                const active = activeTags.has(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    onClick={() => toggleTag(tag.id)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all select-none whitespace-nowrap"
-                    style={
-                      active
-                        ? {
-                          background: "linear-gradient(135deg, #a3e635, #4ade80)",
-                          color: "#0f1117",
-                          border: "1px solid transparent",
-                          fontWeight: 700,
-                        }
-                        : {
-                          background: "rgba(255,255,255,0.04)",
-                          color: "#94a3b8",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                        }
-                    }
-                  >
-                    {tag.label}
-                    {active && <span className="ml-1 opacity-70">×</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Clear */}
-            {activeTags.size > 0 && (
-              <button
-                onClick={() => setActiveTags(new Set())}
-                className="flex-shrink-0 flex items-center gap-1 text-xs transition-colors pl-3"
-                style={{
-                  color: "#64748b",
-                  borderLeft: "1px solid rgba(255,255,255,0.08)",
-                }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
-              >
-                <RotateCcw className="w-3 h-3" />
-                <span className="hidden sm:inline">Xoá</span>
-                <span
-                  className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{ background: "rgba(248,113,113,0.15)", color: "#f87171" }}
-                >
-                  {activeTags.size}
-                </span>
-              </button>
+            {/* Filter Panel Dropdown */}
+            {filterOpen && (
+              <div className="mt-2 p-4 sm:p-5 rounded-xl animate-in fade-in" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                <div className="grid gap-5">
+                  {CATEGORY_TAGS.map((group, idx) => (
+                    <div key={idx}>
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2.5" style={{ color: "#64748b" }}>{group.category}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {group.tags.map(tag => {
+                          const active = activeTags.has(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              onClick={() => toggleTag(tag.id)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                              style={active
+                                ? { background: "rgba(163,230,53,0.15)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }
+                                : { background: "rgba(255,255,255,0.03)", color: "#cbd5e1", border: "1px solid rgba(255,255,255,0.08)" }
+                              }
+                            >
+                              {active && <Check className="w-3 h-3" />}
+                              {tag.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Panel Footer */}
+                {activeTags.size > 0 && (
+                  <div className="mt-5 pt-3 flex justify-end" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                    <button onClick={() => { setActiveTags(new Set()); setFilterOpen(false); }} className="text-xs font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-white/5" style={{ color: "#f87171" }}>
+                      Xóa tất cả bộ lọc
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
-          {/* ── Active filter pills ────────────────────────────────────────── */}
           {activeCnt > 0 && (
             <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
               <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc:</span>
@@ -383,7 +382,7 @@ export function MainAppPage() {
             Gợi ý món cho tôi
           </button>
 
-        </div>{/* end narrow wrapper */}
+        </div > {/* end narrow wrapper */}
 
         {/* ── Results ───────────────────────────────────────────────────── */}
         <div ref={resultsRef}>
@@ -469,8 +468,8 @@ export function MainAppPage() {
             </>
           )}
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }
 
