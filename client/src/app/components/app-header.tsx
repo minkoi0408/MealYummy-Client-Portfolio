@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router";
 import { useState } from "react";
 import {
-  Dumbbell,
   Sparkles,
   Trophy,
   Heart,
@@ -40,15 +39,11 @@ export function AppHeader() {
 
           {/* ── Logo ─────────────────────────────────────── */}
           <Link to="/home" className="flex items-center gap-2 sm:gap-2.5 group flex-shrink-0">
-            <div
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform"
-              style={{
-                background: "linear-gradient(135deg, #a3e635, #4ade80)",
-                boxShadow: "0 0 16px rgba(163,230,53,0.4)",
-              }}
-            >
-              <Dumbbell className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900" />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="MealYummy Logo"
+              className="w-8 h-8 sm:w-9 sm:h-9 object-contain group-hover:scale-105 transition-transform"
+            />
             <div className="flex flex-col leading-none">
               <span
                 className="font-bold text-sm sm:text-base leading-tight"
