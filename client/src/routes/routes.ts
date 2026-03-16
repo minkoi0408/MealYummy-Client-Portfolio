@@ -55,6 +55,10 @@ export const router = createBrowserRouter([
     Component: NearbyRestaurantsPage,
   },
   {
+    path: "/nearby-restaurants",
+    Component: NearbyRestaurantsPage,
+  },
+  {
     path: "/shopping",
     Component: ShoppingPage,
   },
