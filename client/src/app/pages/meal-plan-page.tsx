@@ -17,6 +17,7 @@ import { toast } from "sonner";
 const MEAL_SLOTS = [
   { value: "breakfast" as const, label: "Bữa sáng", emoji: "🌅", time: "6:00 – 9:00", accentColor: "rgba(251,191,36,0.06)", borderColor: "rgba(251,191,36,0.25)", headerColor: "#fbbf24" },
   { value: "lunch" as const, label: "Bữa trưa", emoji: "☀️", time: "11:00 – 13:00", accentColor: "rgba(163,230,53,0.06)", borderColor: "rgba(163,230,53,0.25)", headerColor: "#a3e635" },
+  { value: "snack" as const, label: "Bữa phụ", emoji: "🍌", time: "9:30 – 16:30", accentColor: "rgba(251,146,60,0.06)", borderColor: "rgba(251,146,60,0.25)", headerColor: "#fb923c" },
   { value: "dinner" as const, label: "Chiều / Tối", emoji: "🌙", time: "17:00 – 20:00", accentColor: "rgba(139,92,246,0.06)", borderColor: "rgba(139,92,246,0.25)", headerColor: "#c4b5fd" },
 ];
 
@@ -45,6 +46,35 @@ function dayLabel(offset: number) {
   if (offset === 0) return "Hôm nay";
   if (offset === 1) return "Ngày mai";
   return "Ngày kia";
+}
+
+// ─── Schedule (times) ──────────────────────────────────────────────────────────
+
+type ScheduleTimes = {
+  breakfast: string;
+  lunch: string;
+  snack: string;
+  dinner: string;
+};
+
+const DEFAULT_SCHEDULE_TIMES: ScheduleTimes = {
+  breakfast: "07:00",
+  snack: "10:00",
+  lunch: "13:00",
+  dinner: "19:00",
+};
+
+function loadScheduleTimes(): ScheduleTimes {
+  try {
+    const s = localStorage.getItem("mealyummy-schedule-times");
+    return s ? { ...DEFAULT_SCHEDULE_TIMES, ...JSON.parse(s) } : DEFAULT_SCHEDULE_TIMES;
+  } catch {
+    return DEFAULT_SCHEDULE_TIMES;
+  }
+}
+
+function saveScheduleTimes(t: ScheduleTimes) {
+  localStorage.setItem("mealyummy-schedule-times", JSON.stringify(t));
 }
 
 // ─── Body Metrics & TDEE ───────────────────────────────────────────────────────
@@ -207,15 +237,25 @@ export function MealPlanPage() {
   const { favorites } = useFavorites();
   const [activeDay, setActiveDay] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [pendingSlot, setPendingSlot] = useState<{ date: string; mealType: "breakfast" | "lunch" | "dinner" } | null>(null);
+  const [pendingSlot, setPendingSlot] = useState<{ date: string; mealType: "breakfast" | "lunch" | "dinner" | "snack" } | null>(null);
   const [search, setSearch] = useState("");
   const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
   const [metricsOpen, setMetricsOpen] = useState(false);
+  const [scheduleTimes, setScheduleTimes] = useState<ScheduleTimes>(loadScheduleTimes);
 
   const targets = calcTDEE(metrics);
 
   function updateMetrics(patch: Partial<UserMetrics>) {
     setMetrics((prev) => { const next = { ...prev, ...patch }; saveMetrics(next); return next; });
+  }
+
+  function updateScheduleTime(key: keyof ScheduleTimes, value: string) {
+    setScheduleTimes((prev) => {
+      const next = { ...prev, [key]: value };
+      saveScheduleTimes(next);
+      toast.success("Đã cập nhật thời khóa biểu");
+      return next;
+    });
   }
 
   const days = getThreeDays();
@@ -225,7 +265,7 @@ export function MealPlanPage() {
   function getMeals(date: string, mealType: string) {
     return mealPlan.filter((item) => item.date === date && item.mealType === mealType);
   }
-  function openDialog(date: string, mealType: "breakfast" | "lunch" | "dinner") {
+  function openDialog(date: string, mealType: "breakfast" | "lunch" | "dinner" | "snack") {
     setPendingSlot({ date, mealType }); setSearch(""); setDialogOpen(true);
   }
   function handlePick(recipe: any) {
@@ -442,6 +482,57 @@ export function MealPlanPage() {
           })}
         </div>
 
+        {/* ── Schedule (next days) ── */}
+        <div className="mb-5 rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#64748b" }}>
+                Thời khóa biểu (áp dụng cho mọi ngày)
+              </p>
+              <p className="text-sm font-bold text-white mt-1">
+                Chuẩn bị nguyên liệu theo lịch ăn
+              </p>
+              <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
+                Chỉnh giờ ở đây để Gym Mode và Thực đơn khớp nhau.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            {days.map((d, idx) => (
+              <div key={idx} className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-xs font-semibold" style={{ color: "#a3e635" }}>{dayLabel(idx)}</p>
+                <p className="text-sm font-bold text-white">
+                  {d.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}
+                </p>
+
+                <div className="mt-3 space-y-2">
+                  {([
+                    { key: "breakfast" as const, label: "Bữa sáng", emoji: "🌅" },
+                    { key: "snack" as const, label: "Bữa phụ", emoji: "🍌" },
+                    { key: "lunch" as const, label: "Bữa trưa", emoji: "☀️" },
+                    { key: "dinner" as const, label: "Bữa tối", emoji: "🌙" },
+                  ]).map((s) => (
+                    <div key={s.key} className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-base">{s.emoji}</span>
+                        <span className="text-xs font-semibold truncate" style={{ color: "#cbd5e1" }}>{s.label}</span>
+                      </div>
+                      <input
+                        type="time"
+                        value={scheduleTimes[s.key]}
+                        onChange={(e) => updateScheduleTime(s.key, e.target.value)}
+                        className="h-9 px-3 rounded-xl text-xs font-semibold outline-none"
+                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "#f1f5f9" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* ── Nutrition Panel ── */}
         <DayNutritionPanel dateStr={activeDateStr} mealPlan={mealPlan} targets={targets} />
 
@@ -461,7 +552,9 @@ export function MealPlanPage() {
                     <span className="text-2xl">{slot.emoji}</span>
                     <div>
                       <p className="font-bold text-base text-white leading-tight">{slot.label}</p>
-                      <p className="text-xs" style={{ color: "#64748b" }}>{slot.time}</p>
+                      <p className="text-xs" style={{ color: "#64748b" }}>
+                        {(scheduleTimes as any)[slot.value] || slot.time}
+                      </p>
                     </div>
                     {slotCal > 0 && (
                       <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold"

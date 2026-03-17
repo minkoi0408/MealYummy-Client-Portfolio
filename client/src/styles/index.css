@@ -14,8 +14,9 @@
     --color-accent: #1e2535;
 }
 
-/* Override theme.css light defaults with dark fitness theme */
-:root {
+/* Dark (fitness) theme overrides.
+   Light (landing) defaults live in `theme.css` (:root). */
+html.dark {
     --background: #0f1117;
     --foreground: #f1f5f9;
     --card: rgba(26, 31, 46, 0.8);
@@ -34,6 +35,7 @@
     --input: rgba(255, 255, 255, 0.06);
     --input-background: #1a1f2e;
     --ring: #a3e635;
+    --switch-background: rgba(255,255,255,0.18);
 }
 
 *,
@@ -49,6 +51,4 @@ html {
 body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #0f1117;
-    color: #f1f5f9;
 }

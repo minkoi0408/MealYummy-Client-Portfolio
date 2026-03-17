@@ -32,6 +32,8 @@ export function MealHistoryPage() {
     .sort((a, b) => (a > b ? -1 : 1))
     .slice(0, 7);
 
+  const totalMeals = mealPlan.length;
+
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -50,12 +52,29 @@ export function MealHistoryPage() {
           <h1 className="text-2xl font-black text-white mb-1">
             Bạn đã ăn gì gần đây?
           </h1>
+          <p className="text-sm" style={{ color: "#64748b" }}>
+            Tổng cộng {totalMeals} bữa đã lưu trong lịch sử.
+          </p>
         </div>
 
         {dates.length === 0 ? (
-          <p className="text-sm" style={{ color: "#64748b" }}>
-            Chưa có dữ liệu bữa ăn. Hãy thêm món trong trang Thực đơn.
-          </p>
+          <div className="rounded-2xl p-6" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+            <p className="text-sm mb-4" style={{ color: "#94a3b8" }}>
+              Chưa có dữ liệu bữa ăn. Hãy thêm món trong trang Thực đơn để bắt đầu theo dõi.
+            </p>
+            <Link to="/meal-plan">
+              <button
+                className="h-10 px-5 rounded-xl text-xs font-bold transition-all hover:scale-105"
+                style={{
+                  background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                  color: "#0f1117",
+                  boxShadow: "0 0 24px rgba(163,230,53,0.25)",
+                }}
+              >
+                Tới Thực đơn
+              </button>
+            </Link>
+          </div>
         ) : (
           <div className="space-y-5">
             {dates.map((date) => {

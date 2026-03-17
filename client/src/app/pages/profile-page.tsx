@@ -20,6 +20,16 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { AppHeader } from "../components/app-header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Switch } from "../components/ui/switch";
+import { toast } from "sonner";
 
 type UserMetrics = {
   weight: number;
@@ -75,6 +85,56 @@ function loadMetrics(): UserMetrics {
 
 function saveMetrics(m: UserMetrics) {
   localStorage.setItem("mealyummy-metrics", JSON.stringify(m));
+}
+
+type UserProfile = {
+  name: string;
+  email: string;
+};
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: "Nguyễn Văn A",
+  email: "user@mealyummy.com",
+};
+
+function loadProfile(): UserProfile {
+  try {
+    const s = localStorage.getItem("mealyummy-profile");
+    return s ? { ...DEFAULT_PROFILE, ...JSON.parse(s) } : DEFAULT_PROFILE;
+  } catch {
+    return DEFAULT_PROFILE;
+  }
+}
+
+function saveProfile(p: UserProfile) {
+  localStorage.setItem("mealyummy-profile", JSON.stringify(p));
+}
+
+type NotificationSettings = {
+  productUpdates: boolean;
+  mealPlanReminders: boolean;
+  promoOffers: boolean;
+  emailNotifications: boolean;
+};
+
+const DEFAULT_NOTIFICATIONS: NotificationSettings = {
+  productUpdates: true,
+  mealPlanReminders: true,
+  promoOffers: false,
+  emailNotifications: true,
+};
+
+function loadNotifications(): NotificationSettings {
+  try {
+    const s = localStorage.getItem("mealyummy-notifications");
+    return s ? { ...DEFAULT_NOTIFICATIONS, ...JSON.parse(s) } : DEFAULT_NOTIFICATIONS;
+  } catch {
+    return DEFAULT_NOTIFICATIONS;
+  }
+}
+
+function saveNotifications(n: NotificationSettings) {
+  localStorage.setItem("mealyummy-notifications", JSON.stringify(n));
 }
 
 const PROFILE_TIERS = [
@@ -171,15 +231,19 @@ function PricingCards() {
 
 
 const SETTINGS_MENU = [
-  { icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
-  { icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
-  { icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
-  { icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật" },
+  { id: "edit-profile" as const, icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
+  { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
+  { id: "notifications" as const, icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
+  { id: "security" as const, icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật" },
 ];
 
 export function ProfilePage() {
   const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
   const targets = calcTDEE(metrics);
+  const [profile, setProfile] = useState<UserProfile>(loadProfile);
+  const [notifications, setNotifications] = useState<NotificationSettings>(loadNotifications);
+  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications">(null);
+  const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
 
   function updateMetrics(patch: Partial<UserMetrics>) {
     setMetrics((prev) => {
@@ -187,6 +251,19 @@ export function ProfilePage() {
       saveMetrics(next);
       return next;
     });
+  }
+
+  function openDialog(id: (typeof SETTINGS_MENU)[number]["id"]) {
+    if (id === "edit-profile") {
+      setDraftProfile(profile);
+      setActiveDialog("edit-profile");
+      return;
+    }
+    if (id === "notifications") {
+      setActiveDialog("notifications");
+      return;
+    }
+    toast.message("Tính năng đang phát triển");
   }
 
   return (
@@ -224,8 +301,8 @@ export function ProfilePage() {
 
                 {/* User info */}
                 <div className="text-center mb-5">
-                  <h2 className="text-lg font-black text-white mb-1">Nguyễn Văn A</h2>
-                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>user@mealyummy.com</p>
+                  <h2 className="text-lg font-black text-white mb-1">{profile.name}</h2>
+                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>{profile.email}</p>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)", color: "#a3e635" }}>
                     <Crown className="w-3 h-3" /> Gói Free
@@ -250,7 +327,7 @@ export function ProfilePage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
                     <Mail className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                    <span className="truncate">user@mealyummy.com</span>
+                    <span className="truncate">{profile.email}</span>
                   </div>
                   <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
                     <Calendar className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
@@ -270,6 +347,7 @@ export function ProfilePage() {
                   <button key={item.label}
                     className="w-full flex items-center gap-3 text-sm px-3 py-2.5 rounded-xl transition-all text-left"
                     style={{ color: "#94a3b8" }}
+                    onClick={() => openDialog(item.id)}
                     onMouseEnter={(e) => {
                       (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.05)";
                       (e.currentTarget as HTMLButtonElement).style.color = "#f1f5f9";
@@ -285,6 +363,7 @@ export function ProfilePage() {
                 <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                   <button className="w-full flex items-center gap-3 text-sm px-3 py-2.5 rounded-xl transition-all"
                     style={{ color: "#f87171" }}
+                    onClick={() => toast.message("Đăng xuất đang phát triển")}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,113,113,0.08)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                   >
@@ -547,6 +626,129 @@ export function ProfilePage() {
           </div>
         </div>
       </main>
+
+      {/* Edit profile dialog */}
+      <Dialog open={activeDialog === "edit-profile"} onOpenChange={(open) => setActiveDialog(open ? "edit-profile" : null)}>
+        <DialogContent
+          className="p-0 overflow-hidden"
+          style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <User className="w-4 h-4 text-lime-400" /> Chỉnh sửa hồ sơ
+            </DialogTitle>
+            <DialogDescription style={{ color: "#64748b" }}>
+              Cập nhật thông tin cơ bản hiển thị trong app.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-5 space-y-4">
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>
+                Họ tên
+              </p>
+              <input
+                value={draftProfile.name}
+                onChange={(e) => setDraftProfile((p) => ({ ...p, name: e.target.value }))}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+              />
+            </div>
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>
+                Email
+              </p>
+              <input
+                value={draftProfile.email}
+                onChange={(e) => setDraftProfile((p) => ({ ...p, email: e.target.value }))}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="px-6 pb-6">
+            <button
+              className="h-10 px-4 rounded-xl text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
+              onClick={() => setActiveDialog(null)}
+            >
+              Hủy
+            </button>
+            <button
+              className="h-10 px-5 rounded-xl text-xs font-black"
+              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
+              onClick={() => {
+                setProfile(draftProfile);
+                saveProfile(draftProfile);
+                toast.success("Đã cập nhật hồ sơ");
+                setActiveDialog(null);
+              }}
+            >
+              Lưu thay đổi
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Notifications dialog */}
+      <Dialog open={activeDialog === "notifications"} onOpenChange={(open) => setActiveDialog(open ? "notifications" : null)}>
+        <DialogContent
+          className="p-0 overflow-hidden"
+          style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Bell className="w-4 h-4 text-purple-400" /> Thông báo
+            </DialogTitle>
+            <DialogDescription style={{ color: "#64748b" }}>
+              Bật / tắt các loại thông báo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-5 space-y-3">
+            {([
+              { key: "mealPlanReminders" as const, title: "Nhắc thực đơn", desc: "Nhắc giờ ăn và theo dõi mục tiêu." },
+              { key: "productUpdates" as const, title: "Cập nhật sản phẩm", desc: "Thông báo tính năng mới và cải tiến." },
+              { key: "promoOffers" as const, title: "Ưu đãi", desc: "Khuyến mãi và gợi ý membership." },
+              { key: "emailNotifications" as const, title: "Nhận qua email", desc: "Gửi tổng kết & nhắc nhở qua email." },
+            ]).map((item) => (
+              <div
+                key={item.key}
+                className="rounded-2xl p-4 flex items-center gap-4"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white">{item.title}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+                    {item.desc}
+                  </p>
+                </div>
+                <Switch
+                  checked={notifications[item.key]}
+                  onCheckedChange={(checked) => {
+                    setNotifications((prev) => {
+                      const next = { ...prev, [item.key]: checked };
+                      saveNotifications(next);
+                      return next;
+                    });
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="px-6 pb-6">
+            <button
+              className="h-10 px-4 rounded-xl text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
+              onClick={() => setActiveDialog(null)}
+            >
+              Đóng
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
