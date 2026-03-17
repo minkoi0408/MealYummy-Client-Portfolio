@@ -1,8 +1,81 @@
 
 
-import { Check, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Trophy, Rocket, User, Crown, Star, Sparkles, ArrowRight } from "lucide-react";
+import {
+  Check,
+  Settings,
+  Lock,
+  Bell,
+  Shield,
+  LogOut,
+  Edit2,
+  Mail,
+  Calendar,
+  Trophy,
+  Rocket,
+  User,
+  Crown,
+  Star,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import { useState } from "react";
 import { AppHeader } from "../components/app-header";
+
+type UserMetrics = {
+  weight: number;
+  height: number;
+  age: number;
+  gender: "male" | "female";
+  activity: "sedentary" | "light" | "moderate" | "active" | "very_active";
+  goal: "cut" | "maintain" | "bulk";
+};
+
+const DEFAULT_METRICS: UserMetrics = {
+  weight: 70,
+  height: 170,
+  age: 25,
+  gender: "male",
+  activity: "moderate",
+  goal: "maintain",
+};
+
+const ACTIVITY_MULTIPLIERS = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9,
+};
+
+const GOAL_ADJUSTMENTS = { cut: -500, maintain: 0, bulk: +300 };
+
+function calcTDEE(m: UserMetrics) {
+  const bmr =
+    m.gender === "male"
+      ? 10 * m.weight + 6.25 * m.height - 5 * m.age + 5
+      : 10 * m.weight + 6.25 * m.height - 5 * m.age - 161;
+  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[m.activity]);
+  const target = tdee + GOAL_ADJUSTMENTS[m.goal];
+  const protein =
+    m.goal === "bulk" ? Math.round(m.weight * 2.2) : Math.round(m.weight * 1.8);
+  const fat = Math.round((target * 0.25) / 9);
+  const carbs = Math.round((target - protein * 4 - fat * 9) / 4);
+  const fiber = Math.round((target / 1000) * 14);
+  return { calories: target, protein, carbs, fat, fiber, bmr, tdee };
+}
+
+function loadMetrics(): UserMetrics {
+  try {
+    const s = localStorage.getItem("mealyummy-metrics");
+    return s ? { ...DEFAULT_METRICS, ...JSON.parse(s) } : DEFAULT_METRICS;
+  } catch {
+    return DEFAULT_METRICS;
+  }
+}
+
+function saveMetrics(m: UserMetrics) {
+  localStorage.setItem("mealyummy-metrics", JSON.stringify(m));
+}
 
 const PROFILE_TIERS = [
   { id: "monthly", label: "1 Tháng", price: "89.000đ", saving: null as null | string },
@@ -105,6 +178,17 @@ const SETTINGS_MENU = [
 ];
 
 export function ProfilePage() {
+  const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
+  const targets = calcTDEE(metrics);
+
+  function updateMetrics(patch: Partial<UserMetrics>) {
+    setMetrics((prev) => {
+      const next = { ...prev, ...patch };
+      saveMetrics(next);
+      return next;
+    });
+  }
+
   return (
     <div className="min-h-screen">
       <AppHeader />
@@ -211,8 +295,220 @@ export function ProfilePage() {
             </div>
           </div>
 
-          {/* ── RIGHT: Pricing Plans ─────────────────────────────────── */}
+          {/* ── RIGHT: Nutrition Profile + Pricing Plans ─────────────── */}
           <div className="lg:col-span-2 space-y-5">
+
+            {/* Nutrition profile */}
+            <div
+              className="rounded-2xl p-5"
+              style={{
+                background: "rgba(26,31,46,0.9)",
+                border: "1px solid rgba(163,230,53,0.25)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest"
+                    style={{
+                      background: "rgba(163,230,53,0.08)",
+                      border: "1px solid rgba(163,230,53,0.2)",
+                      color: "#a3e635",
+                    }}
+                  >
+                    <Sparkles className="w-3.5 h-3.5" /> Hồ sơ dinh dưỡng
+                  </div>
+                  <h2 className="text-base sm:text-lg font-black text-white">
+                    Mục tiêu ăn uống của bạn
+                  </h2>
+                </div>
+              </div>
+
+              {/* Weight / height / age */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {([
+                  { key: "weight" as const, label: "Cân nặng", unit: "kg", min: 30, max: 200 },
+                  { key: "height" as const, label: "Chiều cao", unit: "cm", min: 100, max: 250 },
+                  { key: "age" as const, label: "Tuổi", unit: "tuổi", min: 10, max: 99 },
+                ]).map(({ key, label, unit, min, max }) => (
+                  <div key={key}>
+                    <p
+                      className="text-xs font-semibold mb-1.5"
+                      style={{ color: "#94a3b8" }}
+                    >
+                      {label}
+                    </p>
+                    <div
+                      className="flex items-center rounded-xl overflow-hidden"
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                      }}
+                    >
+                      <button
+                        onClick={() =>
+                          updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
+                        }
+                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
+                        style={{ color: "#64748b" }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                        }}
+                      >
+                        −
+                      </button>
+                      <div className="flex-1 text-center">
+                        <p className="text-base font-black text-white">
+                          {(metrics as any)[key]}
+                        </p>
+                        <p className="text-[10px]" style={{ color: "#475569" }}>
+                          {unit}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() =>
+                          updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
+                        }
+                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
+                        style={{ color: "#64748b" }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Gender + goal row */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div>
+                  <p
+                    className="text-xs font-semibold mb-2"
+                    style={{ color: "#94a3b8" }}
+                  >
+                    Giới tính
+                  </p>
+                  <div className="flex gap-2">
+                    {(["male", "female"] as const).map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => updateMetrics({ gender: g })}
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
+                        style={
+                          metrics.gender === g
+                            ? {
+                                background:
+                                  "linear-gradient(135deg, #a3e635, #4ade80)",
+                                color: "#0f1117",
+                              }
+                            : {
+                                background: "rgba(255,255,255,0.06)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: "#64748b",
+                              }
+                        }
+                      >
+                        {g === "male" ? "👨 Nam" : "👩 Nữ"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p
+                    className="text-xs font-semibold mb-2"
+                    style={{ color: "#94a3b8" }}
+                  >
+                    Mục tiêu
+                  </p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {([
+                      { value: "cut", label: "Giảm mỡ", color: "#f87171" },
+                      { value: "maintain", label: "Duy trì", color: "#a3e635" },
+                      { value: "bulk", label: "Tăng cơ", color: "#fb923c" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => updateMetrics({ goal: opt.value })}
+                        className="py-2 rounded-xl text-[11px] font-semibold transition-all"
+                        style={
+                          metrics.goal === opt.value
+                            ? {
+                                background: `${opt.color}20`,
+                                color: opt.color,
+                                border: `1px solid ${opt.color}50`,
+                              }
+                            : {
+                                background: "rgba(255,255,255,0.04)",
+                                color: "#64748b",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                              }
+                        }
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div
+                className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3"
+                style={{
+                  background: "rgba(163,230,53,0.06)",
+                  border: "1px solid rgba(163,230,53,0.15)",
+                }}
+              >
+                {[
+                  { label: "BMR", value: targets.bmr, unit: "kcal", color: "#94a3b8" },
+                  { label: "TDEE", value: targets.tdee, unit: "kcal", color: "#fb923c" },
+                  {
+                    label: "Mục tiêu",
+                    value: targets.calories,
+                    unit: "kcal",
+                    color: "#a3e635",
+                  },
+                  {
+                    label: "Protein",
+                    value: targets.protein,
+                    unit: "g",
+                    color: "#4ade80",
+                  },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p
+                      className="text-xs mb-0.5"
+                      style={{ color: "#475569" }}
+                    >
+                      {s.label}
+                    </p>
+                    <p
+                      className="text-lg font-black"
+                      style={{ color: s.color }}
+                    >
+                      {s.value.toLocaleString()}
+                      <span
+                        className="text-xs font-normal ml-0.5"
+                        style={{ color: "#475569" }}
+                      >
+                        {s.unit}
+                      </span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
 
             {/* Section header */}
             <div>

@@ -12,6 +12,7 @@ import { ShoppingPage } from "../app/pages/shopping-page";
 import { MealDetailPage } from "../app/pages/meal-detail-page";
 import { NotFoundPage } from "../app/pages/not-found-page";
 import { MembershipPage } from "../app/pages/membership-page";
+import { MealHistoryPage } from "../app/pages/meal-history-page";
 
 export const router = createBrowserRouter([
   {
@@ -45,6 +46,10 @@ export const router = createBrowserRouter([
   {
     path: "/meal-plan",
     Component: MealPlanPage,
+  },
+  {
+    path: "/history",
+    Component: MealHistoryPage,
   },
   {
     path: "/profile",
