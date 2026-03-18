@@ -11,6 +11,7 @@ import {
   User,
   Menu,
   X,
+  Lightbulb
 } from "lucide-react";
 import { useBrightness } from "../contexts/brightness-context";
 
