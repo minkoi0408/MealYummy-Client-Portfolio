@@ -14,9 +14,8 @@
     --color-accent: #1e2535;
 }
 
-/* Dark (fitness) theme overrides.
-   Light (landing) defaults live in `theme.css` (:root). */
-html.dark {
+/* Override theme.css light defaults with dark fitness theme */
+:root {
     --background: #0f1117;
     --foreground: #f1f5f9;
     --card: rgba(26, 31, 46, 0.8);
@@ -35,7 +34,6 @@ html.dark {
     --input: rgba(255, 255, 255, 0.06);
     --input-background: #1a1f2e;
     --ring: #a3e635;
-    --switch-background: rgba(255,255,255,0.18);
 }
 
 *,
@@ -51,4 +49,72 @@ html {
 body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: #0f1117;
+    color: #f1f5f9;
+}
+
+/* ── Bright Mode overrides ─────────────────────────────────── */
+body.bright-mode {
+    color: #1a2e05;
+    background-color: #ecfdf5;
+
+    --background: #ecfdf5;
+    --foreground: #1a2e05;
+    --card: rgba(220, 252, 231, 0.85);
+    --card-foreground: #14532d;
+    --popover: #f0fdf4;
+    --popover-foreground: #14532d;
+    --primary: #4d7c0f;
+    --primary-foreground: #f7fee7;
+    --secondary: #dcfce7;
+    --secondary-foreground: #14532d;
+    --muted: #d1fae5;
+    --muted-foreground: #166534;
+    --accent: #bbf7d0;
+    --accent-foreground: #14532d;
+    --border: rgba(74, 222, 128, 0.35);
+    --input: rgba(74, 222, 128, 0.15);
+    --input-background: #f0fdf4;
+    --ring: #4d7c0f;
+}
+
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-8px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes spinEarth {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes floatEarth {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+@keyframes bouncePin {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+}
+
+@keyframes scanRing {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.8; }
 }

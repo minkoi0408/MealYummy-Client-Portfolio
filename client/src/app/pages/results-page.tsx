@@ -7,8 +7,9 @@ import {
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { AppHeader } from "../components/app-header";
 import { mockRecipes } from "../data/mock-recipes";
+import { useBrightness } from "../contexts/brightness-context";
 
-// ─── Scoring helpers ───────────────────────────────────────────────────────────
+// ─── Scoring helpers ────────────────────────────────────────────────────────────
 
 function parseCalories(cal: string): number {
   const m = cal?.match(/(\d+)/);
@@ -24,23 +25,20 @@ function parseCookMinutes(t: string): number {
 
 function calcProteinScore(cal: number) { return Math.round((cal * 0.30) / 4); }
 
-// ─── Tab scoring ───────────────────────────────────────────────────────────────
+// ─── Tab scoring ────────────────────────────────────────────────────────────────
 
-/** High-protein → ranked by protein estimate, then low calorie */
 function scoreProtein(r: typeof mockRecipes[0]) {
   const cal = parseCalories(r.calories);
   const protein = calcProteinScore(cal);
   return protein * 3 - cal * 0.01;
 }
 
-/** Low-calorie balanced → ranked by lowest calories + ingredient count bonus */
 function scoreClean(r: typeof mockRecipes[0]) {
   const cal = parseCalories(r.calories);
   const minutes = parseCookMinutes(r.cookTime);
   return -cal + (r.ingredients?.length ?? 0) * 5 - minutes * 0.2;
 }
 
-/** Quick & nutritious → ranked by short cook time + decent protein */
 function scoreQuick(r: typeof mockRecipes[0]) {
   const cal = parseCalories(r.calories);
   const protein = calcProteinScore(cal);
@@ -74,9 +72,9 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; desc: string; col
   },
 ];
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
+// ─── Sub-components ─────────────────────────────────────────────────────────────
 
-function RankBadge({ rank }: { rank: number }) {
+function RankBadge({ rank, isBright }: { rank: number; isBright: boolean }) {
   if (rank === 1) return (
     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg"
       style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)" }}>
@@ -97,8 +95,11 @@ function RankBadge({ rank }: { rank: number }) {
   );
   return (
     <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-      style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-      <span className="text-xs font-bold text-slate-400">{rank}</span>
+      style={{
+        background: isBright ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
+        border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)",
+      }}>
+      <span className="text-xs font-bold" style={{ color: "var(--muted-foreground)" }}>{rank}</span>
     </div>
   );
 }
@@ -122,15 +123,19 @@ function MetaBadge({ color, icon, label }: { color: string; icon: React.ReactNod
   );
 }
 
-function DishCard({ item, tabColor }: { item: RankedRecipe; tabColor: string }) {
+function DishCard({ item, tabColor, isBright }: { item: RankedRecipe; tabColor: string; isBright: boolean }) {
   const isTop3 = item.rank <= 3;
   return (
     <div
       className="flex rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-0.5"
       style={{
-        background: isTop3 ? `rgba(${tabColor === "#a3e635" ? "163,230,53" : tabColor === "#34d399" ? "52,211,153" : "251,146,60"},0.04)` : "rgba(26,31,46,0.9)",
-        border: isTop3 ? `1px solid ${tabColor}40` : "1px solid rgba(255,255,255,0.06)",
-        boxShadow: isTop3 ? `0 4px 24px ${tabColor}15` : "0 4px 20px rgba(0,0,0,0.3)",
+        background: "var(--card)",
+        border: isTop3
+          ? `1.5px solid ${tabColor}${isBright ? "70" : "50"}`
+          : isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.06)",
+        boxShadow: isTop3
+          ? `0 4px 28px ${tabColor}${isBright ? "30" : "20"}`
+          : isBright ? "0 4px 20px rgba(0,0,0,0.06)" : "0 4px 20px rgba(0,0,0,0.3)",
       }}
     >
       {/* Image */}
@@ -143,10 +148,14 @@ function DishCard({ item, tabColor }: { item: RankedRecipe; tabColor: string }) 
       <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
         <div>
           <div className="flex items-start gap-2.5 mb-1.5">
-            <RankBadge rank={item.rank} />
+            <RankBadge rank={item.rank} isBright={isBright} />
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-base leading-tight text-white truncate">{item.recipe.name}</h3>
-              <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{item.recipe.cuisine}</p>
+              <h3 className="font-bold text-base leading-tight truncate" style={{ color: "var(--card-foreground)" }}>
+                {item.recipe.name}
+              </h3>
+              <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+                {item.recipe.cuisine}
+              </p>
             </div>
             <span className="flex items-center gap-1 flex-shrink-0 px-2 py-1 rounded-lg text-xs font-black"
               style={{ background: `${tabColor}15`, color: tabColor }}>
@@ -155,7 +164,7 @@ function DishCard({ item, tabColor }: { item: RankedRecipe; tabColor: string }) 
             </span>
           </div>
 
-          <p className="text-xs leading-relaxed line-clamp-2 mb-2.5 ml-11" style={{ color: "#64748b" }}>
+          <p className="text-xs leading-relaxed line-clamp-2 mb-2.5 ml-11" style={{ color: "var(--muted-foreground)" }}>
             {item.recipe.description}
           </p>
 
@@ -171,7 +180,7 @@ function DishCard({ item, tabColor }: { item: RankedRecipe; tabColor: string }) 
         </div>
 
         <div className="flex items-center justify-end mt-3 pt-2.5"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          style={{ borderTop: isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.06)" }}>
           <Link to={`/meal/${item.recipe.id}`}>
             <button className="h-7 px-3 text-xs flex items-center gap-1 rounded-lg transition-colors font-semibold"
               style={{ color: tabColor }}
@@ -186,7 +195,7 @@ function DishCard({ item, tabColor }: { item: RankedRecipe; tabColor: string }) 
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
+// ─── Page ───────────────────────────────────────────────────────────────────────
 
 const BADGE_MAP: Record<string, string> = {
   "Việt Nam": "Thuần Việt",
@@ -219,6 +228,7 @@ export function ResultsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("protein");
   const ranking = buildRanking(activeTab);
   const activeTabConfig = TABS.find((t) => t.id === activeTab)!;
+  const { isBright } = useBrightness();
 
   return (
     <div className="min-h-screen">
@@ -233,23 +243,28 @@ export function ResultsPage() {
               <Trophy className="w-5 h-5 text-gray-900" />
             </div>
             <div>
-              <h1 className="text-2xl font-black text-white">Xếp hạng Fitness</h1>
-              <p className="text-xs" style={{ color: "#64748b" }}>Dựa trên dinh dưỡng & mức độ phù hợp với người tập</p>
+              <h1 className="text-2xl font-black" style={{ color: "var(--foreground)" }}>Xếp hạng Fitness</h1>
+              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+                Dựa trên dinh dưỡng & mức độ phù hợp với người tập
+              </p>
             </div>
           </div>
         </div>
 
         {/* Tab bar */}
         <div className="flex gap-2 mb-6 p-1 rounded-2xl"
-          style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          style={{
+            background: "var(--card)",
+            border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.06)",
+          }}>
           {TABS.map((tab) => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all"
               style={activeTab === tab.id
                 ? { background: `linear-gradient(135deg, ${tab.color}, ${tab.color}bb)`, color: "#0f1117" }
-                : { color: "#64748b" }}
-              onMouseEnter={(e) => { if (activeTab !== tab.id) (e.currentTarget as HTMLButtonElement).style.color = "#f1f5f9"; }}
-              onMouseLeave={(e) => { if (activeTab !== tab.id) (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
+                : { color: "var(--muted-foreground)" }}
+              onMouseEnter={(e) => { if (activeTab !== tab.id) (e.currentTarget as HTMLButtonElement).style.color = "var(--foreground)"; }}
+              onMouseLeave={(e) => { if (activeTab !== tab.id) (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-foreground)"; }}
             >
               {tab.icon}
               <span className="hidden sm:inline">{tab.label}</span>
@@ -264,8 +279,8 @@ export function ResultsPage() {
               {activeTabConfig.icon}
             </span>
             <div>
-              <h2 className="font-bold text-base text-white">{activeTabConfig.label}</h2>
-              <p className="text-xs" style={{ color: "#64748b" }}>{activeTabConfig.desc}</p>
+              <h2 className="font-bold text-base" style={{ color: "var(--foreground)" }}>{activeTabConfig.label}</h2>
+              <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>{activeTabConfig.desc}</p>
             </div>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold"
@@ -275,14 +290,16 @@ export function ResultsPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 mb-5 px-1 text-xs" style={{ color: "#475569" }}>
-          <span className="flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5" />Điểm = protein × 3 − calories × 0.01</span>
+        <div className="flex items-center gap-4 mb-5 px-1 text-xs" style={{ color: "var(--muted-foreground)" }}>
+          <span className="flex items-center gap-1">
+            <TrendingUp className="w-3.5 h-3.5" />Điểm = protein × 3 − calories × 0.01
+          </span>
         </div>
 
         {/* Ranking list */}
         <div className="space-y-4">
           {ranking.map((item) => (
-            <DishCard key={item.recipe.id} item={item} tabColor={activeTabConfig.color} />
+            <DishCard key={item.recipe.id} item={item} tabColor={activeTabConfig.color} isBright={isBright} />
           ))}
         </div>
       </main>
