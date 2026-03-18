@@ -21,14 +21,38 @@ export function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
         {/* Header */}
-        <div className="mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
-            style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
-            <Heart className="w-3.5 h-3.5" />
-            Yêu Thích
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <div
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
+              style={{
+                background: "rgba(163,230,53,0.08)",
+                border: "1px solid rgba(163,230,53,0.2)",
+                color: "#a3e635",
+              }}
+            >
+              <Heart className="w-3.5 h-3.5" />
+              Yêu Thích
+            </div>
+            <h1 className="text-3xl font-black text-white mb-1">
+              Món ăn yêu thích
+            </h1>
+            <p style={{ color: "#64748b" }}>
+              {favorites.length} món ăn đã lưu
+            </p>
           </div>
-          <h1 className="text-3xl font-black text-white mb-1">Món ăn yêu thích</h1>
-          <p style={{ color: "#64748b" }}>{favorites.length} món ăn đã lưu</p>
+          <Link to="/history">
+            <button
+              className="h-9 px-4 rounded-xl text-xs font-semibold flex items-center gap-1.5"
+              style={{
+                background: "rgba(163,230,53,0.08)",
+                border: "1px solid rgba(163,230,53,0.25)",
+                color: "#a3e635",
+              }}
+            >
+              Xem lịch sử bữa ăn
+            </button>
+          </Link>
         </div>
 
         {favorites.length === 0 ? (
