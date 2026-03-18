@@ -53,6 +53,31 @@ body {
     color: #f1f5f9;
 }
 
+/* ── Bright Mode overrides ─────────────────────────────────── */
+body.bright-mode {
+    color: #1a2e05;
+    background-color: #ecfdf5;
+
+    --background: #ecfdf5;
+    --foreground: #1a2e05;
+    --card: rgba(220, 252, 231, 0.85);
+    --card-foreground: #14532d;
+    --popover: #f0fdf4;
+    --popover-foreground: #14532d;
+    --primary: #4d7c0f;
+    --primary-foreground: #f7fee7;
+    --secondary: #dcfce7;
+    --secondary-foreground: #14532d;
+    --muted: #d1fae5;
+    --muted-foreground: #166534;
+    --accent: #bbf7d0;
+    --accent-foreground: #14532d;
+    --border: rgba(74, 222, 128, 0.35);
+    --input: rgba(74, 222, 128, 0.15);
+    --input-background: #f0fdf4;
+    --ring: #4d7c0f;
+}
+
 @keyframes fadeSlideIn {
     from {
         opacity: 0;

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useFavorites } from "../contexts/favorites-context";
 import { mockRecipes } from "../data/mock-recipes";
 import { toast } from "sonner";
+import { useBrightness } from "../contexts/brightness-context";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -118,6 +119,7 @@ function NutritionRing({ value, max, color, size = 56 }: { value: number; max: n
 type NutritionTargets = { calories: number; protein: number; carbs: number; fat: number; fiber: number };
 
 function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; mealPlan: any[]; targets: NutritionTargets }) {
+  const { isBright } = useBrightness();
   const dayMeals = mealPlan.filter((m) => m.date === dateStr);
   const totalCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe.calories), 0);
   const totals = dayMeals.reduce((s, m) => {
@@ -135,26 +137,26 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
   const calPct = Math.round(Math.min(100, (totalCal / targets.calories) * 100));
 
   return (
-    <div className="rounded-2xl p-5 mb-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.07)" }}>
+    <div className="rounded-2xl p-5 mb-5" style={{ background: "var(--card)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.07)" }}>
       {/* Top: calo big + ring */}
       <div className="flex items-center gap-5 mb-5">
         <div className="relative flex-shrink-0">
           <NutritionRing value={totalCal} max={targets.calories} color="#a3e635" size={80} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-xs font-black text-white leading-none">{calPct}%</span>
+            <span className="text-xs font-black leading-none" style={{ color: "var(--foreground)" }}>{calPct}%</span>
           </div>
         </div>
         <div className="flex-1">
-          <p className="text-xs font-medium mb-1" style={{ color: "#64748b" }}>Tổng calo trong ngày</p>
-          <p className="text-4xl font-black text-white leading-none">
+          <p className="text-xs font-bold mb-1" style={{ color: "var(--muted-foreground)" }}>Tổng calo trong ngày</p>
+          <p className="text-4xl font-black leading-none" style={{ color: "var(--foreground)" }}>
             {totalCal > 0 ? totalCal.toLocaleString() : "—"}
-            <span className="text-base font-semibold ml-1" style={{ color: "#64748b" }}>/ {targets.calories.toLocaleString()} kcal</span>
+            <span className="text-base font-bold ml-1" style={{ color: "var(--muted-foreground)" }}>/ {targets.calories.toLocaleString()} kcal</span>
           </p>
-          <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: isBright ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)" }}>
             <div className="h-full rounded-full transition-all duration-700"
               style={{ width: `${calPct}%`, background: calPct >= 90 ? "linear-gradient(90deg,#fb923c,#f87171)" : "linear-gradient(90deg,#a3e635,#4ade80)" }} />
           </div>
-          <p className="text-xs mt-1" style={{ color: "#475569" }}>
+          <p className="text-xs mt-1 font-medium" style={{ color: isBright ? "rgba(15,20,35,0.5)" : "#475569" }}>
             {totalCal === 0 ? "Chưa có bữa ăn nào" : calPct >= 100 ? "⚠️ Đã đạt mục tiêu calo" : `Còn thiếu ${targets.calories - totalCal} kcal`}
           </p>
         </div>
@@ -164,23 +166,24 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {macros.map((m) => {
           const pct = Math.min(100, Math.round((m.value / m.max) * 100));
+          const macroColor = isBright && m.color === "#a3e635" ? "#166534" : m.color;
           return (
             <div key={m.label} className="rounded-xl p-3"
-              style={{ background: `${m.color}09`, border: `1px solid ${m.color}25` }}>
+              style={{ background: isBright ? `${m.color}15` : `${m.color}09`, border: isBright ? `1px solid ${m.color}40` : `1px solid ${m.color}25` }}>
               <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5" style={{ color: m.color }}>
+                <div className="flex items-center gap-1.5" style={{ color: macroColor }}>
                   {m.icon}
-                  <span className="text-xs font-semibold">{m.label}</span>
+                  <span className="text-xs font-bold">{m.label}</span>
                 </div>
-                <span className="text-xs" style={{ color: "#475569" }}>{pct}%</span>
+                <span className="text-xs font-bold" style={{ color: isBright ? "rgba(15,20,35,0.5)" : "#475569" }}>{pct}%</span>
               </div>
-              <p className="text-xl font-black text-white mb-1.5">
-                {m.value}<span className="text-xs font-normal ml-0.5" style={{ color: "#64748b" }}>{m.unit}</span>
+              <p className="text-xl font-black mb-1.5" style={{ color: "var(--foreground)" }}>
+                {m.value}<span className="text-xs font-normal ml-0.5" style={{ color: "var(--muted-foreground)" }}>{m.unit}</span>
               </p>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: isBright ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)" }}>
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: m.color, transition: "width 0.6s ease" }} />
               </div>
-              <p className="text-[10px] mt-1" style={{ color: "#334155" }}>mục tiêu {m.max}{m.unit}</p>
+              <p className="text-[10px] mt-1 font-medium" style={{ color: isBright ? "rgba(15,20,35,0.4)" : "#334155" }}>mục tiêu {m.max}{m.unit}</p>
             </div>
           );
         })}
@@ -188,11 +191,11 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
 
       {/* Meal completeness indicator */}
       {dayMeals.length > 0 && (
-        <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          <Target className="w-4 h-4 flex-shrink-0 text-lime-400" />
-          <p className="text-xs" style={{ color: "#64748b" }}>
+        <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
+          <Target className="w-4 h-4 flex-shrink-0" style={{ color: isBright ? "#166534" : "#a3e635" }} />
+          <p className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
             {dayMeals.length} bữa · ~{Math.round(totalCal / Math.max(1, dayMeals.length))} kcal/bữa trung bình ·&nbsp;
-            <span style={{ color: "#a3e635" }}>{totals.protein}g protein</span>
+            <span className="font-bold" style={{ color: isBright ? "#166534" : "#a3e635" }}>{totals.protein}g protein</span>
           </p>
         </div>
       )}
@@ -205,6 +208,7 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
 export function MealPlanPage() {
   const { mealPlan, addToMealPlan, removeFromMealPlan } = useMealPlan();
   const { favorites } = useFavorites();
+  const { isBright } = useBrightness();
   const [activeDay, setActiveDay] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingSlot, setPendingSlot] = useState<{ date: string; mealType: "breakfast" | "lunch" | "dinner" } | null>(null);
@@ -246,11 +250,11 @@ export function MealPlanPage() {
         {/* ── Header ── */}
         <div className="pt-10 mb-6">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
-            style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
+            style={{ background: isBright ? "rgba(163,230,53,0.15)" : "rgba(163,230,53,0.08)", border: isBright ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(163,230,53,0.2)", color: isBright ? "#166534" : "#a3e635" }}>
             <ChefHat className="w-3.5 h-3.5" /> Thực Đơn
           </div>
-          <h1 className="text-2xl font-black text-white mb-1">Kế hoạch 3 ngày</h1>
-          <p className="text-sm" style={{ color: "#64748b" }}>Lên lịch bữa ăn và theo dõi dinh dưỡng mỗi ngày</p>
+          <h1 className="text-2xl font-black mb-1" style={{ color: "var(--foreground)" }}>Kế hoạch 3 ngày</h1>
+          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Lên lịch bữa ăn và theo dõi dinh dưỡng mỗi ngày</p>
         </div>
 
         {/* ── Body Metrics Panel ── */}
@@ -388,20 +392,23 @@ export function MealPlanPage() {
         {/* ── Shopping CTA ── */}
         {totalMealCount > 0 && (
           <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl px-5 py-3.5"
-            style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)" }}>
+            style={{ 
+              background: isBright ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.08)", 
+              border: isBright ? "1px solid rgba(139,92,246,0.35)" : "1px solid rgba(139,92,246,0.2)" 
+            }}>
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
                 <ShoppingCart className="w-4 h-4 text-white" />
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: "#c4b5fd" }}>Đã có {totalMealCount} bữa trong thực đơn</p>
-                <p className="text-xs" style={{ color: "rgba(196,181,253,0.6)" }}>Danh sách đi chợ đã được cập nhật tự động</p>
+                <p className="text-sm font-bold" style={{ color: isBright ? "#5b21b6" : "#c4b5fd" }}>Đã có {totalMealCount} bữa trong thực đơn</p>
+                <p className="text-xs font-medium" style={{ color: isBright ? "rgba(91,33,182,0.7)" : "rgba(196,181,253,0.6)" }}>Danh sách đi chợ đã được cập nhật tự động</p>
               </div>
             </div>
             <Link to="/shopping" className="flex-shrink-0">
-              <button className="flex items-center gap-1.5 text-xs font-semibold px-3.5 py-2 rounded-xl text-white transition-all hover:scale-105"
-                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
+              <button className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl text-white transition-all hover:scale-105"
+                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", boxShadow: `0 4px 12px ${isBright ? "rgba(139,92,246,0.4)" : "rgba(139,92,246,0.25)"}` }}>
                 Xem danh sách đi chợ <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </Link>
@@ -419,20 +426,20 @@ export function MealPlanPage() {
               <button key={i} onClick={() => setActiveDay(i)}
                 className="rounded-2xl p-4 text-left transition-all"
                 style={isActive
-                  ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: "0 0 20px rgba(163,230,53,0.25)" }
-                  : { background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="text-xs font-semibold mb-0.5" style={{ color: isActive ? "rgba(15,17,23,0.7)" : "#64748b" }}>
+                  ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: `0 4px 20px ${isBright ? "rgba(163,230,53,0.4)" : "rgba(163,230,53,0.25)"}` }
+                  : { background: "var(--card)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.06)" }}>
+                <p className="text-xs font-bold mb-0.5" style={{ color: isActive ? "rgba(15,17,23,0.7)" : "var(--muted-foreground)" }}>
                   {dayLabel(i)}
                 </p>
-                <p className="text-base font-black leading-tight" style={{ color: isActive ? "#0f1117" : "#f1f5f9" }}>
+                <p className="text-base font-black leading-tight" style={{ color: isActive ? "#0f1117" : "var(--foreground)" }}>
                   {day.toLocaleDateString("vi-VN", { weekday: "short" })}, {day.getDate()}/{day.getMonth() + 1}
                 </p>
                 <div className="mt-2 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs" style={{ color: isActive ? "rgba(15,17,23,0.6)" : "#64748b" }}>
+                  <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: isActive ? "rgba(15,17,23,0.6)" : "var(--muted-foreground)" }}>
                     <ChefHat className="w-3 h-3" /> {dayMeals.length} bữa
                   </div>
                   {totalCal > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: isActive ? "rgba(15,17,23,0.55)" : "#475569" }}>
+                    <div className="flex items-center gap-1.5 text-xs font-black" style={{ color: isActive ? "rgba(15,17,23,0.55)" : isBright ? "#166534" : "#a3e635" }}>
                       <Flame className="w-3 h-3" /> {totalCal} kcal
                     </div>
                   )}
@@ -452,7 +459,9 @@ export function MealPlanPage() {
             const slotCal = meals.reduce((s, m) => s + parseCalories(m.recipe.calories), 0);
             return (
               <div key={slot.value} className="rounded-2xl overflow-hidden"
-                style={{ background: slot.accentColor, border: `1px solid ${slot.borderColor}` }}>
+                style={isBright
+                  ? { background: "rgba(15,20,35,0.88)", border: `1px solid ${slot.borderColor}`, boxShadow: "0 4px 20px rgba(0,0,0,0.25)" }
+                  : { background: slot.accentColor, border: `1px solid ${slot.borderColor}` }}>
 
                 {/* Slot header */}
                 <div className="flex items-center justify-between px-5 py-3.5"

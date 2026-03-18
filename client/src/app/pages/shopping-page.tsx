@@ -8,6 +8,7 @@ import {
 import { AppHeader } from "../components/app-header";
 import { useMealPlan, type MealPlanItem } from "../contexts/meal-plan-context";
 import { toast } from "sonner";
+import { useBrightness } from "../contexts/brightness-context";
 
 interface ShoppingItem {
   id: string; name: string; amount: string; category: string;
@@ -86,6 +87,7 @@ const MEAL_LABEL: Record<string, string> = { breakfast: "Sáng", lunch: "Trưa",
 export function ShoppingPage() {
   const navigate = useNavigate();
   const { mealPlan } = useMealPlan();
+  const { isBright } = useBrightness();
   const autoItems = useMemo(() => buildFromMealPlan(mealPlan), [mealPlan]);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [manualItems, setManualItems] = useState<ShoppingItem[]>([]);
@@ -197,37 +199,37 @@ export function ShoppingPage() {
         <main className="max-w-3xl mx-auto px-4 sm:px-6 pb-16">
           <div className="pt-10 mb-8 flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-purple-400" />
-            <h1 className="text-2xl font-black text-white">Danh sách đi chợ</h1>
+            <h1 className="text-2xl font-black text-white" style={{ color: "var(--foreground)" }}>Danh sách đi chợ</h1>
           </div>
           <div className="text-center py-16 px-8">
             <div className="w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-5"
-              style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)" }}>
+              style={{ background: isBright ? "rgba(139,92,246,0.15)" : "rgba(139,92,246,0.1)", border: isBright ? "1px solid rgba(139,92,246,0.3)" : "1px solid rgba(139,92,246,0.2)" }}>
               <PackageOpen className="w-9 h-9 text-purple-400" />
             </div>
-            <h2 className="font-black text-lg text-white mb-2">Chưa có thực đơn</h2>
-            <p className="text-sm mb-6 max-w-xs mx-auto" style={{ color: "#64748b" }}>
+            <h2 className="font-black text-lg mb-2" style={{ color: "var(--foreground)" }}>Chưa có thực đơn</h2>
+            <p className="text-sm mb-6 max-w-xs mx-auto" style={{ color: "var(--muted-foreground)" }}>
               Lên thực đơn cho các bữa ăn trước, danh sách nguyên liệu sẽ tự động được tạo tại đây!
             </p>
             <Link to="/meal-plan">
               <button className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm text-white transition-all hover:scale-105"
-                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", boxShadow: "0 0 20px rgba(139,92,246,0.3)" }}>
+                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", boxShadow: `0 0 20px ${isBright ? "rgba(139,92,246,0.4)" : "rgba(139,92,246,0.3)"}` }}>
                 <CalendarDays className="w-4 h-4" /> Lên thực đơn ngay <ArrowRight className="w-4 h-4" />
               </button>
             </Link>
-            <p className="text-xs mt-6" style={{ color: "rgba(255,255,255,0.2)" }}>— hoặc thêm nguyên liệu thủ công bên dưới —</p>
+            <p className="text-xs mt-6" style={{ color: isBright ? "rgba(15,20,35,0.4)" : "rgba(255,255,255,0.2)" }}>— hoặc thêm nguyên liệu thủ công bên dưới —</p>
           </div>
           <div className="flex gap-2 mt-2">
             <input type="text" value={newItemInput} onChange={(e) => setNewItemInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addManual()}
               placeholder="Thêm nguyên liệu thủ công (VD: 200g thịt heo)..."
               className="flex-1 h-10 px-4 text-sm rounded-xl outline-none"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+              style={{ background: isBright ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)" }}
             />
             <button onClick={addManual} className="h-10 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5"
               style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
               <Plus className="w-4 h-4" /> Thêm
             </button>
-            {manualItems.length > 0 && (
+            {(manualItems.length > 0) && (
               <button
                 onClick={handleFindMarket}
                 className="h-10 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5 transition-all hover:scale-105"
@@ -256,15 +258,15 @@ export function ShoppingPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <ShoppingCart className="w-5 h-5 text-purple-400" />
-              <h1 className="text-2xl font-black text-white">Danh sách đi chợ</h1>
+              <h1 className="text-2xl font-black" style={{ color: "var(--foreground)" }}>Danh sách đi chợ</h1>
             </div>
-            <p className="text-sm" style={{ color: "#64748b" }}>Tổng hợp nguyên liệu từ thực đơn của bạn</p>
+            <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Tổng hợp nguyên liệu từ thực đơn của bạn</p>
           </div>
           <button onClick={resetChecked}
             className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#64748b" }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
+            style={{ background: isBright ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)", color: "var(--muted-foreground)" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = isBright ? "var(--foreground)" : "#94a3b8"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-foreground)"; }}
           >
             <RefreshCw className="w-3.5 h-3.5" /> Bỏ chọn tất cả
           </button>
@@ -287,10 +289,10 @@ export function ShoppingPage() {
                     const meals = mealPlan.filter((m) => m.date === date);
                     return (
                       <div key={date} className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+                        style={{ background: isBright ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.05)", border: isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.08)", color: "var(--muted-foreground)" }}>
                         <CalendarDays className="w-3 h-3" />
-                        <span className="font-medium">{formatDate(date)}</span>
-                        <span style={{ color: "rgba(148,163,184,0.5)" }}>·</span>
+                        <span className="font-semibold" style={{ color: isBright ? "rgba(15,20,35,0.7)" : "#94a3b8" }}>{formatDate(date)}</span>
+                        <span style={{ color: isBright ? "rgba(15,20,35,0.3)" : "rgba(148,163,184,0.5)" }}>·</span>
                         <span>{meals.map((m) => MEAL_LABEL[m.mealType]).join(", ")}</span>
                       </div>
                     );
@@ -299,7 +301,7 @@ export function ShoppingPage() {
               </div>
               <Link to="/meal-plan" className="flex-shrink-0">
                 <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-all"
-                  style={{ color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)", background: "rgba(163,230,53,0.05)" }}>
+                  style={{ color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)", background: "rgba(163,230,53,0.1)" }}>
                   <ChefHat className="w-3.5 h-3.5" /> Sửa thực đơn
                 </button>
               </Link>
@@ -308,18 +310,18 @@ export function ShoppingPage() {
         )}
 
         {/* Progress */}
-        <div className="mb-5 rounded-2xl p-4" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="mb-5 rounded-2xl p-4" style={{ background: "var(--card)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.06)" }}>
           <div className="flex items-center justify-between mb-2.5">
-            <span className="text-sm font-semibold text-white">Tiến độ mua sắm</span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+            <span className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Tiến độ mua sắm</span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold"
               style={checkedCount === totalItems && totalItems > 0
-                ? { background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }
-                : { background: "rgba(139,92,246,0.1)", color: "#c4b5fd", border: "1px solid rgba(139,92,246,0.2)" }
+                ? { background: "rgba(163,230,53,0.15)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }
+                : { background: isBright ? "rgba(139,92,246,0.15)" : "rgba(139,92,246,0.1)", color: isBright ? "#7c3aed" : "#c4b5fd", border: isBright ? "1px solid rgba(139,92,246,0.3)" : "1px solid rgba(139,92,246,0.2)" }
               }>
               {checkedCount}/{totalItems} mặt hàng
             </span>
           </div>
-          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
+          <div className="h-2.5 rounded-full overflow-hidden" style={{ background: isBright ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)" }}>
             <div className="h-full rounded-full transition-all duration-500"
               style={{ width: `${progress}%`, background: "linear-gradient(90deg, #8b5cf6, #a3e635)" }} />
           </div>
@@ -336,15 +338,15 @@ export function ShoppingPage() {
             onKeyDown={(e) => e.key === "Enter" && addManual()}
             placeholder="Thêm nguyên liệu thủ công (VD: 200g thịt heo)..."
             className="flex-1 h-10 px-4 text-sm rounded-xl outline-none"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9", minWidth: "160px" }}
+            style={{ background: isBright ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.06)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.1)", color: "var(--foreground)", minWidth: "160px" }}
             onFocus={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "rgba(163,230,53,0.4)"; }}
-            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = "rgba(255,255,255,0.1)"; }}
+            onBlur={(e) => { (e.currentTarget as HTMLInputElement).style.borderColor = isBright ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.1)"; }}
           />
           <button onClick={addManual} className="h-10 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5 transition-all hover:scale-105"
             style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
             <Plus className="w-4 h-4" /> Thêm
           </button>
-          {manualItems.length > 0 && (
+          {(manualItems.length > 0 || autoItems.length > 0) && (
             <button
               onClick={handleFindMarket}
               className="h-10 px-4 rounded-xl text-sm font-bold text-white flex items-center gap-1.5 transition-all hover:scale-105 ml-0 sm:ml-1"
@@ -369,21 +371,21 @@ export function ShoppingPage() {
 
             return (
               <div key={category} className="rounded-2xl overflow-hidden"
-                style={{ background: "rgba(26,31,46,0.9)", border: `1px solid ${config.borderColor}` }}>
+                style={{ background: "var(--card)", border: `1px solid ${isBright ? config.borderColor.replace('0.2', '0.4') : config.borderColor}` }}>
                 {/* Category header */}
                 <button onClick={() => toggleCollapse(category)}
                   className="w-full flex items-center justify-between px-5 py-3 transition-colors"
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isBright ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"; }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-lg">{config.emoji}</span>
-                    <span className="font-semibold text-sm text-white">{category}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: config.accentColor, color: config.textColor }}>
+                    <span className="font-bold text-sm" style={{ color: "var(--foreground)" }}>{category}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{ background: isBright ? config.accentColor.replace('0.08', '0.15') : config.accentColor, color: isBright ? config.textColor.replace('#', '%23').includes('a3e635') ? '#166534' : config.textColor : config.textColor }}>
                       {checkedInCat}/{catItems.length}
                     </span>
                   </div>
-                  {isCollapsed ? <ChevronDown className="w-4 h-4" style={{ color: "#64748b" }} /> : <ChevronUp className="w-4 h-4" style={{ color: "#64748b" }} />}
+                  {isCollapsed ? <ChevronDown className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} /> : <ChevronUp className="w-4 h-4" style={{ color: "var(--muted-foreground)" }} />}
                 </button>
 
                 {/* Items */}
@@ -402,16 +404,16 @@ export function ShoppingPage() {
                         </button>
 
                         <div className="flex-1 min-w-0">
-                          <span className={`text-sm font-medium ${item.checked ? "line-through" : "text-white"}`}
-                            style={item.checked ? { color: "rgba(255,255,255,0.25)" } : {}}>
+                          <span className={`text-sm font-bold ${item.checked ? "line-through opacity-40" : ""}`}
+                            style={item.checked ? { color: "var(--muted-foreground)" } : { color: "var(--foreground)" }}>
                             {item.name}
                           </span>
                           {item.fromRecipes && item.fromRecipes.length > 0 && (
-                            <p className="text-[11px] mt-0.5 truncate" style={{ color: item.checked ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.25)" }}>
+                            <p className="text-[11px] mt-0.5 truncate font-medium" style={{ color: "var(--muted-foreground)", opacity: item.checked ? 0.4 : 0.7 }}>
                               {item.fromRecipes.join(" · ")}
                             </p>
                           )}
-                          {item.isManual && <span className="text-[10px] font-medium" style={{ color: "#c4b5fd" }}>Thêm thủ công</span>}
+                          {item.isManual && <span className="text-[10px] font-bold" style={{ color: isBright ? "#7c3aed" : "#c4b5fd" }}>Thêm thủ công</span>}
                         </div>
 
                         <span className="text-xs px-2.5 py-1 rounded-full flex-shrink-0 font-medium"
@@ -443,15 +445,17 @@ export function ShoppingPage() {
         {/* Bottom CTA */}
         <div className="mt-8 text-center">
           <Link to="/meal-plan">
-            <button className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl transition-all"
-              style={{ color: "#64748b", border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+            <button className="inline-flex items-center gap-2 text-sm px-4 py-2.5 rounded-xl transition-all font-semibold"
+              style={{ color: "var(--muted-foreground)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.08)", background: isBright ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.03)" }}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
                 (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(163,230,53,0.3)";
+                if (isBright) (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.05)";
               }}
               onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(255,255,255,0.08)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--muted-foreground)";
+                (e.currentTarget as HTMLButtonElement).style.borderColor = isBright ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.08)";
+                if (isBright) (e.currentTarget as HTMLButtonElement).style.background = "rgba(0,0,0,0.03)";
               }}
             >
               <CalendarDays className="w-4 h-4" /> Chỉnh sửa thực đơn <ArrowRight className="w-4 h-4" />
