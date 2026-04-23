@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Sparkles, Clock, Heart, ArrowUp, X, Flame, ChefHat,
   RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check
@@ -9,6 +9,7 @@ import { mockRecipes } from "../data/mock-recipes";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
+import { motion, useMotionValue, useSpring, useTransform, useInView } from "motion/react";
 
 // ─── Tags ─────────────────────────────────────────────────────────────────────
 
@@ -51,6 +52,28 @@ const QUICK_PROMPTS = [
   { label: "🌶 Món cay", q: "Món cay cuối tuần" },
   { label: "🍳 Bữa sáng", q: "Bữa sáng" },
 ];
+
+// ─── 3D card tilt hook ────────────────────────────────────────────────────────
+function useTiltCard(strength = 10) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 300, damping: 30 });
+  const scale = useSpring(1, { stiffness: 300, damping: 26 });
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.04);
+  }, [x, y, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    x.set(0); y.set(0); scale.set(1);
+  }, [x, y, scale]);
+
+  return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -476,115 +499,137 @@ export function MainAppPage() {
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
 function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolean; onToggleFav: () => void }) {
+  const tilt = useTiltCard(9);
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-30px" });
+
   return (
-    <div
-      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
+    <motion.div
+      ref={ref}
       style={{
-        background: "rgba(26,31,46,0.9)",
-        border: "1px solid rgba(255,255,255,0.06)",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+        perspective: 900,
+        rotateX: tilt.rotateX,
+        rotateY: tilt.rotateY,
+        scale: tilt.scale,
+        transformStyle: "preserve-3d",
       }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(163,230,53,0.25)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(163,230,53,0.06)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(255,255,255,0.06)";
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
-      }}
+      initial={{ opacity: 0, y: 28, filter: "blur(4px)" }}
+      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      onMouseMove={tilt.onMouseMove}
+      onMouseLeave={tilt.onMouseLeave}
+      whileHover={{ boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 30px rgba(163,230,53,0.1)" }}
+      className="group rounded-2xl overflow-hidden cursor-pointer"
     >
-      {/* Image */}
-      <div className="relative overflow-hidden h-44">
-        <ImageWithFallback
-          src={recipe.image}
-          alt={recipe.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      <div
+        className="rounded-2xl overflow-hidden h-full"
+        style={{
+          background: "rgba(26,31,46,0.9)",
+          border: "1px solid rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Image */}
+        <div className="relative overflow-hidden h-44">
+          <motion.div
+            className="w-full h-full"
+            whileHover={{ scale: 1.08 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <ImageWithFallback
+              src={recipe.image}
+              alt={recipe.name}
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-        {/* Cuisine badge */}
-        <span
-          className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-full"
-          style={{
-            background: "rgba(15,17,23,0.8)",
-            backdropFilter: "blur(8px)",
-            color: "#f1f5f9",
-            border: "1px solid rgba(255,255,255,0.12)",
-          }}
-        >
-          {recipe.cuisine}
-        </span>
-
-        {/* Favorite button */}
-        <button
-          onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
-          style={
-            isFav
-              ? { background: "#ef4444", color: "white" }
-              : {
-                background: "rgba(15,17,23,0.75)",
-                backdropFilter: "blur(8px)",
-                color: "#94a3b8",
-                border: "1px solid rgba(255,255,255,0.1)",
-              }
-          }
-        >
-          <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
-        </button>
-
-        {/* Recipe name overlay */}
-        <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
-          <p className="text-white font-bold text-base leading-tight line-clamp-1 drop-shadow-sm">
-            {recipe.name}
-          </p>
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="px-4 py-3">
-        <p className="text-xs line-clamp-2 mb-3 leading-relaxed" style={{ color: "#64748b" }}>
-          {recipe.description}
-        </p>
-
-        {/* Meta info */}
-        <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-lime-400" />
-            {recipe.cookTime}
-          </span>
-          <span className="flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5 text-orange-400" />
-            {recipe.calories}
-          </span>
-          <span className="flex items-center gap-1">
-            <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
-            {recipe.difficulty}
-          </span>
-        </div>
-
-        {/* CTA */}
-        <Link to={`/meal/${recipe.id}`}>
-          <button
-            className="w-full h-9 rounded-xl text-xs font-semibold transition-all"
+          {/* Cuisine badge */}
+          <span
+            className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-full"
             style={{
-              background: "rgba(163,230,53,0.08)",
-              border: "1px solid rgba(163,230,53,0.2)",
-              color: "#a3e635",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)";
-              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.4)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)";
-              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.2)";
+              background: "rgba(15,17,23,0.8)",
+              backdropFilter: "blur(8px)",
+              color: "#f1f5f9",
+              border: "1px solid rgba(255,255,255,0.12)",
             }}
           >
-            Xem dinh dưỡng →
-          </button>
-        </Link>
+            {recipe.cuisine}
+          </span>
+
+          {/* Favorite button */}
+          <motion.button
+            onClick={(e) => { e.preventDefault(); onToggleFav(); }}
+            whileHover={{ scale: 1.2 }}
+            whileTap={{ scale: 0.85 }}
+            animate={isFav ? { scale: [1, 1.35, 1] } : {}}
+            transition={{ type: "spring", stiffness: 300 }}
+            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
+            style={
+              isFav
+                ? { background: "#ef4444", color: "white", boxShadow: "0 0 16px rgba(239,68,68,0.5)" }
+                : {
+                  background: "rgba(15,17,23,0.75)",
+                  backdropFilter: "blur(8px)",
+                  color: "#94a3b8",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }
+            }
+          >
+            <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
+          </motion.button>
+
+          {/* Recipe name */}
+          <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
+            <p className="text-white font-bold text-base leading-tight line-clamp-1 drop-shadow-sm">
+              {recipe.name}
+            </p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-4 py-3">
+          <p className="text-xs line-clamp-2 mb-3 leading-relaxed" style={{ color: "#64748b" }}>
+            {recipe.description}
+          </p>
+
+          {/* Meta */}
+          <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-lime-400" />
+              {recipe.cookTime}
+            </span>
+            <span className="flex items-center gap-1">
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              {recipe.calories}
+            </span>
+            <span className="flex items-center gap-1">
+              <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
+              {recipe.difficulty}
+            </span>
+          </div>
+
+          {/* CTA */}
+          <Link to={`/meal/${recipe.id}`}>
+            <motion.button
+              whileHover={{
+                background: "rgba(163,230,53,0.18)",
+                borderColor: "rgba(163,230,53,0.5)",
+                color: "#bef264",
+                scale: 1.02,
+              }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full h-9 rounded-xl text-xs font-semibold"
+              style={{
+                background: "rgba(163,230,53,0.08)",
+                border: "1px solid rgba(163,230,53,0.2)",
+                color: "#a3e635",
+              }}
+            >
+              Xem dinh dưỡng →
+            </motion.button>
+          </Link>
+        </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

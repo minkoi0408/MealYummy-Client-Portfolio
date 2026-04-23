@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { useCallback, useRef } from "react";
 import { Button } from "../components/ui/button";
 import {
   Sparkles,
@@ -15,7 +16,56 @@ import {
   Star,
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
-import { motion } from "motion/react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useInView,
+} from "motion/react";
+import { RobotChef3D } from "../components/robot-chef-3d";
+
+// ─── 3D tilt hook ─────────────────────────────────────────────────────────────
+function useTilt3D(strength = 14) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 280, damping: 28 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 280, damping: 28 });
+  const scale = useSpring(1, { stiffness: 280, damping: 24 });
+  const glowX = useTransform(x, [-0.5, 0.5], [0, 100]);
+  const glowY = useTransform(y, [-0.5, 0.5], [0, 100]);
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.04);
+  }, [x, y, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    x.set(0); y.set(0); scale.set(1);
+  }, [x, y, scale]);
+
+  return { rotateX, rotateY, scale, glowX, glowY, onMouseMove, onMouseLeave };
+}
+
+// ─── FadeUp scroll-reveal ──────────────────────────────────────────────────────
+function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 40, filter: "blur(6px)" }}
+      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 
 const features = [
   {
@@ -103,6 +153,59 @@ const testimonials = [
   },
 ];
 
+// ─── TestimonialCard with 3D tilt ─────────────────────────────────────────────
+function TestimonialCard({ t, delay }: { t: typeof testimonials[0]; delay: number }) {
+  const tilt = useTilt3D(12);
+  return (
+    <FadeUp delay={delay}>
+      <motion.div
+        style={{
+          perspective: 1000,
+          rotateX: tilt.rotateX,
+          rotateY: tilt.rotateY,
+          scale: tilt.scale,
+          transformStyle: "preserve-3d",
+          background: "rgba(26,31,46,0.9)",
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
+        whileHover={{ borderColor: "rgba(163,230,53,0.25)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(163,230,53,0.08)" }}
+        className="rounded-2xl p-6 relative overflow-hidden cursor-default"
+      >
+        {/* Stars */}
+        <div className="flex gap-0.5 mb-4">
+          {Array.from({ length: t.rating }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0, rotate: -30 }}
+              animate={{ opacity: 1, scale: 1, rotate: 0 }}
+              transition={{ delay: delay + i * 0.06, type: "spring", stiffness: 300 }}
+            >
+              <Star className="w-4 h-4 text-lime-400 fill-lime-400" />
+            </motion.div>
+          ))}
+        </div>
+        <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
+        <div className="flex items-center gap-3">
+          <motion.div
+            whileHover={{ scale: 1.2, rotate: 8 }}
+            whileTap={{ scale: 0.9 }}
+            className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-gray-900 flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+          >
+            {t.avatar}
+          </motion.div>
+          <div>
+            <p className="text-white font-semibold text-sm">{t.name}</p>
+            <p className="text-slate-500 text-xs">{t.role}</p>
+          </div>
+        </div>
+      </motion.div>
+    </FadeUp>
+  );
+}
+
 export function HomePage() {
   return (
     <div className="min-h-screen bg-transparent">
@@ -174,129 +277,15 @@ export function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right — Macro card floating */}
+            {/* Right — Robot Chef 3D */}
             <motion.div
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="relative hidden lg:block"
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ duration: 0.85, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
+              className="relative hidden lg:flex items-center justify-center"
+              style={{ minHeight: 460 }}
             >
-              {/* Main card */}
-              <div
-                className="relative rounded-3xl p-8 overflow-hidden"
-                style={{
-                  background: "rgba(26,31,46,0.9)",
-                  border: "1px solid rgba(163,230,53,0.15)",
-                  backdropFilter: "blur(20px)",
-                  boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 80px rgba(163,230,53,0.05)",
-                }}
-              >
-                {/* Glow accent */}
-                <div className="absolute top-0 right-0 w-48 h-48 rounded-full"
-                  style={{
-                    background: "radial-gradient(circle, rgba(163,230,53,0.12) 0%, transparent 70%)",
-                  }}
-                />
-
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                      style={{ background: "rgba(163,230,53,0.15)", border: "1px solid rgba(163,230,53,0.3)" }}>
-                      <Target className="w-5 h-5 text-lime-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-500 uppercase tracking-widest">Daily Target</p>
-                      <p className="text-white font-bold">Muscle Gain Plan</p>
-                    </div>
-                    <div className="ml-auto px-3 py-1 rounded-full text-xs font-semibold"
-                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                      Active
-                    </div>
-                  </div>
-
-                  {/* Calorie ring */}
-                  <div className="flex items-center justify-center mb-6">
-                    <div className="relative">
-                      <svg width="140" height="140" viewBox="0 0 140 140">
-                        <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
-                        <circle cx="70" cy="70" r="58" fill="none" stroke="url(#grad1)" strokeWidth="10"
-                          strokeDasharray="364" strokeDashoffset="91" strokeLinecap="round"
-                          transform="rotate(-90 70 70)" />
-                        <defs>
-                          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" stopColor="#a3e635" />
-                            <stop offset="100%" stopColor="#4ade80" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <p className="text-3xl font-black text-white">2,450</p>
-                        <p className="text-xs text-slate-500 uppercase tracking-wide">KCAL / ngày</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Macros */}
-                  <div className="grid grid-cols-3 gap-3">
-                    {macros.map((m) => (
-                      <div key={m.label} className="rounded-xl p-3 text-center"
-                        style={{ background: m.bg, border: `1px solid ${m.color}30` }}>
-                        <p className="text-lg font-black" style={{ color: m.color }}>{m.value}</p>
-                        <p className="text-xs text-slate-500 font-semibold tracking-wider mt-0.5">{m.label}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* AI badge */}
-                  <div className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl"
-                    style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)" }}>
-                    <Sparkles className="w-4 h-4 text-lime-400" />
-                    <span className="text-sm text-slate-300">AI đã tối ưu cho mục tiêu của bạn</span>
-                    <ChevronRight className="w-4 h-4 text-slate-500 ml-auto" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating mini cards */}
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-6 -left-8 rounded-2xl px-4 py-3 flex items-center gap-3"
-                style={{
-                  background: "rgba(26,31,46,0.95)",
-                  border: "1px solid rgba(96,165,250,0.3)",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
-                }}
-              >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(96,165,250,0.15)" }}>
-                  <Dumbbell className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-bold">Protein hôm nay</p>
-                  <p className="text-blue-400 text-xs font-semibold">152g / 180g</p>
-                </div>
-              </motion.div>
-
-              <motion.div
-                animate={{ y: [0, 8, 0] }}
-                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                className="absolute -bottom-6 -right-6 rounded-2xl px-4 py-3 flex items-center gap-3"
-                style={{
-                  background: "rgba(26,31,46,0.95)",
-                  border: "1px solid rgba(163,230,53,0.3)",
-                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
-                }}
-              >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                  style={{ background: "rgba(163,230,53,0.15)" }}>
-                  <Flame className="w-5 h-5 text-lime-400" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-bold">Calo đã nạp</p>
-                  <p className="text-lime-400 text-xs font-semibold">1,840 / 2,450 kcal</p>
-                </div>
-              </motion.div>
+              <RobotChef3D className="w-full h-full" />
             </motion.div>
 
           </div>
@@ -506,36 +495,7 @@ export function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="rounded-2xl p-6"
-                style={{
-                  background: "rgba(26,31,46,0.8)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-lime-400 fill-lime-400" />
-                  ))}
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-gray-900"
-                    style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
-                  >
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">{t.name}</p>
-                    <p className="text-slate-500 text-xs">{t.role}</p>
-                  </div>
-                </div>
-              </motion.div>
+              <TestimonialCard key={i} t={t} delay={i * 0.12} />
             ))}
           </div>
         </div>
