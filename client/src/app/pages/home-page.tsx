@@ -23,7 +23,9 @@ import {
   useTransform,
   useInView,
 } from "motion/react";
-import { RobotChef3D } from "../components/robot-chef-3d";
+import { ThreeRobotScene } from "../components/three-robot-scene";
+import { ThreeHeroBg } from "../components/three-hero-bg";
+import { ThreeFoodOrbit } from "../components/three-food-orbit";
 
 // ─── 3D tilt hook ─────────────────────────────────────────────────────────────
 function useTilt3D(strength = 14) {
@@ -213,6 +215,8 @@ export function HomePage() {
 
       {/* ── HERO SECTION ──────────────────────────────────── */}
       <section className="relative py-20 px-6 overflow-hidden">
+        {/* Three.js animated background */}
+        <ThreeHeroBg />
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
@@ -277,7 +281,7 @@ export function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right — Robot Chef 3D */}
+            {/* Right — Three.js Robot Chef Scene */}
             <motion.div
               initial={{ opacity: 0, x: 50, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -285,7 +289,7 @@ export function HomePage() {
               className="relative hidden lg:flex items-center justify-center"
               style={{ minHeight: 460 }}
             >
-              <RobotChef3D className="w-full h-full" />
+              <ThreeRobotScene className="w-full h-full" />
             </motion.div>
 
           </div>
@@ -403,6 +407,19 @@ export function HomePage() {
             })}
           </div>
         </div>
+
+          {/* Three.js Food Orbit Scene */}
+          <div className="mt-16">
+            <div className="text-center mb-6">
+              <span
+                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+                style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.25)", color: "#fb923c" }}
+              >
+                🍲 3D Food Universe
+              </span>
+            </div>
+            <ThreeFoodOrbit className="w-full" />
+          </div>
       </section>
 
       {/* ── MACRO TRACKER BANNER ──────────────────────────────────── */}
