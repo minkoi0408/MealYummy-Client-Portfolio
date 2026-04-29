@@ -13,7 +13,7 @@
  *  • Phase animations: scanning → zooming → done
  */
 
-import { useRef, useMemo, Suspense, useEffect } from "react";
+import { useRef, useMemo, Suspense, useEffect, useState, useCallback } from "react";
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { PerspectiveCamera, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
@@ -83,13 +83,13 @@ function EarthGroup({ phase }: { phase: Phase }) {
   const cloudsRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
 
-  // Load textures
+  // Load textures with cache-busting for reliability
   const earthMap = useLoader(THREE.TextureLoader, "/textures/earth/earthmap.jpg");
   const lightsMap = useLoader(THREE.TextureLoader, "/textures/earth/earth_lights.png");
   const cloudsMap = useLoader(THREE.TextureLoader, "/textures/earth/cloud_combined.jpg");
 
-  // Geometry — IcosahedronGeometry like the original
-  const geometry = useMemo(() => new THREE.IcosahedronGeometry(1, 14), []);
+  // Geometry — detail 8 is plenty for a smooth sphere (14 was creating millions of vertices)
+  const geometry = useMemo(() => new THREE.IcosahedronGeometry(1, 8), []);
 
   // Materials
   const earthMat = useMemo(
@@ -345,7 +345,7 @@ function SatelliteDot({ phase }: { phase: Phase }) {
 // ─── Star Field (matching the original repo pattern) ───────────────────────────
 function StarField({ phase }: { phase: Phase }) {
   const starsRef = useRef<THREE.Points>(null);
-  const numStars = 2000;
+  const numStars = 800;
 
   const { positions, colors } = useMemo(() => {
     const verts: number[] = [];
@@ -454,6 +454,53 @@ function LoadingFallback() {
   );
 }
 
+// ─── Error Boundary for Three.js ──────────────────────────────────────────────
+import { Component, type ReactNode, type ErrorInfo } from "react";
+
+class GlobeErrorBoundary extends Component<
+  { children: ReactNode; onRetry?: () => void },
+  { hasError: boolean; errorCount: number }
+> {
+  constructor(props: { children: ReactNode; onRetry?: () => void }) {
+    super(props);
+    this.state = { hasError: false, errorCount: 0 };
+  }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.warn("Globe loading error:", error.message, errorInfo);
+  }
+
+  handleRetry = () => {
+    this.setState((prev) => ({ hasError: false, errorCount: prev.errorCount + 1 }));
+    this.props.onRetry?.();
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="text-center">
+            <div className="text-4xl mb-4">🌍</div>
+            <p className="text-sm text-slate-400 mb-3">Không thể tải địa cầu 3D</p>
+            <button
+              onClick={this.handleRetry}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-white"
+              style={{ background: "linear-gradient(135deg, #3b82f6, #2563eb)" }}
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Main Export ───────────────────────────────────────────────────────────────
 export function ThreeGlobe({
   phase = "scanning",
@@ -462,6 +509,9 @@ export function ThreeGlobe({
   phase: Phase;
   className?: string;
 }) {
+  const [retryKey, setRetryKey] = useState(0);
+  const handleRetry = useCallback(() => setRetryKey((k) => k + 1), []);
+
   return (
     <div
       className={className}
@@ -472,46 +522,60 @@ export function ThreeGlobe({
         inset: 0,
       }}
     >
-      <Canvas
-        gl={{
-          antialias: true,
-          alpha: true,
-          powerPreference: "high-performance",
-          toneMapping: THREE.ACESFilmicToneMapping,
-          outputColorSpace: THREE.LinearSRGBColorSpace,
-        }}
-        style={{ background: "transparent" }}
-        dpr={[1, 2]}
-      >
-        <GlobeCamera phase={phase} />
+      <GlobeErrorBoundary onRetry={handleRetry}>
+        <Canvas
+          key={retryKey}
+          gl={{
+            antialias: true,
+            alpha: true,
+            powerPreference: "high-performance",
+            toneMapping: THREE.ACESFilmicToneMapping,
+            outputColorSpace: THREE.LinearSRGBColorSpace,
+          }}
+          style={{ background: "transparent" }}
+          dpr={[1, 1.5]}
+          onCreated={({ gl }) => {
+            // Ensure the context is not lost silently
+            const canvas = gl.domElement;
+            canvas.addEventListener("webglcontextlost", (e) => {
+              e.preventDefault();
+              console.warn("WebGL context lost — globe will retry");
+            });
+            canvas.addEventListener("webglcontextrestored", () => {
+              console.info("WebGL context restored");
+            });
+          }}
+        >
+          <GlobeCamera phase={phase} />
 
-        {/* Sunlight — matching original position */}
-        <directionalLight
-          position={[-2.2, 0.7, 1.6]}
-          intensity={2.0}
-          color="#ffffff"
-        />
+          {/* Sunlight — matching original position */}
+          <directionalLight
+            position={[-2.2, 0.7, 1.6]}
+            intensity={2.0}
+            color="#ffffff"
+          />
 
-        <Suspense fallback={<LoadingFallback />}>
-          <EarthGroup phase={phase} />
-          <LocationPin3D phase={phase} />
-          <ScanRings phase={phase} />
-          <OrbitRing phase={phase} />
-          <SatelliteDot phase={phase} />
-          <StarField phase={phase} />
+          <Suspense fallback={<LoadingFallback />}>
+            <EarthGroup phase={phase} />
+            <LocationPin3D phase={phase} />
+            <ScanRings phase={phase} />
+            <OrbitRing phase={phase} />
+            <SatelliteDot phase={phase} />
+            <StarField phase={phase} />
 
-          {phase === "scanning" && (
-            <Sparkles
-              count={20}
-              scale={5}
-              size={1}
-              speed={0.3}
-              opacity={0.3}
-              color="#38bdf8"
-            />
-          )}
-        </Suspense>
-      </Canvas>
+            {phase === "scanning" && (
+              <Sparkles
+                count={20}
+                scale={5}
+                size={1}
+                speed={0.3}
+                opacity={0.3}
+                color="#38bdf8"
+              />
+            )}
+          </Suspense>
+        </Canvas>
+      </GlobeErrorBoundary>
     </div>
   );
 }

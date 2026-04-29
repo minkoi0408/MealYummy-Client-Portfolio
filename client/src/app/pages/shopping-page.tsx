@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   ShoppingCart, CheckCircle2, Circle, Plus, Trash2,
@@ -10,6 +10,13 @@ import { useMealPlan, type MealPlanItem } from "../contexts/meal-plan-context";
 import { toast } from "sonner";
 import { useBrightness } from "../contexts/brightness-context";
 import { ThreeGlobe } from "../components/three-globe";
+
+// Preload earth textures so they're cached before the globe overlay opens
+const EARTH_TEXTURES = [
+  "/textures/earth/earthmap.jpg",
+  "/textures/earth/earth_lights.png",
+  "/textures/earth/cloud_combined.jpg",
+];
 
 interface ShoppingItem {
   id: string; name: string; amount: string; category: string;
@@ -98,6 +105,14 @@ export function ShoppingPage() {
   const [locationMessage, setLocationMessage] = useState("Đang xác định vị trí của bạn...");
   const [overlayPhase, setOverlayPhase] = useState<"scanning" | "zooming" | "done">("scanning");
   const [foundLocation, setFoundLocation] = useState<string | null>(null);
+
+  // Preload earth textures on mount so they're already cached
+  useEffect(() => {
+    EARTH_TEXTURES.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+  }, []);
 
   const handleFindMarket = useCallback(() => {
     setShowLocationOverlay(true);
