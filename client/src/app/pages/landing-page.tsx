@@ -217,8 +217,6 @@ export function LandingPage() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroScale = useTransform(scrollYProgress, [0, 0.4], [1, 0.94]);
 
-  // 3D tilt for right mosaic
-  const mosaicTilt = useTilt(8);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

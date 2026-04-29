@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, lazy, Suspense } from "react";
 import { Button } from "../components/ui/button";
 import {
   Sparkles,
@@ -23,9 +23,12 @@ import {
   useTransform,
   useInView,
 } from "motion/react";
-import { ThreeRobotScene } from "../components/three-robot-scene";
-import { ThreeHeroBg } from "../components/three-hero-bg";
-import { ThreeFoodOrbit } from "../components/three-food-orbit";
+import { useVisibility } from "../../hooks/useVisibility";
+
+// Lazy load heavy Three.js components
+const ThreeRobotScene = lazy(() => import("../components/three-robot-scene").then(m => ({ default: m.ThreeRobotScene })));
+const ThreeHeroBg = lazy(() => import("../components/three-hero-bg").then(m => ({ default: m.ThreeHeroBg })));
+const ThreeFoodOrbit = lazy(() => import("../components/three-food-orbit").then(m => ({ default: m.ThreeFoodOrbit })));
 
 // ─── 3D tilt hook ─────────────────────────────────────────────────────────────
 function useTilt3D(strength = 14) {
@@ -68,6 +71,19 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
   );
 }
 
+// ─── Visibility-aware Three.js wrapper (only render when on-screen) ───────────
+function VisibleThreeFoodOrbit() {
+  const { ref, isVisible } = useVisibility();
+  return (
+    <div ref={ref} style={{ minHeight: 460 }}>
+      {isVisible ? <ThreeFoodOrbit className="w-full" /> : (
+        <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
+          <div className="text-4xl animate-pulse">🍲</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const features = [
   {
@@ -125,11 +141,6 @@ const stats = [
   { value: "4.9★", label: "Đánh giá từ VĐV", icon: Star },
 ];
 
-const macros = [
-  { label: "PROTEIN", value: "35%", color: "#a3e635", bg: "rgba(163,230,53,0.1)" },
-  { label: "CARBS", value: "45%", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
-  { label: "FAT", value: "20%", color: "#f472b6", bg: "rgba(244,114,182,0.1)" },
-];
 
 const testimonials = [
   {
@@ -216,7 +227,9 @@ export function HomePage() {
       {/* ── HERO SECTION ──────────────────────────────────── */}
       <section className="relative py-20 px-6 overflow-hidden">
         {/* Three.js animated background */}
-        <ThreeHeroBg />
+        <Suspense fallback={null}>
+          <ThreeHeroBg />
+        </Suspense>
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
@@ -289,7 +302,15 @@ export function HomePage() {
               className="relative hidden lg:flex items-center justify-center"
               style={{ minHeight: 460 }}
             >
-              <ThreeRobotScene className="w-full h-full" />
+              <Suspense fallback={
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-32 h-32 rounded-full" style={{ background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)" }}>
+                    <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🍔</div>
+                  </div>
+                </div>
+              }>
+                <ThreeRobotScene className="w-full h-full" />
+              </Suspense>
             </motion.div>
 
           </div>
@@ -418,7 +439,13 @@ export function HomePage() {
                 🍲 3D Food Universe
               </span>
             </div>
-            <ThreeFoodOrbit className="w-full" />
+            <Suspense fallback={
+              <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
+                <div className="text-4xl animate-pulse">🍲</div>
+              </div>
+            }>
+              <VisibleThreeFoodOrbit />
+            </Suspense>
           </div>
       </section>
 

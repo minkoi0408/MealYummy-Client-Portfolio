@@ -47,7 +47,7 @@ function FoodSatellite({ item, index }: { item: typeof FOOD_ITEMS[0]; index: num
         height: item.size,
         marginLeft: -item.size / 2,
         marginTop: -item.size / 2,
-        translateZ: item.z,
+        transform: `translateZ(${item.z}px)`,
       }}
       animate={{
         rotate: [animAngle, animAngle + 360],
@@ -131,7 +131,7 @@ export function FoodScene3D({ className = "" }: { className?: string }) {
           className="absolute inset-0 pointer-events-none"
           style={{
             background: "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(251,146,60,0.12) 0%, rgba(239,68,68,0.06) 40%, transparent 70%)",
-            translateZ: -60,
+            transform: "translateZ(-60px)",
           }}
         />
 
@@ -180,7 +180,7 @@ export function FoodScene3D({ className = "" }: { className?: string }) {
         {/* ── Hero center card ─────────────────────────────────── */}
         <div
           className="absolute inset-0 flex items-center justify-center"
-          style={{ translateZ: 80 }}
+          style={{ transform: "translateZ(80px)" }}
         >
           <motion.div
             animate={{ y: [0, -10, 0], scale: [1, 1.02, 1] }}

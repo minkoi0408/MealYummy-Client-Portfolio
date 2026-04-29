@@ -13,8 +13,6 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Float,
   Html,
-  MeshDistortMaterial,
-  MeshWobbleMaterial,
   Sphere,
   TorusKnot,
   Octahedron,
@@ -92,7 +90,7 @@ function OrbitingFood({ item, index }: { item: typeof FOOD_ITEMS[0]; index: numb
           </Octahedron>
         )}
         {item.shape === "tk" && (
-          <TorusKnot ref={meshRef} args={[0.18, 0.07, 64, 12]}>
+          <TorusKnot ref={meshRef} args={[0.18, 0.07, 32, 8]}>
             <meshStandardMaterial
               color={color}
               emissive={color}
@@ -104,39 +102,6 @@ function OrbitingFood({ item, index }: { item: typeof FOOD_ITEMS[0]; index: numb
             />
           </TorusKnot>
         )}
-
-        {/* HTML emoji label */}
-        <Html
-          center
-          distanceFactor={6}
-          style={{ pointerEvents: "none", userSelect: "none" }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            <span style={{ fontSize: 22, lineHeight: 1 }}>{item.emoji}</span>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                color: item.color,
-                background: "rgba(0,0,0,0.55)",
-                backdropFilter: "blur(6px)",
-                padding: "2px 6px",
-                borderRadius: 20,
-                border: `1px solid ${item.color}55`,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {item.label}
-            </span>
-          </div>
-        </Html>
       </Float>
     </group>
   );
@@ -162,7 +127,7 @@ function HeroOrb() {
   return (
     <group>
       {/* Outer glow sphere */}
-      <Sphere args={[1.12, 32, 32]}>
+      <Sphere args={[1.12, 16, 16]}>
         <meshStandardMaterial
           color="#fb923c"
           emissive="#fb923c"
@@ -175,14 +140,12 @@ function HeroOrb() {
         />
       </Sphere>
 
-      {/* Main distorted orb */}
-      <Sphere ref={orbRef} args={[0.85, 64, 64]}>
-        <MeshDistortMaterial
+      {/* Main orb - simplified from MeshDistortMaterial */}
+      <Sphere ref={orbRef} args={[0.85, 24, 24]}>
+        <meshStandardMaterial
           color="#fb923c"
           emissive="#f97316"
           emissiveIntensity={0.4}
-          distort={0.35}
-          speed={2}
           roughness={0.05}
           metalness={0.5}
           transparent
@@ -190,14 +153,12 @@ function HeroOrb() {
         />
       </Sphere>
 
-      {/* Inner wobble core */}
-      <Sphere args={[0.55, 32, 32]}>
-        <MeshWobbleMaterial
+      {/* Inner core - simplified from MeshWobbleMaterial */}
+      <Sphere args={[0.55, 16, 16]}>
+        <meshStandardMaterial
           color="#fbbf24"
           emissive="#fbbf24"
           emissiveIntensity={0.6}
-          factor={0.3}
-          speed={3}
           transparent
           opacity={0.6}
           roughness={0.1}
@@ -207,7 +168,7 @@ function HeroOrb() {
 
       {/* Spinning ring */}
       <mesh ref={ringRef}>
-        <torusGeometry args={[1.3, 0.025, 16, 100]} />
+        <torusGeometry args={[1.3, 0.025, 12, 48]} />
         <meshStandardMaterial
           color="#fb923c"
           emissive="#fb923c"
@@ -279,7 +240,7 @@ function OrbitTrail({ radius, speed, phase, color }: { radius: number; speed: nu
 
 // ─── Particle Dust ────────────────────────────────────────────────────────────
 function ParticleDust() {
-  const count = 120;
+  const count = 60;
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {

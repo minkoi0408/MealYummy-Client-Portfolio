@@ -43,7 +43,7 @@ function Ingredient({ data }: { data: typeof INGREDIENTS[0] }) {
       floatIntensity={0.7}
       rotationIntensity={0.5}
     >
-      <Sphere args={[data.r, 20, 20]} position={data.pos}>
+      <Sphere args={[data.r, 12, 12]} position={data.pos}>
         <meshStandardMaterial
           color={data.color}
           emissive={data.emissive}
@@ -80,7 +80,7 @@ function SteamWisp({ index }: { index: number }) {
 
   return (
     <mesh ref={ref} position={[x, -3, -2]}>
-      <sphereGeometry args={[0.4, 12, 12]} />
+      <sphereGeometry args={[0.4, 8, 8]} />
       <meshStandardMaterial
         color="#ffffff"
         emissive="#a3e635"
@@ -96,7 +96,7 @@ function SteamWisp({ index }: { index: number }) {
 
 // ─── Spice dust particles ─────────────────────────────────────────────────────
 function SpiceDust() {
-  const count = 180;
+  const count = 80;
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -190,7 +190,7 @@ export function ThreeHeroBg({ className = "" }: { className?: string }) {
           ))}
 
           {/* Steam wisps */}
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2].map((i) => (
             <SteamWisp key={i} index={i} />
           ))}
 
@@ -199,7 +199,7 @@ export function ThreeHeroBg({ className = "" }: { className?: string }) {
 
           {/* Tiny golden sparkles */}
           <Sparkles
-            count={40}
+            count={20}
             scale={10}
             size={1.4}
             speed={0.3}

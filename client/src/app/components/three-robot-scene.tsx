@@ -23,8 +23,6 @@ function HamburgerModel({ open, onModelInfo }: {
 
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-        child.castShadow = true;
-        child.receiveShadow = true;
         child.material.envMapIntensity = 3;
         child.material.needsUpdate = true;
       }
@@ -123,7 +121,7 @@ function RobotScreen({ frame, hovered, onHover, onLeave, onClick, worldPattyY, s
   // Canvas for robot animation
   const canvasEl = useMemo(() => {
     const c = document.createElement("canvas");
-    c.width = 512; c.height = 768;
+    c.width = 256; c.height = 384;
     return c;
   }, []);
   const texture = useMemo(() => {
@@ -293,8 +291,14 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
   const [showText, setShowText] = useState(false);
 
   useEffect(() => {
-    Array.from({ length: TOTAL }, (_, i) => `/robot-frames/ezgif-frame-${String(i + 1).padStart(3, "0")}.jpg`)
-      .forEach(s => { const img = new Image(); img.src = s; });
+    // Lazy load: preload first 10 frames immediately, rest after idle
+    const urls = Array.from({ length: TOTAL }, (_, i) => `/robot-frames/ezgif-frame-${String(i + 1).padStart(3, "0")}.jpg`);
+    urls.slice(0, 10).forEach(s => { const img = new Image(); img.src = s; });
+    // Load remaining frames after a delay
+    const timer = setTimeout(() => {
+      urls.slice(10).forEach(s => { const img = new Image(); img.src = s; });
+    }, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -320,10 +324,9 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
       style={{ width: "100%", height: 480, cursor: "grab" }}>
 
       <Canvas
-        gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.5 }}
-        shadows
+        gl={{ antialias: false, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.5, powerPreference: "high-performance" }}
         style={{ position: "absolute", inset: 0, background: "transparent" }}
-        dpr={[1, 1.5]}
+        dpr={[1, 1.25]}
       >
         <PerspectiveCamera makeDefault fov={40} position={[5, 2, 5]} />
 
@@ -337,12 +340,9 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
           target={[0, 0, 0]}
         />
 
-        <ambientLight intensity={0.6} color="#fff4e0" />
-        <directionalLight position={[3, 8, 5]} intensity={2.5} color="#fff8e7"
-          castShadow shadow-mapSize={[1024, 1024]} shadow-normalBias={0.05} />
+        <ambientLight intensity={0.8} color="#fff4e0" />
+        <directionalLight position={[3, 8, 5]} intensity={2.5} color="#fff8e7" />
         <pointLight position={[-3, 4, 5]} intensity={1.2} color="#fde68a" />
-        <pointLight position={[3, 3, 5]} intensity={0.9} color="#fbbf24" />
-        <pointLight position={[0, -2, 4]} intensity={0.5} color="#fed7aa" />
 
         <Suspense fallback={null}>
           <BurgerSceneWrapper
@@ -351,7 +351,7 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
             setHovered={setHovered}
             handleClick={handleClick}
           />
-          <Sparkles count={20} scale={[3, 4.5, 3]} size={1} speed={0.3} opacity={0.45} color="#fbbf24" />
+          <Sparkles count={12} scale={[3, 4.5, 3]} size={1} speed={0.3} opacity={0.45} color="#fbbf24" />
         </Suspense>
       </Canvas>
 

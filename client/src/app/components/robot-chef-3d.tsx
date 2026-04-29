@@ -190,7 +190,7 @@ export function RobotChef3D({ className = "" }: { className?: string }) {
         {/* Star burst */}
         <div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{ translateZ: 70 }}
+          style={{ transform: "translateZ(70px)" }}
         >
           <StarBurst trigger={burst} />
         </div>
