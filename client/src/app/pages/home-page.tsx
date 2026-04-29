@@ -166,6 +166,84 @@ const testimonials = [
   },
 ];
 
+// ─── Star Marquee (infinite scrolling star conveyor belt) ─────────────────────
+function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | "right"; speed?: number }) {
+  const stars = Array.from({ length: 20 }, (_, i) => i);
+  return (
+    <div className="relative w-full overflow-hidden py-3" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
+      <motion.div
+        className="flex gap-2 w-max"
+        animate={{ x: direction === "left" ? ["-50%", "0%"] : ["0%", "-50%"] }}
+        transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
+      >
+        {[...stars, ...stars].map((_, i) => {
+          const colors = ["#a3e635", "#fbbf24", "#fb923c", "#4ade80", "#60a5fa", "#f472b6", "#a78bfa"];
+          const color = colors[i % colors.length];
+          const size = 10 + (i % 4) * 4;
+          return (
+            <motion.div
+              key={i}
+              animate={{
+                scale: [1, 1.3, 1],
+                rotate: [0, 15, -15, 0],
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 2 + (i % 3) * 0.5,
+                repeat: Infinity,
+                delay: (i % 7) * 0.3,
+                ease: "easeInOut",
+              }}
+              className="flex-shrink-0"
+            >
+              <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
+              </svg>
+            </motion.div>
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Rainbow Border Button ────────────────────────────────────────────────────
+function RainbowButton({ children, className = "", ...props }: React.ComponentProps<typeof Link>) {
+  return (
+    <Link {...props} className={`group relative inline-block ${className}`}>
+      {/* Rotating rainbow border */}
+      <div
+        className="absolute -inset-[2px] rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+        style={{
+          background: "conic-gradient(from var(--rainbow-angle, 0deg), #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff00ff, #ff0000)",
+          animation: "rainbowSpin 3s linear infinite",
+          filter: "blur(1px)",
+        }}
+      />
+      {/* Glow layer */}
+      <div
+        className="absolute -inset-[2px] rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-300"
+        style={{
+          background: "conic-gradient(from var(--rainbow-angle, 0deg), #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff00ff, #ff0000)",
+          animation: "rainbowSpin 3s linear infinite",
+          filter: "blur(12px)",
+        }}
+      />
+      {/* Inner button */}
+      <div
+        className="relative h-14 px-10 flex items-center justify-center gap-2 rounded-xl font-black text-gray-900 transition-all group-hover:scale-[1.02]"
+        style={{
+          background: "linear-gradient(135deg, #a3e635, #4ade80)",
+          fontSize: "1.1rem",
+          letterSpacing: "0.05em",
+        }}
+      >
+        {children}
+      </div>
+    </Link>
+  );
+}
+
 // ─── TestimonialCard with 3D tilt ─────────────────────────────────────────────
 function TestimonialCard({ t, delay }: { t: typeof testimonials[0]; delay: number }) {
   const tilt = useTilt3D(12);
@@ -186,16 +264,29 @@ function TestimonialCard({ t, delay }: { t: typeof testimonials[0]; delay: numbe
         whileHover={{ borderColor: "rgba(163,230,53,0.25)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(163,230,53,0.08)" }}
         className="rounded-2xl p-6 relative overflow-hidden cursor-default"
       >
-        {/* Stars */}
+        {/* Animated Stars */}
         <div className="flex gap-0.5 mb-4">
           {Array.from({ length: t.rating }).map((_, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, scale: 0, rotate: -30 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ delay: delay + i * 0.06, type: "spring", stiffness: 300 }}
+              initial={{ opacity: 0, scale: 0, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: delay + i * 0.1, type: "spring", stiffness: 400, damping: 10 }}
             >
-              <Star className="w-4 h-4 text-lime-400 fill-lime-400" />
+              <motion.div
+                animate={{
+                  scale: [1, 1.25, 1],
+                  rotate: [0, 10, -10, 0],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: "easeInOut",
+                }}
+              >
+                <Star className="w-4 h-4 text-lime-400 fill-lime-400 drop-shadow-[0_0_4px_rgba(163,230,53,0.6)]" />
+              </motion.div>
             </motion.div>
           ))}
         </div>
@@ -528,7 +619,7 @@ export function HomePage() {
       {/* ── TESTIMONIALS SECTION ──────────────────────────────────── */}
       <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-10">
+          <div className="text-center mb-4">
             <h2
               className="text-4xl font-black text-white mb-2"
             >
@@ -537,11 +628,17 @@ export function HomePage() {
             <p className="text-slate-500">Hơn 10,000+ người tập hài lòng</p>
           </div>
 
+          {/* Star marquee conveyor belt */}
+          <StarMarquee direction="left" speed={25} />
+
           <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
               <TestimonialCard key={i} t={t} delay={i * 0.12} />
             ))}
           </div>
+
+          {/* Second star marquee going opposite direction */}
+          <StarMarquee direction="right" speed={30} />
         </div>
       </section>
 
@@ -564,21 +661,10 @@ export function HomePage() {
           <p className="text-slate-400 text-lg mb-8">
             Tham gia cùng hàng ngàn VĐV đang tối ưu hóa chế độ dinh dưỡng với MealYummy.
           </p>
-          <Link to="/app">
-            <Button
-              size="lg"
-              className="h-14 px-10 text-base font-black rounded-xl text-gray-900 border-0 hover:scale-105 transition-all"
-              style={{
-                background: "linear-gradient(135deg, #a3e635, #4ade80)",
-                boxShadow: "0 0 40px rgba(163,230,53,0.4)",
-                letterSpacing: "0.05em",
-                fontSize: "1.1rem",
-              }}
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              BẮT ĐẦU MIỄN PHÍ
-            </Button>
-          </Link>
+          <RainbowButton to="/app">
+            <Sparkles className="w-5 h-5" />
+            BẮT ĐẦU MIỄN PHÍ
+          </RainbowButton>
         </div>
       </section>
 

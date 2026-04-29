@@ -118,3 +118,15 @@ body.bright-mode {
     0%, 100% { opacity: 0.1; }
     50% { opacity: 0.8; }
 }
+
+/* Rainbow border spinning animation */
+@property --rainbow-angle {
+    syntax: "<angle>";
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes rainbowSpin {
+    from { --rainbow-angle: 0deg; }
+    to { --rainbow-angle: 360deg; }
+}
