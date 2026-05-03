@@ -5,12 +5,15 @@
  *  • Spice / powder particle dust
  *  • Steam wisps rising from below
  *  • Gentle camera drift
+ *
+ * MOBILE: Replaced with pure CSS animated background (no WebGL)
  */
 
 import { useRef, useMemo, Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, Sphere, PerspectiveCamera, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 // ─── Ingredient catalogue ─────────────────────────────────────────────────────
 const INGREDIENTS = [
@@ -163,15 +166,100 @@ function CameraRig() {
   return <PerspectiveCamera ref={camera} makeDefault fov={62} position={[0, 0, 7]} />;
 }
 
+// ─── Mobile CSS Fallback (animated gradient blobs, zero WebGL) ─────────────────
+function MobileHeroBg({ className = "" }: { className?: string }) {
+  return (
+    <div
+      className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`}
+      style={{ zIndex: 0 }}
+    >
+      {/* Animated lime glow blob */}
+      <div
+        style={{
+          position: "absolute",
+          top: "20%",
+          left: "30%",
+          width: "200px",
+          height: "200px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)",
+          filter: "blur(40px)",
+          animation: "floatBlob1 8s ease-in-out infinite",
+        }}
+      />
+      {/* Animated emerald glow blob */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "25%",
+          right: "25%",
+          width: "160px",
+          height: "160px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%)",
+          filter: "blur(35px)",
+          animation: "floatBlob2 10s ease-in-out infinite",
+        }}
+      />
+      {/* Subtle golden accent */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "60%",
+          width: "120px",
+          height: "120px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%)",
+          filter: "blur(30px)",
+          animation: "floatBlob3 12s ease-in-out infinite",
+        }}
+      />
+      {/* Dot pattern */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          opacity: 0.03,
+          backgroundImage: "radial-gradient(circle, #a3e635 1px, transparent 1px)",
+          backgroundSize: "30px 30px",
+        }}
+      />
+      <style>{`
+        @keyframes floatBlob1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -20px) scale(1.1); }
+          66% { transform: translate(-20px, 15px) scale(0.95); }
+        }
+        @keyframes floatBlob2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-25px, -30px) scale(1.15); }
+        }
+        @keyframes floatBlob3 {
+          0%, 100% { transform: translate(0, 0); }
+          50% { transform: translate(20px, 25px); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main export ───────────────────────────────────────────────────────────────
 export function ThreeHeroBg({ className = "" }: { className?: string }) {
+  const isMobile = useIsMobile();
+
+  // On mobile: render lightweight CSS blobs instead of WebGL
+  if (isMobile) {
+    return <MobileHeroBg className={className} />;
+  }
+
   return (
     <div
       className={`absolute inset-0 pointer-events-none ${className}`}
       style={{ zIndex: 0 }}
     >
       <Canvas
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
         dpr={[1, 1.5]}
       >

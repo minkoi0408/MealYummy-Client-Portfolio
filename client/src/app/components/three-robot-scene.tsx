@@ -2,12 +2,15 @@
  * ThreeRobotScene — GLB Hamburger with Robot Chef AI as the patty
  * Click → burger opens + rotation stops (watch video)
  * Release → burger closes + auto-rotate 360° resumes
+ *
+ * MOBILE: Shows a static robot image with CSS animations instead of full 3D
  */
 import { useRef, useMemo, Suspense, useState, useEffect, useCallback } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera, Sparkles, useGLTF } from "@react-three/drei";
 import * as THREE from "three";
 import { AnimatePresence, motion } from "motion/react";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 // ─── GLB Hamburger ────────────────────────────────────────────────────────────
 function HamburgerModel({ open, onModelInfo }: {
@@ -281,8 +284,136 @@ function StarBurst({ trigger }: { trigger: number }) {
   );
 }
 
+// ─── Mobile Fallback: Static robot image with CSS animations ──────────────────
+function MobileRobotScene({ className = "" }: { className?: string }) {
+  const [burst, setBurst] = useState(0);
+  const [showText, setShowText] = useState(false);
+
+  const handleTap = useCallback(() => {
+    setBurst(b => b + 1);
+    setShowText(true);
+    setTimeout(() => setShowText(false), 2400);
+  }, []);
+
+  return (
+    <div className={`relative select-none ${className}`}
+      style={{ width: "100%", height: 340, cursor: "pointer" }}
+      onClick={handleTap}
+    >
+      {/* Glow background */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        <div style={{
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)",
+          animation: "pulseGlow 3s ease-in-out infinite",
+        }} />
+      </div>
+
+      {/* Robot frame image — use first frame */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+        <div style={{
+          width: 160,
+          height: 240,
+          borderRadius: 20,
+          overflow: "hidden",
+          border: "2px solid rgba(163,230,53,0.4)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(163,230,53,0.15)",
+          animation: "mobileFloat 4s ease-in-out infinite",
+        }}>
+          <img
+            src="/robot-frames/ezgif-frame-001.jpg"
+            alt="Robot Chef AI"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+            loading="lazy"
+          />
+          {/* Branding overlay */}
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "8px",
+            background: "linear-gradient(transparent, rgba(0,0,0,0.8))",
+            textAlign: "center",
+          }}>
+            <span style={{
+              fontSize: 12,
+              fontWeight: 800,
+              color: "#a3e635",
+            }}>🍔 MealYummy AI</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Star burst & text overlays */}
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        <StarBurst trigger={burst} />
+        <AnimatePresence>
+          {showText && (
+            <motion.div key="lbl" initial={{ opacity: 0, y: 30, scale: 0.5 }}
+              animate={{ opacity: 1, y: -120, scale: 1 }} exit={{ opacity: 0, y: -150, scale: 0.8 }}
+              transition={{ type: "spring", stiffness: 480, damping: 20 }}
+              className="absolute pointer-events-none">
+              <div className="flex items-center gap-2 px-5 py-2.5 rounded-2xl" style={{
+                background: "rgba(8,14,8,0.92)", border: "1.5px solid rgba(163,230,53,0.65)",
+                backdropFilter: "blur(14px)",
+                boxShadow: "0 8px 36px rgba(0,0,0,0.55),0 0 20px rgba(163,230,53,0.2)",
+              }}>
+                <span className="text-xl">🍔</span>
+                <span className="text-xl font-black" style={{
+                  background: "linear-gradient(90deg,#a3e635,#4ade80)",
+                  WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                }}>MealYummy!</span>
+                <span className="text-xl">✨</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Tap hint */}
+      <p className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs text-slate-500 whitespace-nowrap">
+        👆 Nhấn để tương tác
+      </p>
+
+      <style>{`
+        @keyframes mobileFloat {
+          0%, 100% { transform: translateY(0) rotate(-2deg); }
+          50% { transform: translateY(-10px) rotate(2deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function ThreeRobotScene({ className = "" }: { className?: string }) {
+  const isMobile = useIsMobile();
+
+  // On mobile: render lightweight CSS-only fallback
+  if (isMobile) {
+    return <MobileRobotScene className={className} />;
+  }
+
+  // Desktop: full 3D experience
   const [frame, setFrame] = useState(0);
   const frameRef = useRef(0); const rafRef = useRef(0); const lastRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
