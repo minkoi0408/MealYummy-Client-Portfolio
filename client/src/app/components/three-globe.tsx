@@ -17,6 +17,7 @@ import { useRef, useMemo, Suspense, useEffect, useState, useCallback } from "rea
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { PerspectiveCamera, Sparkles } from "@react-three/drei";
 import * as THREE from "three";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type Phase = "scanning" | "zooming" | "done";
@@ -88,8 +89,9 @@ function EarthGroup({ phase }: { phase: Phase }) {
   const lightsMap = useLoader(THREE.TextureLoader, "/textures/earth/earth_lights.png");
   const cloudsMap = useLoader(THREE.TextureLoader, "/textures/earth/cloud_combined.jpg");
 
-  // Geometry — detail 8 is plenty for a smooth sphere (14 was creating millions of vertices)
-  const geometry = useMemo(() => new THREE.IcosahedronGeometry(1, 8), []);
+  // Geometry — lower detail on mobile
+  const isMobile = useIsMobile();
+  const geometry = useMemo(() => new THREE.IcosahedronGeometry(1, isMobile ? 5 : 8), [isMobile]);
 
   // Materials
   const earthMat = useMemo(
@@ -345,7 +347,8 @@ function SatelliteDot({ phase }: { phase: Phase }) {
 // ─── Star Field (matching the original repo pattern) ───────────────────────────
 function StarField({ phase }: { phase: Phase }) {
   const starsRef = useRef<THREE.Points>(null);
-  const numStars = 800;
+  const isMobile = useIsMobile();
+  const numStars = isMobile ? 300 : 800;
 
   const { positions, colors } = useMemo(() => {
     const verts: number[] = [];
@@ -511,6 +514,7 @@ export function ThreeGlobe({
 }) {
   const [retryKey, setRetryKey] = useState(0);
   const handleRetry = useCallback(() => setRetryKey((k) => k + 1), []);
+  const isMobile = useIsMobile();
 
   return (
     <div
@@ -533,7 +537,7 @@ export function ThreeGlobe({
             outputColorSpace: THREE.LinearSRGBColorSpace,
           }}
           style={{ background: "transparent" }}
-          dpr={[1, 1.5]}
+          dpr={isMobile ? [1, 1] : [1, 1.5]}
           onCreated={({ gl }) => {
             // Ensure the context is not lost silently
             const canvas = gl.domElement;
@@ -565,7 +569,7 @@ export function ThreeGlobe({
 
             {phase === "scanning" && (
               <Sparkles
-                count={20}
+                count={isMobile ? 8 : 20}
                 scale={5}
                 size={1}
                 speed={0.3}

@@ -23,7 +23,6 @@ import {
   useTransform,
   useInView,
 } from "motion/react";
-import { useVisibility } from "../../hooks/useVisibility";
 
 // Lazy load heavy Three.js components
 const ThreeRobotScene = lazy(() => import("../components/three-robot-scene").then(m => ({ default: m.ThreeRobotScene })));
@@ -68,20 +67,6 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
     >
       {children}
     </motion.div>
-  );
-}
-
-// ─── Visibility-aware Three.js wrapper (only render when on-screen) ───────────
-function VisibleThreeFoodOrbit() {
-  const { ref, isVisible } = useVisibility();
-  return (
-    <div ref={ref} style={{ minHeight: 460 }}>
-      {isVisible ? <ThreeFoodOrbit className="w-full" /> : (
-        <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
-          <div className="text-4xl animate-pulse">🍲</div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -315,7 +300,7 @@ export function HomePage() {
     <div className="min-h-screen bg-transparent">
       <AppHeader />
 
-      {/* ── HERO SECTION ──────────────────────────────────── */}
+      {/* ── HERO SECTION ──────────────────────────────────────── */}
       <section className="relative py-20 px-6 overflow-hidden">
         {/* Three.js animated background */}
         <Suspense fallback={null}>
@@ -385,17 +370,17 @@ export function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right — Three.js Robot Chef Scene */}
+            {/* Right — Robot Chef Scene (3D on desktop, static image on mobile) */}
             <motion.div
               initial={{ opacity: 0, x: 50, scale: 0.9 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               transition={{ duration: 0.85, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="relative hidden lg:flex items-center justify-center"
-              style={{ minHeight: 460 }}
+              className="relative flex items-center justify-center"
+              style={{ minHeight: "auto" }}
             >
               <Suspense fallback={
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full" style={{ background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)" }}>
+                <div className="w-full flex items-center justify-center" style={{ height: 300 }}>
+                  <div className="w-24 h-24 rounded-full" style={{ background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)" }}>
                     <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🍔</div>
                   </div>
                 </div>
@@ -535,7 +520,7 @@ export function HomePage() {
                 <div className="text-4xl animate-pulse">🍲</div>
               </div>
             }>
-              <VisibleThreeFoodOrbit />
+              <ThreeFoodOrbit className="w-full" />
             </Suspense>
           </div>
       </section>

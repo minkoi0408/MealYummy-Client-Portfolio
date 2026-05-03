@@ -166,92 +166,14 @@ function CameraRig() {
   return <PerspectiveCamera ref={camera} makeDefault fov={62} position={[0, 0, 7]} />;
 }
 
-// ─── Mobile CSS Fallback (animated gradient blobs, zero WebGL) ─────────────────
-function MobileHeroBg({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`}
-      style={{ zIndex: 0 }}
-    >
-      {/* Animated lime glow blob */}
-      <div
-        style={{
-          position: "absolute",
-          top: "20%",
-          left: "30%",
-          width: "200px",
-          height: "200px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)",
-          filter: "blur(40px)",
-          animation: "floatBlob1 8s ease-in-out infinite",
-        }}
-      />
-      {/* Animated emerald glow blob */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "25%",
-          right: "25%",
-          width: "160px",
-          height: "160px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 70%)",
-          filter: "blur(35px)",
-          animation: "floatBlob2 10s ease-in-out infinite",
-        }}
-      />
-      {/* Subtle golden accent */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "60%",
-          width: "120px",
-          height: "120px",
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%)",
-          filter: "blur(30px)",
-          animation: "floatBlob3 12s ease-in-out infinite",
-        }}
-      />
-      {/* Dot pattern */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          opacity: 0.03,
-          backgroundImage: "radial-gradient(circle, #a3e635 1px, transparent 1px)",
-          backgroundSize: "30px 30px",
-        }}
-      />
-      <style>{`
-        @keyframes floatBlob1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(30px, -20px) scale(1.1); }
-          66% { transform: translate(-20px, 15px) scale(0.95); }
-        }
-        @keyframes floatBlob2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-25px, -30px) scale(1.15); }
-        }
-        @keyframes floatBlob3 {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(20px, 25px); }
-        }
-      `}</style>
-    </div>
-  );
-}
-
 // ─── Main export ───────────────────────────────────────────────────────────────
 export function ThreeHeroBg({ className = "" }: { className?: string }) {
   const isMobile = useIsMobile();
 
-  // On mobile: render lightweight CSS blobs instead of WebGL
-  if (isMobile) {
-    return <MobileHeroBg className={className} />;
-  }
+  // On mobile: keep 3D but reduce elements for performance
+  const activeIngredients = isMobile ? INGREDIENTS.slice(0, 5) : INGREDIENTS;
+  const steamCount = isMobile ? 1 : 3;
+  const sparkleCount = isMobile ? 8 : 20;
 
   return (
     <div
@@ -261,35 +183,35 @@ export function ThreeHeroBg({ className = "" }: { className?: string }) {
       <Canvas
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
-        dpr={[1, 1.5]}
+        dpr={isMobile ? [1, 1] : [1, 1.5]}
       >
         <CameraRig />
 
-        {/* Lighting */}
+        {/* Lighting — fewer point lights on mobile */}
         <ambientLight intensity={0.5} />
         <pointLight position={[6, 4, 3]} intensity={1.2} color="#fbbf24" />
-        <pointLight position={[-6, -2, 2]} intensity={0.8} color="#4ade80" />
-        <pointLight position={[0, 6, 0]} intensity={0.6} color="#fb923c" />
+        {!isMobile && <pointLight position={[-6, -2, 2]} intensity={0.8} color="#4ade80" />}
+        {!isMobile && <pointLight position={[0, 6, 0]} intensity={0.6} color="#fb923c" />}
 
         <Suspense fallback={null}>
-          {/* Ingredient spheres */}
-          {INGREDIENTS.map((d, i) => (
+          {/* Ingredient spheres — fewer on mobile */}
+          {activeIngredients.map((d, i) => (
             <Ingredient key={i} data={d} />
           ))}
 
-          {/* Steam wisps */}
-          {[0, 1, 2].map((i) => (
+          {/* Steam wisps — fewer on mobile */}
+          {Array.from({ length: steamCount }, (_, i) => (
             <SteamWisp key={i} index={i} />
           ))}
 
-          {/* Spice particle dust */}
-          <SpiceDust />
+          {/* Spice particle dust — skip on mobile */}
+          {!isMobile && <SpiceDust />}
 
-          {/* Tiny golden sparkles */}
+          {/* Tiny golden sparkles — fewer on mobile */}
           <Sparkles
-            count={20}
+            count={sparkleCount}
             scale={10}
-            size={1.4}
+            size={isMobile ? 1.0 : 1.4}
             speed={0.3}
             opacity={0.5}
             color="#fbbf24"

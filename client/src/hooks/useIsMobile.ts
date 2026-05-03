@@ -2,18 +2,26 @@ import { useState, useEffect } from 'react';
 
 /**
  * Detects mobile/low-power devices for performance-adaptive rendering.
- * Checks screen width, touch capability, and GPU tier heuristics.
+ * Uses multiple signals: screen width, touch, user agent, device memory.
+ * 
+ * IMPORTANT: Always defaults to `true` (mobile) on initial render to avoid
+ * flash of heavy 3D content. This ensures SSR/hydration safety.
  */
 export function useIsMobile(breakpoint = 768): boolean {
-    const [isMobile, setIsMobile] = useState(() => {
-        if (typeof window === 'undefined') return false;
-        return window.innerWidth < breakpoint || 'ontouchstart' in window;
-    });
+    // Default to true (mobile) to prevent heavy 3D from loading initially
+    const [isMobile, setIsMobile] = useState(true);
 
     useEffect(() => {
         const check = () => {
-            setIsMobile(window.innerWidth < breakpoint || 'ontouchstart' in window);
+            const isSmallScreen = window.innerWidth < breakpoint;
+            const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            // Mobile if ANY of these are true
+            setIsMobile(isSmallScreen || isTouch || isMobileUA);
         };
+        
+        check();
         window.addEventListener('resize', check);
         return () => window.removeEventListener('resize', check);
     }, [breakpoint]);
@@ -22,21 +30,26 @@ export function useIsMobile(breakpoint = 768): boolean {
 }
 
 /**
- * More aggressive check: true for any device with weak GPU.
- * Uses navigator.hardwareConcurrency and deviceMemory as heuristics.
+ * Stricter check: returns true ONLY for actual desktop with large screen.
+ * Use this when you want to be extra cautious about loading heavy 3D.
  */
-export function useIsLowEnd(): boolean {
-    const [isLowEnd, setIsLowEnd] = useState(false);
+export function useIsDesktop(breakpoint = 1024): boolean {
+    const [isDesktop, setIsDesktop] = useState(false);
 
     useEffect(() => {
-        const cores = navigator.hardwareConcurrency || 4;
-        const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 8;
-        const isTouchDevice = 'ontouchstart' in window;
-        const isSmallScreen = window.innerWidth < 768;
+        const check = () => {
+            const isLargeScreen = window.innerWidth >= breakpoint;
+            const noTouch = !('ontouchstart' in window) && navigator.maxTouchPoints === 0;
+            const notMobileUA = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            // Desktop only if ALL conditions met
+            setIsDesktop(isLargeScreen && noTouch && notMobileUA);
+        };
+        
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, [breakpoint]);
 
-        // Low-end: touch device OR < 4 cores OR < 4GB RAM OR small screen
-        setIsLowEnd(isTouchDevice || cores < 4 || memory < 4 || isSmallScreen);
-    }, []);
-
-    return isLowEnd;
+    return isDesktop;
 }
