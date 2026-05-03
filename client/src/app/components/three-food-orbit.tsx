@@ -6,6 +6,8 @@
  *  • Holographic label chips as HTML overlays via @react-three/drei Html
  *  • Mouse-driven camera tilt
  *  • Particle dust field
+ *
+ * MOBILE: Shows animated CSS food cards instead of WebGL
  */
 
 import { useRef, useMemo, Suspense } from "react";
@@ -20,6 +22,7 @@ import {
   Trail,
 } from "@react-three/drei";
 import * as THREE from "three";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 // ─── Orbiting food proxy meshes ───────────────────────────────────────────────
 const FOOD_ITEMS = [
@@ -286,14 +289,109 @@ function CameraRig() {
   return null;
 }
 
+// ─── Mobile Fallback: Animated food card orbit with CSS ───────────────────────
+function MobileFoodOrbit({ className = "" }: { className?: string }) {
+  return (
+    <div className={`relative ${className}`} style={{ height: 320 }}>
+      {/* Central orb */}
+      <div style={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        width: 80,
+        height: 80,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(251,146,60,0.4) 0%, rgba(251,146,60,0.1) 50%, transparent 70%)",
+        boxShadow: "0 0 40px rgba(251,146,60,0.2)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        zIndex: 10,
+      }}>
+        <span style={{
+          fontSize: 11,
+          fontWeight: 900,
+          background: "linear-gradient(90deg, #fb923c, #fbbf24)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}>MealYummy</span>
+        <span style={{ fontSize: 8, color: "rgba(251,146,60,0.6)" }}>AI ✨</span>
+      </div>
+
+      {/* Orbiting food items */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        animation: "mobileFoodSpin 20s linear infinite",
+      }}>
+        {FOOD_ITEMS.map((item, i) => {
+          const angle = (i / FOOD_ITEMS.length) * 360;
+          const radius = 110;
+          return (
+            <div key={i} style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: `rotate(${angle}deg) translateX(${radius}px) rotate(-${angle}deg)`,
+              animation: `mobileFoodCounter 20s linear infinite`,
+              animationDelay: `${i * -0.5}s`,
+            }}>
+              <div style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+                padding: "8px 12px",
+                borderRadius: 14,
+                background: `${item.color}15`,
+                border: `1px solid ${item.color}30`,
+                backdropFilter: "blur(8px)",
+                boxShadow: `0 4px 12px ${item.color}20`,
+                transform: "translate(-50%, -50%)",
+              }}>
+                <span style={{ fontSize: 20 }}>{item.emoji}</span>
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: item.color,
+                  whiteSpace: "nowrap",
+                }}>{item.label}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <style>{`
+        @keyframes mobileFoodSpin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes mobileFoodCounter {
+          from { transform: rotate(0deg) translateX(110px) rotate(0deg); }
+          to { transform: rotate(-360deg) translateX(110px) rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
 
 // ─── Main ThreeFoodOrbit Component ────────────────────────────────────────────
 export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
+  const isMobile = useIsMobile();
+
+  // On mobile: lightweight CSS animated orbit
+  if (isMobile) {
+    return <MobileFoodOrbit className={className} />;
+  }
+
   return (
     <div className={`relative ${className}`} style={{ height: 460 }}>
       <Canvas
-        gl={{ antialias: true, alpha: true }}
+        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
         style={{ background: "transparent" }}
         dpr={[1, 1.5]}
       >
