@@ -19,6 +19,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/app-header";
 import {
   Dialog,
@@ -99,15 +100,19 @@ const DEFAULT_PROFILE: UserProfile = {
 
 function loadProfile(): UserProfile {
   try {
-    const s = localStorage.getItem("mealyummy-profile");
-    return s ? { ...DEFAULT_PROFILE, ...JSON.parse(s) } : DEFAULT_PROFILE;
+    const s = localStorage.getItem("user");
+    if (s) {
+      const u = JSON.parse(s);
+      return { name: u.username || "Người dùng", email: u.email || "" };
+    }
+    return DEFAULT_PROFILE;
   } catch {
     return DEFAULT_PROFILE;
   }
 }
 
 function saveProfile(p: UserProfile) {
-  localStorage.setItem("mealyummy-profile", JSON.stringify(p));
+  localStorage.setItem("user", JSON.stringify({ username: p.name, email: p.email }));
 }
 
 type NotificationSettings = {
@@ -238,12 +243,26 @@ const SETTINGS_MENU = [
 ];
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
   const targets = calcTDEE(metrics);
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
   const [notifications, setNotifications] = useState<NotificationSettings>(loadNotifications);
   const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications">(null);
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
+
+  const handleLogout = () => {
+    // Dọn sạch mọi dấu vết ở cả 2 kho lưu trữ
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("user");
+    
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("refreshToken");
+    
+    toast.success("Đăng xuất thành công. Hẹn gặp lại bạn!");
+    navigate("/");
+  };
 
   function updateMetrics(patch: Partial<UserMetrics>) {
     setMetrics((prev) => {
@@ -363,7 +382,7 @@ export function ProfilePage() {
                 <div className="pt-2 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
                   <button className="w-full flex items-center gap-3 text-sm px-3 py-2.5 rounded-xl transition-all"
                     style={{ color: "#f87171" }}
-                    onClick={() => toast.message("Đăng xuất đang phát triển")}
+                    onClick={handleLogout}
                     onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(248,113,113,0.08)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
                   >
