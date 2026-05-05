@@ -238,8 +238,8 @@ function PricingCards() {
 const SETTINGS_MENU = [
   { id: "edit-profile" as const, icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
   { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
+  { id: "security" as const, icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật 2 Lớp (MFA)" },
   { id: "notifications" as const, icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
-  { id: "security" as const, icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật" },
 ];
 
 export function ProfilePage() {
@@ -248,8 +248,10 @@ export function ProfilePage() {
   const targets = calcTDEE(metrics);
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
   const [notifications, setNotifications] = useState<NotificationSettings>(loadNotifications);
-  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications">(null);
+  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications" | "security">(null);
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
+  const [totpQrCode, setTotpQrCode] = useState("");
+  const [totpCodeInput, setTotpCodeInput] = useState("");
 
   const handleLogout = () => {
     // Dọn sạch mọi dấu vết ở cả 2 kho lưu trữ
@@ -280,6 +282,10 @@ export function ProfilePage() {
     }
     if (id === "notifications") {
       setActiveDialog("notifications");
+      return;
+    }
+    if (id === "security") {
+      setActiveDialog("security");
       return;
     }
     toast.message("Tính năng đang phát triển");
@@ -765,6 +771,101 @@ export function ProfilePage() {
             >
               Đóng
             </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Security dialog */}
+      <Dialog open={activeDialog === "security"} onOpenChange={(open) => setActiveDialog(open ? "security" : null)}>
+        <DialogContent
+          className="p-0 overflow-hidden"
+          style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
+        >
+          <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <Shield className="w-4 h-4 text-amber-400" /> Bảo mật 2 Lớp (MFA)
+            </DialogTitle>
+            <DialogDescription style={{ color: "#64748b" }}>
+              Bảo vệ tài khoản bằng Google Authenticator.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="px-6 py-5 space-y-4">
+            {!totpQrCode ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <p className="text-sm text-white mb-6">
+                  Bật xác thực 2 bước (2FA) giúp tài khoản của bạn an toàn hơn trước các rủi ro bảo mật.
+                </p>
+                <button
+                  onClick={async () => {
+                    try {
+                      const { authApi } = await import("../../apis/auth.api");
+                      const res = await authApi.setupTotp(profile.email);
+                      setTotpQrCode(res.data.data);
+                    } catch (e: any) {
+                      toast.error("Không thể thiết lập TOTP.");
+                    }
+                  }}
+                  className="px-6 py-3 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(245,158,11,0.3)] transition-all hover:scale-105 active:scale-95"
+                  style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)", color: "#0f1117" }}
+                >
+                  Cài đặt Google Authenticator
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4">
+                <div className="bg-white p-2 rounded-xl shadow-lg">
+                  <img src={totpQrCode} alt="QR Code" className="w-48 h-48" />
+                </div>
+                <p className="text-xs text-center px-4" style={{ color: "#94a3b8", lineHeight: 1.6 }}>
+                  Mở ứng dụng <strong>Google Authenticator</strong> và quét mã QR này, sau đó nhập mã 6 số hiện ra để hoàn tất.
+                </p>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={totpCodeInput}
+                  onChange={(e) => setTotpCodeInput(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="Nhập mã 6 số..."
+                  className="w-full text-center h-12 text-xl font-bold tracking-[0.5em] rounded-xl outline-none placeholder:tracking-normal placeholder:font-normal placeholder:text-sm"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="px-6 pb-6">
+            <button
+              className="h-10 px-4 rounded-xl text-xs font-semibold hover:bg-white/5 transition-colors"
+              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
+              onClick={() => {
+                setActiveDialog(null);
+                setTotpQrCode("");
+                setTotpCodeInput("");
+              }}
+            >
+              Hủy
+            </button>
+            {totpQrCode && (
+              <button
+                disabled={totpCodeInput.length !== 6}
+                className="h-10 px-5 rounded-xl text-xs font-black transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
+                onClick={async () => {
+                  try {
+                    const { authApi } = await import("../../apis/auth.api");
+                    await authApi.verifyTotpSetup(profile.email, totpCodeInput);
+                    toast.success("Cài đặt Google Authenticator thành công!");
+                    setActiveDialog(null);
+                    setTotpQrCode("");
+                    setTotpCodeInput("");
+                  } catch (e: any) {
+                    toast.error("Mã không chính xác. Vui lòng thử lại.");
+                  }
+                }}
+              >
+                Xác nhận mã
+              </button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

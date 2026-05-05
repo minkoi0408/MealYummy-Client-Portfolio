@@ -25,6 +25,10 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"login" | "register" | "otp" | "loading" | "forgot">("login");
   const [emailForOtp, setEmailForOtp] = useState("");
+  const [otpContext, setOtpContext] = useState<"register" | "login">("register");
+  const [rememberMeContext, setRememberMeContext] = useState(false);
+  const [mfaMessage, setMfaMessage] = useState("");
+  const [hasTotpContext, setHasTotpContext] = useState(false);
   const [loading, setLoading] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
@@ -202,7 +206,7 @@ export function LoginPage() {
                   {mode === "login" ? "Đăng nhập " : mode === "register" ? "Tạo tài khoản " : mode === "forgot" ? "Khôi phục mật khẩu 🔑" : "Xác thực OTP 🛡️"}
                 </h2>
                 <p className="text-stitch-outline text-sm">
-                  {mode === "login" ? "Nhập thông tin để tiếp tục hành trình." : mode === "register" ? "Cung cấp thông tin để bắt đầu hành trình của bạn." : mode === "forgot" ? "Chúng tôi sẽ gửi mã xác thực tới email của bạn." : "Nhập mã 6 số được gửi qua email của bạn."}
+                  {mode === "login" ? "Nhập thông tin để tiếp tục hành trình." : mode === "register" ? "Cung cấp thông tin để bắt đầu hành trình của bạn." : mode === "forgot" ? "Chúng tôi sẽ gửi mã xác thực tới email của bạn." : otpContext === "login" ? (hasTotpContext ? "Nhập mã từ Email hoặc Google Authenticator." : "Nhập mã 6 số được gửi qua email.") : "Nhập mã 6 số được gửi qua email của bạn."}
                 </p>
               </div>
 
@@ -215,13 +219,26 @@ export function LoginPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {mode === "otp" && <OtpForm email={emailForOtp} onSuccess={() => setMode("login")} />}
+                  {mode === "otp" && <OtpForm email={emailForOtp} context={otpContext} rememberMe={rememberMeContext} initialMessage={mfaMessage} hasTotp={hasTotpContext} onSuccess={() => {
+                    if (otpContext === "login") {
+                      setMode("loading");
+                      setTimeout(() => navigate("/home"), 2500);
+                    } else {
+                      setMode("login");
+                    }
+                  }} />}
                   {mode === "forgot" && <ForgotPasswordForm onSuccess={() => setMode("login")} />}
                   {mode === "login" && (
                     <LoginForm
-                      onSuccess={() => {
-                        setMode("loading");
-                        setTimeout(() => navigate("/home"), 2500);
+                      onSuccess={(email, rememberMe, message, hasTotp) => {
+                        if (email) {
+                          setEmailForOtp(email);
+                          setOtpContext("login");
+                          setRememberMeContext(rememberMe);
+                          setMfaMessage(message || "");
+                          setHasTotpContext(hasTotp || false);
+                          setMode("otp");
+                        }
                       }}
                       onForgotPassword={() => setMode("forgot")}
                     />
@@ -231,6 +248,7 @@ export function LoginPage() {
                       onSuccess={(email) => {
                         if (email) {
                           setEmailForOtp(email);
+                          setOtpContext("register");
                           setMode("otp");
                         } else {
                           setMode("login");

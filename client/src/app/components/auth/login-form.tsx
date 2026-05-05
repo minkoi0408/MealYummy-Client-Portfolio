@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { authApi } from "../../../apis/auth.api";
 import type { LoginRequestDTO } from "../../../types/auth.types";
 
-export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: () => void, onForgotPassword?: () => void }) {
+export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email: string, rememberMe: boolean, message?: string, hasTotp?: boolean) => void, onForgotPassword?: () => void }) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -34,16 +34,6 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: () => v
         password: formData.password,
       };
       const response = await authApi.login(request);
-      const payload = response.data.data;
-
-      const storage = rememberMe ? localStorage : sessionStorage;
-      
-      storage.setItem("accessToken", payload.accessToken);
-      storage.setItem("refreshToken", payload.refreshToken);
-      localStorage.setItem("user", JSON.stringify({
-        username: payload.username,
-        email: payload.email
-      }));
 
       // Xử lý Ghi nhớ tôi
       if (rememberMe) {
@@ -52,9 +42,16 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: () => v
         localStorage.removeItem("rememberedEmail");
       }
 
-      toast.success("Đăng nhập thành công! Chào mừng quay trở lại.");
+      let message = response.data.message || "Vui lòng nhập mã xác thực.";
+      let hasTotp = false;
+      if (message.includes("|TOTP_ENABLED")) {
+        hasTotp = true;
+        message = message.split("|")[0];
+      }
+
+      toast.success(message);
       if (onSuccess) {
-        onSuccess();
+        onSuccess(formData.email, rememberMe, message, hasTotp);
       } else {
         navigate("/home");
       }
