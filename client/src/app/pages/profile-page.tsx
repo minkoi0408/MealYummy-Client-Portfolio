@@ -17,8 +17,12 @@ import {
   Star,
   Sparkles,
   ArrowRight,
+  TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { jsPDF } from "jspdf";
+import * as htmlToImage from "html-to-image";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/app-header";
 import {
@@ -39,6 +43,8 @@ type UserMetrics = {
   gender: "male" | "female";
   activity: "sedentary" | "light" | "moderate" | "active" | "very_active";
   goal: "cut" | "maintain" | "bulk";
+  bodyFat: number;
+  muscleMass: number;
 };
 
 const DEFAULT_METRICS: UserMetrics = {
@@ -48,6 +54,8 @@ const DEFAULT_METRICS: UserMetrics = {
   gender: "male",
   activity: "moderate",
   goal: "maintain",
+  bodyFat: 20,
+  muscleMass: 30,
 };
 
 const ACTIVITY_MULTIPLIERS = {
@@ -91,6 +99,7 @@ function saveMetrics(m: UserMetrics) {
 type UserProfile = {
   name: string;
   email: string;
+  avatarUrl?: string;
 };
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -103,7 +112,7 @@ function loadProfile(): UserProfile {
     const s = localStorage.getItem("user");
     if (s) {
       const u = JSON.parse(s);
-      return { name: u.username || "Người dùng", email: u.email || "" };
+      return { name: u.username || u.name || "Người dùng", email: u.email || "", avatarUrl: u.avatarUrl };
     }
     return DEFAULT_PROFILE;
   } catch {
@@ -112,7 +121,7 @@ function loadProfile(): UserProfile {
 }
 
 function saveProfile(p: UserProfile) {
-  localStorage.setItem("user", JSON.stringify({ username: p.name, email: p.email }));
+  localStorage.setItem("user", JSON.stringify({ username: p.name, email: p.email, avatarUrl: p.avatarUrl }));
 }
 
 type NotificationSettings = {
@@ -149,7 +158,7 @@ const PROFILE_TIERS = [
 ];
 
 const FREE_PERKS = ["AI gợi ý món ăn theo khẩu vị", "Thư viện 500+ món Fitness", "Xếp hạng & yêu thích"];
-const MEM_PERKS  = ["Tính chỉ số BMI & sức khoẻ", "Thực đơn cá nhân hoá từng ngày", "Dinh dưỡng tự động", "Danh sách nguyên liệu AI", "Mua sắm thực phẩm online"];
+const MEM_PERKS = ["Tính chỉ số BMI & sức khoẻ", "Thực đơn cá nhân hoá từng ngày", "Dinh dưỡng tự động", "Danh sách nguyên liệu AI", "Mua sắm thực phẩm online"];
 
 function PricingCards() {
   const [tier, setTier] = useState("monthly");
@@ -252,18 +261,323 @@ export function ProfilePage() {
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
   const [totpQrCode, setTotpQrCode] = useState("");
   const [totpCodeInput, setTotpCodeInput] = useState("");
+  const [isSavingMetrics, setIsSavingMetrics] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    const toastId = toast.loading("Đang tạo báo cáo PDF...");
+    try {
+      const doc = new jsPDF("p", "pt", "a4");
+
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 50;
+
+      // Header
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, pageWidth, 80, "F");
+      doc.setFontSize(24);
+      doc.setTextColor(163, 230, 53);
+      doc.text("MEALYUMMY", margin, 45);
+
+      doc.setFontSize(12);
+      doc.setTextColor(255, 255, 255);
+      doc.text("InBody Report", margin + 160, 43);
+
+      // Basic info
+      doc.setFontSize(16);
+      doc.setTextColor(15, 23, 42);
+      doc.text("Chi So Co Ban (Basic Metrics)", margin, 130);
+
+      doc.setFontSize(12);
+      doc.setTextColor(71, 85, 105);
+      doc.text(`Khach hang: ${profile.name || "Khach"}`, margin, 160);
+      doc.text(`Can nang: ${metrics.weight} kg`, margin, 180);
+      doc.text(`Chieu cao: ${metrics.height} cm`, margin, 200);
+      doc.text(`Tuoi: ${metrics.age} tuoi`, margin, 220);
+      doc.text(`BMR: ${targets.bmr} kcal`, margin, 240);
+      doc.text(`TDEE: ${targets.tdee} kcal`, margin, 260);
+
+      if (metrics.goal === "cut" || metrics.goal === "bulk") {
+        doc.setFontSize(16);
+        doc.setTextColor(15, 23, 42);
+        doc.text("Thanh Phan Co The (Body Composition)", margin, 310);
+
+        const drawProgressBar = (label: string, value: number, max: number, y: number, color: number[]) => {
+          doc.setFontSize(11);
+          doc.setTextColor(71, 85, 105);
+          doc.text(label, margin, y);
+          doc.setFontSize(12);
+          doc.setTextColor(15, 23, 42);
+          doc.text(`${value}`, margin + 80, y);
+
+          const barWidth = 250;
+          const barHeight = 12;
+          const startX = margin + 120;
+          const fillWidth = Math.min((value / max) * barWidth, barWidth);
+
+          // Background bar
+          doc.setFillColor(241, 245, 249);
+          doc.rect(startX, y - 10, barWidth, barHeight, "F");
+
+          // Fill bar
+          doc.setFillColor(color[0], color[1], color[2]);
+          doc.rect(startX, y - 10, fillWidth, barHeight, "F");
+
+          // Max label
+          doc.setFontSize(9);
+          doc.setTextColor(148, 163, 184);
+          doc.text(`${max}`, startX + barWidth + 10, y);
+        };
+
+        drawProgressBar("Co bap (kg)", metrics.muscleMass || 0, 100, 350, [163, 230, 53]);
+        drawProgressBar("Mo (%)", metrics.bodyFat || 0, 60, 390, [248, 113, 113]);
+      }
+
+      if (metricsHistory.length > 0) {
+        doc.setFontSize(16);
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("helvetica", "bold");
+        doc.text("Lich su thanh phan cau tao co the", margin, 430);
+
+        const startY = 440;
+        const startX = margin;
+        const tableWidth = pageWidth - margin * 2;
+        const rowHeight = 45;
+        const col1Width = 100;
+
+        // Background and Borders
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(1.5);
+        doc.line(startX, startY, startX + tableWidth, startY); // Top heavy line
+        doc.line(startX, startY + rowHeight * 3, startX + tableWidth, startY + rowHeight * 3); // Bottom heavy line
+
+        doc.setLineWidth(0.5);
+        doc.line(startX, startY + rowHeight, startX + tableWidth, startY + rowHeight);
+        doc.line(startX, startY + rowHeight * 2, startX + tableWidth, startY + rowHeight * 2);
+
+        doc.line(startX + col1Width, startY, startX + col1Width, startY + rowHeight * 3); // Divider col 1
+
+        // Row Labels
+        doc.setFontSize(10);
+        doc.setTextColor(15, 23, 42);
+        doc.setFont("helvetica", "bold");
+        doc.text("Trong luong", startX + 5, startY + 20);
+        doc.text("Khoi luong", startX + 5, startY + rowHeight + 18);
+        doc.text("co xuong", startX + 5, startY + rowHeight + 30);
+        doc.text("PBF", startX + 5, startY + rowHeight * 2 + 20);
+
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.text("(kg)", startX + 70, startY + 20);
+        doc.text("(kg)", startX + 70, startY + rowHeight + 25);
+        doc.text("(%)", startX + 70, startY + rowHeight * 2 + 20);
+
+        // Calculate dynamic columns
+        const dataCols = Math.max(8, metricsHistory.length);
+        const colWidth = (tableWidth - col1Width) / dataCols;
+
+        // Draw vertical dividers for data cols
+        doc.setDrawColor(150, 150, 150);
+        for (let i = 1; i < dataCols; i++) {
+          doc.setLineDashPattern([2, 2], 0);
+          doc.line(startX + col1Width + i * colWidth, startY, startX + col1Width + i * colWidth, startY + rowHeight * 3);
+        }
+        doc.setLineDashPattern([], 0);
+
+        // Draw the line charts inside the rows
+        const drawMetricRow = (rowIndex: number, key: string) => {
+          const yOffset = startY + rowIndex * rowHeight;
+          const values = metricsHistory.map((m: any) => Number(m[key]) || 0);
+          const maxVal = Math.max(...values) + 2;
+          const minVal = Math.max(0, Math.min(...values) - 2);
+          let range = maxVal - minVal;
+          if (range === 0) range = 1;
+
+          const pts: { x: number, y: number, val: number }[] = [];
+          metricsHistory.forEach((m: any, i: number) => {
+            const cx = startX + col1Width + i * colWidth + (colWidth / 2);
+            const graphH = 20;
+            const cy = yOffset + 40 - (((Number(m[key]) || 0) - minVal) / range) * graphH;
+            pts.push({ x: cx, y: cy, val: Number(m[key]) || 0 });
+          });
+
+          // Draw line
+          doc.setDrawColor(50, 50, 50);
+          doc.setLineWidth(1);
+          for (let i = 0; i < pts.length - 1; i++) {
+            doc.line(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
+          }
+          // Draw dots and text
+          pts.forEach(p => {
+            doc.setFillColor(50, 50, 50);
+            doc.circle(p.x, p.y, 2, "F");
+
+            doc.setFontSize(10);
+            doc.setTextColor(15, 23, 42);
+            const valStr = p.val.toLocaleString('en-US', { maximumFractionDigits: 1 });
+            const textW = doc.getTextWidth(valStr);
+            doc.text(valStr, p.x - textW / 2, p.y - 5);
+          });
+        };
+
+        drawMetricRow(0, "weight");
+        drawMetricRow(1, "muscleMass");
+        drawMetricRow(2, "bodyFat");
+
+        // Draw Dates at bottom
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        metricsHistory.forEach((m: any, i: number) => {
+          const cx = startX + col1Width + i * colWidth + (colWidth / 2);
+          const d = new Date(m.updatedAt || m.createdAt);
+
+          const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: '2-digit' });
+          const timeStr = d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+          const dateW = doc.getTextWidth(dateStr);
+          const timeW = doc.getTextWidth(timeStr);
+
+          doc.text(dateStr, cx - dateW / 2, startY + rowHeight * 3 + 12);
+          doc.text(timeStr, cx - timeW / 2, startY + rowHeight * 3 + 22);
+        });
+      }
+
+      doc.save(`mealyummy-report-${new Date().getTime()}.pdf`);
+      toast.success("Đã xuất PDF thành công!", { id: toastId });
+    } catch (err: any) {
+      toast.error(`Lỗi tạo PDF: ${err?.message || "Không rõ"}`, { id: toastId });
+      console.error("PDF Export Error:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    fetch("http://localhost:8082/api/v1/users/metrics", {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const m = data.data;
+          setMetrics(prev => ({ ...prev, ...m }));
+        }
+      })
+      .catch(() => { });
+
+    // Fetch history
+    fetch("http://localhost:8082/api/v1/users/metrics/history", {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          const sorted = data.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
+          setMetricsHistory(sorted);
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  const handleSaveMetrics = async () => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại");
+      return;
+    }
+
+    setIsSavingMetrics(true);
+    const toastId = toast.loading("Đang lưu chỉ số...");
+    try {
+      const res = await fetch("http://localhost:8082/api/v1/users/metrics", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(metrics)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Đã lưu chỉ số thành công", { id: toastId });
+        saveMetrics(metrics);
+        // Re-fetch history to update chart
+        fetch("http://localhost:8082/api/v1/users/metrics/history", {
+          headers: { "Authorization": `Bearer ${token}` }
+        })
+          .then(r => r.json())
+          .then(d => {
+            if (d && d.data) {
+              const sorted = d.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
+              setMetricsHistory(sorted);
+            }
+          })
+          .catch(() => { });
+      } else {
+        toast.error(data.message || "Lỗi khi lưu chỉ số", { id: toastId });
+      }
+    } catch (error) {
+      toast.error("Lỗi kết nối server", { id: toastId });
+    } finally {
+      setIsSavingMetrics(false);
+    }
+  };
 
   const handleLogout = () => {
     // Dọn sạch mọi dấu vết ở cả 2 kho lưu trữ
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    
+
     sessionStorage.removeItem("accessToken");
     sessionStorage.removeItem("refreshToken");
-    
+
     toast.success("Đăng xuất thành công. Hẹn gặp lại bạn!");
     navigate("/");
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) {
+      toast.error("Vui lòng đăng nhập lại");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const toastId = toast.loading("Đang tải ảnh lên...");
+    try {
+      const res = await fetch("http://localhost:8082/api/v1/users/avatar", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Cập nhật avatar thành công", { id: toastId });
+        setProfile(prev => {
+          const next = { ...prev, avatarUrl: data.data };
+          saveProfile(next);
+          return next;
+        });
+      } else {
+        toast.error(data.message || "Có lỗi xảy ra", { id: toastId });
+      }
+    } catch (err) {
+      toast.error("Lỗi kết nối server", { id: toastId });
+    }
   };
 
   function updateMetrics(patch: Partial<UserMetrics>) {
@@ -313,14 +627,19 @@ export function ProfilePage() {
                 {/* Avatar */}
                 <div className="flex justify-center -mt-10 mb-4">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-xl"
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center border-4 shadow-xl overflow-hidden"
                       style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", borderColor: "#0f1117" }}>
-                      <User className="w-10 h-10 text-gray-900" />
+                      {profile.avatarUrl ? (
+                        <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-10 h-10 text-gray-900" />
+                      )}
                     </div>
-                    <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 shadow-md transition-all hover:scale-110"
+                    <label className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center border-2 shadow-md transition-all hover:scale-110 cursor-pointer"
                       style={{ background: "#1a1f2e", borderColor: "rgba(163,230,53,0.4)" }}>
                       <Edit2 className="w-3.5 h-3.5 text-lime-400" />
-                    </button>
+                      <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                    </label>
                   </div>
                 </div>
 
@@ -465,9 +784,23 @@ export function ProfilePage() {
                         −
                       </button>
                       <div className="flex-1 text-center">
-                        <p className="text-base font-black text-white">
-                          {(metrics as any)[key]}
-                        </p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={(metrics as any)[key]}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, "");
+                            updateMetrics({ [key]: val === "" ? "" : Number(val) });
+                          }}
+                          onBlur={(e) => {
+                            let val = Number(e.target.value) || min;
+                            if (val < min) val = min;
+                            if (val > max) val = max;
+                            updateMetrics({ [key]: val });
+                          }}
+                          className="w-full bg-transparent text-center text-base font-black text-white outline-none"
+                        />
                         <p className="text-[10px]" style={{ color: "#475569" }}>
                           {unit}
                         </p>
@@ -510,15 +843,15 @@ export function ProfilePage() {
                         style={
                           metrics.gender === g
                             ? {
-                                background:
-                                  "linear-gradient(135deg, #a3e635, #4ade80)",
-                                color: "#0f1117",
-                              }
+                              background:
+                                "linear-gradient(135deg, #a3e635, #4ade80)",
+                              color: "#0f1117",
+                            }
                             : {
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "#64748b",
-                              }
+                              background: "rgba(255,255,255,0.06)",
+                              border: "1px solid rgba(255,255,255,0.1)",
+                              color: "#64748b",
+                            }
                         }
                       >
                         {g === "male" ? "👨 Nam" : "👩 Nữ"}
@@ -547,15 +880,15 @@ export function ProfilePage() {
                         style={
                           metrics.goal === opt.value
                             ? {
-                                background: `${opt.color}20`,
-                                color: opt.color,
-                                border: `1px solid ${opt.color}50`,
-                              }
+                              background: `${opt.color}20`,
+                              color: opt.color,
+                              border: `1px solid ${opt.color}50`,
+                            }
                             : {
-                                background: "rgba(255,255,255,0.04)",
-                                color: "#64748b",
-                                border: "1px solid rgba(255,255,255,0.08)",
-                              }
+                              background: "rgba(255,255,255,0.04)",
+                              color: "#64748b",
+                              border: "1px solid rgba(255,255,255,0.08)",
+                            }
                         }
                       >
                         {opt.label}
@@ -564,6 +897,113 @@ export function ProfilePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Activity Level row */}
+              <div className="mb-4">
+                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>
+                  Mức độ vận động
+                </p>
+                <div className="relative">
+                  <select
+                    value={metrics.activity}
+                    onChange={(e) => updateMetrics({ activity: e.target.value as any })}
+                    className="w-full appearance-none rounded-xl px-4 py-2.5 text-[13px] font-semibold outline-none transition-all cursor-pointer"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      color: "#e2e8f0",
+                    }}
+                  >
+                    <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, ít tập luyện)</option>
+                    <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập thể dục 1-3 ngày/tuần)</option>
+                    <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập thể dục 3-5 ngày/tuần)</option>
+                    <option value="active" style={{ background: "#0f1117" }}>Vận động nhiều (Tập thể dục 6-7 ngày/tuần)</option>
+                    <option value="very_active" style={{ background: "#0f1117" }}>Rất nhiều (VĐV, lao động tay chân)</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advanced metrics for cut/bulk */}
+              {(metrics.goal === "cut" || metrics.goal === "bulk") && (
+                <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in zoom-in duration-300">
+                  {([
+                    { key: "bodyFat" as const, label: "% Lượng mỡ (BDF-Ước tính)", unit: "%", min: 3, max: 100 },
+                    { key: "muscleMass" as const, label: "Lượng cơ bắp (Ước tính)", unit: "kg", min: 10, max: 120 },
+                  ]).map(({ key, label, unit, min, max }) => (
+                    <div key={key}>
+                      <p
+                        className="text-xs font-semibold mb-1.5"
+                        style={{ color: "#94a3b8" }}
+                      >
+                        {label}
+                      </p>
+                      <div
+                        className="flex items-center rounded-xl overflow-hidden"
+                        style={{
+                          background: "rgba(255,255,255,0.06)",
+                          border: "1px solid rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        <button
+                          onClick={() =>
+                            updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
+                          }
+                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
+                          style={{ color: "#64748b" }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                          }}
+                        >
+                          −
+                        </button>
+                        <div className="flex-1 text-center">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={(metrics as any)[key]}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/[^0-9]/g, "");
+                              updateMetrics({ [key]: val === "" ? "" : Number(val) });
+                            }}
+                            onBlur={(e) => {
+                              let val = Number(e.target.value) || min;
+                              if (val < min) val = min;
+                              if (val > max) val = max;
+                              updateMetrics({ [key]: val });
+                            }}
+                            className="w-full bg-transparent text-center text-base font-black text-white outline-none"
+                          />
+                          <p className="text-[10px]" style={{ color: "#475569" }}>
+                            {unit}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
+                          }
+                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
+                          style={{ color: "#64748b" }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Summary */}
               <div
@@ -611,6 +1051,63 @@ export function ProfilePage() {
                   </div>
                 ))}
               </div>
+
+              {/* Action buttons */}
+              <div className="mt-5 flex justify-end gap-3">
+                {(metrics.goal === "cut" || metrics.goal === "bulk") && (
+                  <button
+                    onClick={handleExportPDF}
+                    disabled={isExporting}
+                    className="h-10 px-5 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc" }}
+                  >
+                    {isExporting ? "Đang xuất..." : "📄 Xuất InBody (PDF)"}
+                  </button>
+                )}
+                <button
+                  onClick={handleSaveMetrics}
+                  disabled={isSavingMetrics}
+                  className="h-10 px-6 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                  style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}
+                >
+                  {isSavingMetrics ? "Đang lưu..." : "Lưu thay đổi"}
+                </button>
+              </div>
+
+              {/* Metrics History Chart */}
+              {metricsHistory.length > 0 && (
+                <div className="mt-8 pt-6" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+                  <div className="flex items-center gap-2 mb-6">
+                    <TrendingUp className="w-4 h-4 text-lime-400" />
+                    <h3 className="text-sm font-black text-white">Lịch sử thành phần cấu tạo cơ thể</h3>
+                  </div>
+                  <div id="history-chart" className="h-[280px] w-full bg-[#0f1117] p-2 rounded-xl">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis
+                          dataKey="updatedAt"
+                          tickFormatter={(timeStr) => timeStr ? new Date(timeStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''}
+                          stroke="#475569"
+                          fontSize={11}
+                          tickMargin={12}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => `${v}kg`} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          contentStyle={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
+                          labelFormatter={(l) => new Date(l).toLocaleDateString('vi-VN')}
+                        />
+                        <Line yAxisId="left" type="monotone" name="Trọng lượng (kg)" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                        <Line yAxisId="left" type="monotone" name="Cơ bắp (kg)" dataKey="muscleMass" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                        <Line yAxisId="right" type="monotone" name="Mỡ (%)" dataKey="bodyFat" stroke="#f87171" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
             </div>
 
 

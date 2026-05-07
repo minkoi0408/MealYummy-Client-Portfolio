@@ -48,7 +48,8 @@ export function OtpForm({ email, onSuccess, context = "register", rememberMe = f
         storage.setItem("refreshToken", payload.refreshToken);
         localStorage.setItem("user", JSON.stringify({
           username: payload.username,
-          email: payload.email
+          email: payload.email,
+          avatarUrl: payload.avatarUrl
         }));
         toast.success("Đăng nhập thành công! Chào mừng quay trở lại.");
       } else {

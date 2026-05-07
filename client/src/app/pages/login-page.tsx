@@ -91,7 +91,8 @@ export function LoginPage() {
       localStorage.setItem("refreshToken", payload.refreshToken);
       localStorage.setItem("user", JSON.stringify({
         username: payload.username,
-        email: payload.email
+        email: payload.email,
+        avatarUrl: payload.avatarUrl
       }));
 
       toast.success("Đăng nhập bằng Google thành công!");
