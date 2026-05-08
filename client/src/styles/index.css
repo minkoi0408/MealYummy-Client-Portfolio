@@ -130,3 +130,151 @@ body.bright-mode {
     from { --rainbow-angle: 0deg; }
     to { --rainbow-angle: 360deg; }
 }
+
+/* ── High-performance particle animations ── */
+@keyframes float-particle {
+    0% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(0.8);
+        opacity: 0;
+    }
+    10% {
+        opacity: var(--opacity-max, 0.5);
+        transform: translate3d(0, -10vh, 0) rotate(calc(var(--rotate-dir, 1) * 36deg)) scale(1.1);
+    }
+    85% {
+        opacity: var(--opacity-max, 0.5);
+        transform: translate3d(0, -85vh, 0) rotate(calc(var(--rotate-dir, 1) * 324deg)) scale(0.9);
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(0, var(--final-y, -100vh), 0) rotate(calc(var(--rotate-dir, 1) * 360deg)) scale(0.8);
+    }
+}
+
+.animate-float-particle {
+    animation: float-particle linear infinite;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* ── Optimized blob animations ── */
+@keyframes blob-float {
+    0%, 100% {
+        transform: translate3d(-50%, -50%, 0) scale(1);
+    }
+    25% {
+        transform: translate3d(-50%, -50%, 0) scale(1.05);
+    }
+    50% {
+        transform: translate3d(-50%, -50%, 0) scale(0.95);
+    }
+    75% {
+        transform: translate3d(-50%, -50%, 0) scale(1.02);
+    }
+}
+
+.animate-blob {
+    animation: blob-float ease-in-out infinite;
+    will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* ── Star animations ── */
+@keyframes star-twinkle {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.5;
+    }
+    25% {
+        transform: scale(1.3) rotate(15deg);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1) rotate(-15deg);
+        opacity: 0.5;
+    }
+    75% {
+        transform: scale(1.2) rotate(0deg);
+        opacity: 0.8;
+    }
+}
+
+.animate-star-twinkle {
+    animation: star-twinkle ease-in-out infinite;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+/* Performance Optimizations */
+[data-performance-mode="off"] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+[data-performance-mode="minimal"] * {
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
+}
+
+[data-performance-mode="reduced"] * {
+  animation-duration: 0.3s !important;
+  transition-duration: 0.3s !important;
+}
+
+/* Thermal throttling styles */
+.thermal-critical {
+  filter: grayscale(0.3);
+  opacity: 0.8;
+}
+
+.thermal-critical * {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Low battery mode */
+.low-battery {
+  filter: brightness(0.8);
+}
+
+.low-battery * {
+  animation-duration: 2s !important;
+  transition-duration: 0.5s !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .mobile-optimized {
+    will-change: auto;
+    transform: translateZ(0);
+  }
+  
+  .mobile-optimized * {
+    animation-duration: 0.5s !important;
+    transition-duration: 0.3s !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* GPU acceleration for performance */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Memory efficient animations */
+.memory-efficient {
+  contain: layout style paint;
+  content-visibility: auto;
+}

@@ -1,7 +1,64 @@
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useBrightness } from "../contexts/brightness-context";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { gsap } from "gsap";
+
+// GSAP Blob Component for high performance
+function GSAPBlob({ blob, isMobile, isBright, isReducedMotion }: {
+  blob: any;
+  isMobile: boolean;
+  isBright: boolean;
+  isReducedMotion: boolean;
+}) {
+  const blobRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!blobRef.current || isReducedMotion) return;
+
+    const element = blobRef.current;
+    
+    // GSAP timeline for smooth looping
+    const tl = gsap.timeline({ repeat: -1, ease: "none" });
+    
+    // Convert percentage positions to pixels for GSAP
+    const positions = blob.x.map((x: string, i: number) => ({
+      x: x,
+      y: blob.y[i]
+    }));
+
+    // Create smooth path animation
+    positions.forEach((pos: any, i: number) => {
+      tl.to(element, {
+        left: pos.x,
+        top: pos.y,
+        duration: (isMobile ? blob.duration * 1.5 : blob.duration) / positions.length,
+        ease: "power2.inOut"
+      });
+    });
+
+    return () => {
+      tl.kill();
+    };
+  }, [blob, isMobile, isReducedMotion]);
+
+  return (
+    <div
+      ref={blobRef}
+      className="absolute rounded-full"
+      style={{
+        width: isMobile ? blob.size * 0.6 : blob.size,
+        height: isMobile ? blob.size * 0.6 : blob.size,
+        background: blob.gradient,
+        filter: `blur(${isBright ? (isMobile ? 30 : 45) : (isMobile ? 50 : 70)}px)`,
+        left: blob.x[0],
+        top: blob.y[0],
+        transform: "translate3d(-50%, -50%, 0)",
+        willChange: "transform",
+      }}
+    />
+  );
+}
 
 const BLOBS_DARK = [
   {
@@ -169,11 +226,49 @@ export function AnimatedBackground() {
   const [mouse, setMouse] = useState({ x: -9999, y: -9999 });
   const { isBright } = useBrightness();
   const isMobile = useIsMobile();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  // Performance optimizations for mobile
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
 
   const BLOBS = isBright ? BLOBS_BRIGHT : BLOBS_DARK;
   // On mobile: balanced reduction — 3 blobs, 3 particles (vs 6+15 on desktop)
   const activeBlobs = isMobile ? BLOBS.slice(0, 3) : BLOBS;
   const activeParticles = isMobile ? particles.slice(0, 3) : particles;
+
+  // Intersection Observer để pause khi không visible
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting);
+        
+        // Pause/resume GSAP animations
+        if (entry.isIntersecting) {
+          gsap.globalTimeline.play();
+        } else {
+          gsap.globalTimeline.pause();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    // Check for reduced motion preference
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setIsReducedMotion(mediaQuery.matches);
+
+    const handleChange = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     // Skip mouse tracking on mobile (no mouse)
@@ -187,8 +282,14 @@ export function AnimatedBackground() {
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 overflow-hidden pointer-events-none z-0"
-      style={{ transition: "background 0.8s ease" }}
+      style={{ 
+        transition: "background 0.8s ease",
+        // Hardware acceleration for mobile
+        transform: "translateZ(0)",
+        willChange: isMobile ? "auto" : "transform"
+      }}
     >
       {/* ── Base background ── */}
       <div
@@ -212,26 +313,14 @@ export function AnimatedBackground() {
         />
       )}
 
-      {/* ── Animated gradient blobs (reduced on mobile) ── */}
+      {/* ── Animated gradient blobs với GSAP ── */}
       {activeBlobs.map((blob) => (
-        <motion.div
+        <GSAPBlob
           key={blob.id}
-          className="absolute rounded-full"
-          style={{
-            width: isMobile ? blob.size * 0.6 : blob.size,
-            height: isMobile ? blob.size * 0.6 : blob.size,
-            background: blob.gradient,
-            filter: `blur(${isBright ? 45 : 70}px)`,
-            translateX: "-50%",
-            translateY: "-50%",
-          }}
-          animate={{ left: blob.x, top: blob.y }}
-          transition={{
-            duration: blob.duration,
-            repeat: Infinity,
-            repeatType: "loop",
-            ease: "easeInOut",
-          }}
+          blob={blob}
+          isMobile={isMobile}
+          isBright={isBright}
+          isReducedMotion={isReducedMotion}
         />
       ))}
 
@@ -283,34 +372,27 @@ export function AnimatedBackground() {
         </>
       )}
 
-      {/* ── Floating fitness particles (reduced on mobile) ── */}
-      {activeParticles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute select-none"
-          style={{
-            left: `${p.left}%`,
-            bottom: "-60px",
-            fontSize: isMobile ? p.size * 0.75 : p.size,
-            opacity: 0,
-          }}
-          animate={{
-            y: [0, -(window.innerHeight + 120)],
-            rotate: isMobile ? [0, p.rotateDir * 180] : [0, p.rotateDir * 180, p.rotateDir * 360],
-            opacity: isBright ? [0, 0.85, 0.85, 0] : [0, 0.5, 0.5, 0],
-            scale: isMobile ? [0.8, 1, 0.8] : [0.8, 1.1, 0.9, 0.8],
-          }}
-          transition={{
-            duration: isMobile ? p.duration * 1.3 : p.duration,
-            repeat: Infinity,
-            delay: p.delay,
-            ease: "linear",
-            times: [0, 0.1, 0.85, 1],
-          }}
-        >
-          {p.emoji}
-        </motion.div>
-      ))}
+      {/* ── Floating fitness particles với CSS animations ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {activeParticles.map((p) => (
+          <div
+            key={p.id}
+            className="absolute select-none animate-float-particle"
+            style={{
+              left: `${p.left}%`,
+              bottom: "-60px",
+              fontSize: isMobile ? p.size * 0.75 : p.size,
+              animationDuration: `${isMobile ? p.duration * 1.3 : p.duration}s`,
+              animationDelay: `${p.delay}s`,
+              '--rotate-dir': p.rotateDir,
+              '--final-y': `${-(window.innerHeight + 120)}px`,
+              '--opacity-max': isBright ? 0.85 : 0.5,
+            } as React.CSSProperties}
+          >
+            {p.emoji}
+          </div>
+        ))}
+      </div>
 
       {/* ── Grid overlay ── */}
       <GridOverlay isBright={isBright} />

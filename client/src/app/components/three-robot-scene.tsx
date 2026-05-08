@@ -12,12 +12,70 @@ import * as THREE from "three";
 import { AnimatePresence, motion } from "motion/react";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
+// Mobile 3D Configuration
+const getMobile3DConfig = (isMobile: boolean) => ({
+  pixelRatio: isMobile ? Math.min(window.devicePixelRatio, 1.5) : window.devicePixelRatio,
+  antialias: !isMobile,
+  shadows: !isMobile,
+  sparkleCount: isMobile ? 50 : 200,
+  maxFPS: isMobile ? 30 : 60,
+  renderDistance: isMobile ? 50 : 100,
+  envMapIntensity: isMobile ? 1.5 : 3,
+});
+
+// Memory cleanup utility
+const disposeObject = (obj: THREE.Object3D) => {
+  if (obj instanceof THREE.Mesh) {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(mat => mat.dispose());
+      } else {
+        obj.material.dispose();
+      }
+    }
+  }
+  obj.children.forEach(child => disposeObject(child));
+};
+
+// Object Pool for Three.js performance
+class ObjectPool<T> {
+  private pool: T[] = [];
+  private createFn: () => T;
+  private resetFn: (obj: T) => void;
+
+  constructor(createFn: () => T, resetFn: (obj: T) => void, initialSize = 10) {
+    this.createFn = createFn;
+    this.resetFn = resetFn;
+    
+    // Pre-populate pool
+    for (let i = 0; i < initialSize; i++) {
+      this.pool.push(this.createFn());
+    }
+  }
+
+  get(): T {
+    return this.pool.pop() || this.createFn();
+  }
+
+  release(obj: T): void {
+    this.resetFn(obj);
+    this.pool.push(obj);
+  }
+
+  clear(): void {
+    this.pool.length = 0;
+  }
+}
+
 // ─── GLB Hamburger ────────────────────────────────────────────────────────────
 function HamburgerModel({ open, onModelInfo }: {
   open: boolean;
   onModelInfo?: (info: { pattyY: number; pattyRadius: number; center: THREE.Vector3 }) => void;
 }) {
   const { scene } = useGLTF("/models/hamburger.glb");
+  const isMobile = useIsMobile();
+  const config = getMobile3DConfig(isMobile);
 
   const { topMeshes, bottomMeshes, pattyY, pattyRadius, center } = useMemo(() => {
     const top: THREE.Object3D[] = [];
@@ -26,7 +84,8 @@ function HamburgerModel({ open, onModelInfo }: {
 
     scene.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial) {
-        child.material.envMapIntensity = 3;
+        // Use mobile-optimized env map intensity
+        child.material.envMapIntensity = config.envMapIntensity;
         child.material.needsUpdate = true;
       }
     });
@@ -82,6 +141,15 @@ function HamburgerModel({ open, onModelInfo }: {
     if (onModelInfo) onModelInfo({ pattyY, pattyRadius, center });
   }, [pattyY, pattyRadius, center, onModelInfo]);
 
+  // Memory cleanup
+  useEffect(() => {
+    return () => {
+      // Cleanup cloned scene objects
+      topMeshes.forEach(mesh => disposeObject(mesh));
+      bottomMeshes.forEach(mesh => disposeObject(mesh));
+    };
+  }, [topMeshes, bottomMeshes]);
+
   const topRef = useRef<THREE.Group>(null);
   const bottomRef = useRef<THREE.Group>(null);
 
@@ -112,9 +180,9 @@ useGLTF.preload("/models/hamburger.glb");
 // ─── Robot Screen ─────────────────────────────────────────────────────────────
 const TOTAL = 98, FPS = 18;
 
-function RobotScreen({ frame, hovered, onHover, onLeave, onClick, worldPattyY, screenW }: {
+function RobotScreen({ frame, hovered, onHover, onLeave, onPressDown, onPressUp, onClick, worldPattyY, screenW }: {
   frame: number; hovered: boolean;
-  onHover: () => void; onLeave: () => void; onClick: () => void;
+  onHover: () => void; onLeave: () => void; onPressDown: () => void; onPressUp: () => void; onClick: () => void;
   worldPattyY: number; screenW: number;
 }) {
   const groupRef = useRef<THREE.Group>(null);
@@ -169,11 +237,15 @@ function RobotScreen({ frame, hovered, onHover, onLeave, onClick, worldPattyY, s
   });
 
   return (
-    <group ref={groupRef} position={[0, worldPattyY, 0]}>
+    <group ref={groupRef} position={[0, worldPattyY, 0]}
+      onPointerOver={e => { e.stopPropagation(); onHover(); }}
+      onPointerOut={e => { e.stopPropagation(); onLeave(); }}
+      onPointerDown={e => { e.stopPropagation(); onPressDown(); }}
+      onPointerUp={e => { e.stopPropagation(); onPressUp(); }}
+      onPointerCancel={e => { e.stopPropagation(); onPressUp(); }}
+      onClick={e => { e.stopPropagation(); onClick(); }}>
       {/* Frame body */}
-      <mesh onPointerOver={e => { e.stopPropagation(); onHover(); }}
-        onPointerOut={e => { e.stopPropagation(); onLeave(); }}
-        onClick={e => { e.stopPropagation(); onClick(); }}>
+      <mesh>
         <boxGeometry args={[screenW + 0.06, screenH + 0.06, depth]} />
         <meshStandardMaterial color="#111827" metalness={0.85} roughness={0.15}
           emissive="#0a0a1a" emissiveIntensity={0.2} />
@@ -212,6 +284,7 @@ function RobotScreen({ frame, hovered, onHover, onLeave, onClick, worldPattyY, s
 function BurgerSceneWrapper({ frame, hovered, setHovered, handleClick }: {
   frame: number; hovered: boolean; setHovered: (v: boolean) => void; handleClick: () => void;
 }) {
+  const [pressed, setPressed] = useState(false);
   const [modelInfo, setModelInfo] = useState<{ pattyY: number; pattyRadius: number; center: THREE.Vector3 } | null>(null);
   const handleModelInfo = useCallback((info: { pattyY: number; pattyRadius: number; center: THREE.Vector3 }) => {
     setModelInfo(prev => {
@@ -223,10 +296,12 @@ function BurgerSceneWrapper({ frame, hovered, setHovered, handleClick }: {
 
   const groupRef = useRef<THREE.Group>(null);
 
-  // X-axis rotation: spin when idle, lerp to front-facing when hovered
+  const isOpen = hovered || pressed;
+
+  // X-axis rotation: spin when idle, lerp to front-facing when hovered/pressed
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    if (hovered) {
+    if (isOpen) {
       // Smoothly reset rotation so robot screen faces camera
       groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, 0, 0.08);
     } else {
@@ -245,7 +320,7 @@ function BurgerSceneWrapper({ frame, hovered, setHovered, handleClick }: {
     <group ref={groupRef}>
       {/* Inner group: scales and contains the centered model */}
       <group scale={SCALE}>
-        <HamburgerModel open={hovered} onModelInfo={handleModelInfo} />
+        <HamburgerModel open={isOpen} onModelInfo={handleModelInfo} />
       </group>
 
       {/* Robot screen — world coords, at patty height */}
@@ -253,6 +328,8 @@ function BurgerSceneWrapper({ frame, hovered, setHovered, handleClick }: {
         frame={frame} hovered={hovered}
         onHover={() => setHovered(true)}
         onLeave={() => setHovered(false)}
+        onPressDown={() => setPressed(true)}
+        onPressUp={() => setPressed(false)}
         onClick={handleClick}
         worldPattyY={worldPattyY}
         screenW={screenW}
@@ -287,12 +364,15 @@ function StarBurst({ trigger }: { trigger: number }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export function ThreeRobotScene({ className = "" }: { className?: string }) {
   const isMobile = useIsMobile();
+  const config = getMobile3DConfig(isMobile);
 
-  // Mobile optimization: fewer frames, lower FPS
+  // Mobile optimization: fewer frames, higher FPS for desktop
   const mobileFrames = 20;
-  const mobileFps = 10;
-  const frameCount = isMobile ? mobileFrames : TOTAL;
-  const fps = isMobile ? mobileFps : FPS;
+  const desktopFrames = TOTAL;
+  const mobileFps = 30;
+  const desktopFps = 60; // 60fps cho desktop
+  const frameCount = isMobile ? mobileFrames : desktopFrames;
+  const fps = isMobile ? mobileFps : desktopFps;
 
   // ALL hooks must be called unconditionally (React Rules of Hooks)
   const [frame, setFrame] = useState(0);
@@ -316,6 +396,7 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
     }
   }, [isMobile]);
 
+  // Animation loop with mobile FPS optimization
   useEffect(() => {
     const loop = (ts: number) => {
       if (ts - lastRef.current >= 1000 / fps) {
@@ -329,6 +410,16 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [fps, frameCount]);
 
+  // Memory cleanup
+  useEffect(() => {
+    return () => {
+      // Cancel any pending animation frames
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+      }
+    };
+  }, []);
+
   const handleClick = useCallback(() => {
     setBurst(b => b + 1); setShowText(true);
     setTimeout(() => setShowText(false), 2400);
@@ -339,24 +430,35 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
       style={{ width: "100%", height: isMobile ? 340 : 480, cursor: "grab" }}>
 
       <Canvas
-        gl={{ antialias: false, alpha: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 2.5, powerPreference: "high-performance" }}
+        gl={{ 
+          antialias: config.antialias, 
+          alpha: true, 
+          toneMapping: THREE.ACESFilmicToneMapping, 
+          toneMappingExposure: isMobile ? 2.0 : 2.5, 
+          powerPreference: "high-performance",
+          // Desktop optimizations
+          precision: isMobile ? "mediump" : "highp",
+          logarithmicDepthBuffer: !isMobile,
+        }}
         style={{ position: "absolute", inset: 0, background: "transparent" }}
-        dpr={isMobile ? [1, 1] : [1, 1.25]}
+        dpr={[1, config.pixelRatio]}
+        frameloop="always"
+        performance={{ min: 0.8, max: 1.0, debounce: 200 }}
       >
-        <PerspectiveCamera makeDefault fov={40} position={[5, 2, 5]} />
+        <PerspectiveCamera makeDefault fov={isMobile ? 45 : 40} position={[5, 2, 5]} />
 
         <OrbitControls
           enableZoom={false}
           enablePan={false}
           enableDamping
-          dampingFactor={0.08}
+          dampingFactor={isMobile ? 0.12 : 0.08}
           minPolarAngle={0.8}
           maxPolarAngle={Math.PI - 0.8}
           target={[0, 0, 0]}
         />
 
-        <ambientLight intensity={0.8} color="#fff4e0" />
-        <directionalLight position={[3, 8, 5]} intensity={2.5} color="#fff8e7" />
+        <ambientLight intensity={isMobile ? 0.6 : 0.8} color="#fff4e0" />
+        <directionalLight position={[3, 8, 5]} intensity={isMobile ? 2.0 : 2.5} color="#fff8e7" />
         {!isMobile && <pointLight position={[-3, 4, 5]} intensity={1.2} color="#fde68a" />}
 
         <Suspense fallback={null}>
@@ -366,7 +468,14 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
             setHovered={setHovered}
             handleClick={handleClick}
           />
-          <Sparkles count={isMobile ? 6 : 12} scale={[3, 4.5, 3]} size={1} speed={0.3} opacity={0.45} color="#fbbf24" />
+          <Sparkles 
+            count={config.sparkleCount} 
+            scale={[3, 4.5, 3]} 
+            size={isMobile ? 0.8 : 1} 
+            speed={isMobile ? 0.2 : 0.3} 
+            opacity={isMobile ? 0.3 : 0.45} 
+            color="#fbbf24" 
+          />
         </Suspense>
       </Canvas>
 
