@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Sparkles, Clock, Heart, ArrowUp, X, Flame, ChefHat,
-  RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check
+  RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check, Bot
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
 import { mockRecipes } from "../data/mock-recipes";
@@ -85,6 +85,8 @@ export function MainAppPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -127,11 +129,35 @@ export function MainAppPage() {
     return filtered;
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!prompt.trim() && activeTags.size === 0) return;
+    
+    // 1. Lọc món ăn từ dữ liệu local
     setResults(computeResults());
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+
+    // 2. Gọi API Bác sĩ AI (RAG) nếu user có nhập text
+    if (prompt.trim()) {
+      setIsAiLoading(true);
+      setAiResponse("");
+      try {
+        const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat?question=${encodeURIComponent(prompt.trim())}`, {
+          method: 'POST'
+        });
+        const data = await response.json();
+        if (data.data) {
+          setAiResponse(data.data);
+        } else {
+          setAiResponse("Không nhận được phản hồi từ AI.");
+        }
+      } catch (error) {
+        console.error("Lỗi gọi AI:", error);
+        setAiResponse("Xin lỗi, hệ thống AI đang gặp sự cố kết nối. Vui lòng thử lại sau.");
+      } finally {
+        setIsAiLoading(false);
+      }
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -149,6 +175,15 @@ export function MainAppPage() {
     setResults(filtered.length ? filtered : mockRecipes.sort(() => Math.random() - 0.5).slice(0, 8));
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+
+    // Gọi AI luôn cho Quick Prompt
+    setIsAiLoading(true);
+    setAiResponse("");
+    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat?question=${encodeURIComponent(q)}`, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => setAiResponse(data.data || "Không có phản hồi"))
+      .catch(() => setAiResponse("Lỗi kết nối AI"))
+      .finally(() => setIsAiLoading(false));
   }
 
   function handleReset() {
@@ -156,6 +191,7 @@ export function MainAppPage() {
     setActiveTags(new Set());
     setSubmitted(false);
     setResults(mockRecipes);
+    setAiResponse("");
   }
 
   const activeCnt = activeTags.size + (prompt.trim() ? 1 : 0);
@@ -208,9 +244,9 @@ export function MainAppPage() {
               {/* Icon */}
               <div
                 className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+                style={{ background: "rgba(163,230,53,0.15)" }}
               >
-                <Sparkles className="w-4 h-4 text-gray-900" />
+                <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
               </div>
 
               <textarea
@@ -401,7 +437,7 @@ export function MainAppPage() {
               boxShadow: "0 0 30px rgba(163,230,53,0.25)",
             }}
           >
-            <Sparkles className="w-4 h-4" />
+            <img src="/logo.svg" alt="logo" className="w-5 h-5 object-contain brightness-0" />
             Gợi ý món cho tôi
           </button>
 
@@ -415,10 +451,10 @@ export function MainAppPage() {
                 <div>
                   <h2 className="font-bold text-base text-white">
                     {results.length > 0
-                      ? `${results.length} món phù hợp`
-                      : "Không tìm thấy kết quả"}
+                      ? `${results.length} món gợi ý từ menu`
+                      : (isAiLoading || aiResponse) ? "" : "Không tìm thấy kết quả"}
                   </h2>
-                  {results.length === 0 && (
+                  {results.length === 0 && !isAiLoading && !aiResponse && (
                     <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Thử điều chỉnh tag hoặc từ khoá nhé!</p>
                   )}
                 </div>
@@ -432,6 +468,51 @@ export function MainAppPage() {
                   <RotateCcw className="w-3.5 h-3.5" /> Tìm lại
                 </button>
               </div>
+
+              {/* ── AI Response Box ────────────────────────────────────────── */}
+              {(isAiLoading || aiResponse) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-8 p-5 rounded-2xl relative overflow-hidden"
+                  style={{
+                    background: "rgba(163,230,53,0.05)",
+                    border: "1px solid rgba(163,230,53,0.2)",
+                    boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                  }}
+                >
+                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                      <img src="/logo.svg" alt="MealYummy AI" className="w-6 h-6 object-contain" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
+                        Bác Sĩ MealYummy
+                        {isAiLoading && (
+                          <span className="flex gap-1">
+                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                          </span>
+                        )}
+                      </h3>
+                      <div 
+                        className="text-sm leading-relaxed text-slate-300"
+                        dangerouslySetInnerHTML={{ 
+                          __html: isAiLoading 
+                            ? "Đang phân tích dữ liệu y khoa..." 
+                            : aiResponse
+                                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
+                                .replace(/!\[(.*?)\]\([^)]*(http[^\s)]+)[^)]*\)/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>')
+                                .replace(/\n/g, '<br/>')
+                        }}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
               {results.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {results.map((r) => (
