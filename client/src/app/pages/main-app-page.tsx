@@ -1,15 +1,14 @@
 import { Link } from "react-router";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Sparkles, Clock, Heart, ArrowUp, X, Flame, ChefHat,
-  RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check, Bot
+  RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
 import { mockRecipes } from "../data/mock-recipes";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
-import { motion, useMotionValue, useSpring, useTransform, useInView } from "motion/react";
 
 // ─── Tags ─────────────────────────────────────────────────────────────────────
 
@@ -53,28 +52,6 @@ const QUICK_PROMPTS = [
   { label: "🍳 Bữa sáng", q: "Bữa sáng" },
 ];
 
-// ─── 3D card tilt hook ────────────────────────────────────────────────────────
-function useTiltCard(strength = 10) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 300, damping: 30 });
-  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 300, damping: 30 });
-  const scale = useSpring(1, { stiffness: 300, damping: 26 });
-
-  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - rect.left) / rect.width - 0.5);
-    y.set((e.clientY - rect.top) / rect.height - 0.5);
-    scale.set(1.04);
-  }, [x, y, scale]);
-
-  const onMouseLeave = useCallback(() => {
-    x.set(0); y.set(0); scale.set(1);
-  }, [x, y, scale]);
-
-  return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function MainAppPage() {
@@ -85,8 +62,6 @@ export function MainAppPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
-  const [aiResponse, setAiResponse] = useState<string>("");
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -129,35 +104,11 @@ export function MainAppPage() {
     return filtered;
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!prompt.trim() && activeTags.size === 0) return;
-    
-    // 1. Lọc món ăn từ dữ liệu local
     setResults(computeResults());
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-
-    // 2. Gọi API Bác sĩ AI (RAG) nếu user có nhập text
-    if (prompt.trim()) {
-      setIsAiLoading(true);
-      setAiResponse("");
-      try {
-        const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat?question=${encodeURIComponent(prompt.trim())}`, {
-          method: 'POST'
-        });
-        const data = await response.json();
-        if (data.data) {
-          setAiResponse(data.data);
-        } else {
-          setAiResponse("Không nhận được phản hồi từ AI.");
-        }
-      } catch (error) {
-        console.error("Lỗi gọi AI:", error);
-        setAiResponse("Xin lỗi, hệ thống AI đang gặp sự cố kết nối. Vui lòng thử lại sau.");
-      } finally {
-        setIsAiLoading(false);
-      }
-    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -175,15 +126,6 @@ export function MainAppPage() {
     setResults(filtered.length ? filtered : mockRecipes.sort(() => Math.random() - 0.5).slice(0, 8));
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-
-    // Gọi AI luôn cho Quick Prompt
-    setIsAiLoading(true);
-    setAiResponse("");
-    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat?question=${encodeURIComponent(q)}`, { method: 'POST' })
-      .then(res => res.json())
-      .then(data => setAiResponse(data.data || "Không có phản hồi"))
-      .catch(() => setAiResponse("Lỗi kết nối AI"))
-      .finally(() => setIsAiLoading(false));
   }
 
   function handleReset() {
@@ -191,7 +133,6 @@ export function MainAppPage() {
     setActiveTags(new Set());
     setSubmitted(false);
     setResults(mockRecipes);
-    setAiResponse("");
   }
 
   const activeCnt = activeTags.size + (prompt.trim() ? 1 : 0);
@@ -244,9 +185,9 @@ export function MainAppPage() {
               {/* Icon */}
               <div
                 className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: "rgba(163,230,53,0.15)" }}
+                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
               >
-                <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
+                <Sparkles className="w-4 h-4 text-gray-900" />
               </div>
 
               <textarea
@@ -437,7 +378,7 @@ export function MainAppPage() {
               boxShadow: "0 0 30px rgba(163,230,53,0.25)",
             }}
           >
-            <img src="/logo.svg" alt="logo" className="w-5 h-5 object-contain brightness-0" />
+            <Sparkles className="w-4 h-4" />
             Gợi ý món cho tôi
           </button>
 
@@ -451,10 +392,10 @@ export function MainAppPage() {
                 <div>
                   <h2 className="font-bold text-base text-white">
                     {results.length > 0
-                      ? `${results.length} món gợi ý từ menu`
-                      : (isAiLoading || aiResponse) ? "" : "Không tìm thấy kết quả"}
+                      ? `${results.length} món phù hợp`
+                      : "Không tìm thấy kết quả"}
                   </h2>
-                  {results.length === 0 && !isAiLoading && !aiResponse && (
+                  {results.length === 0 && (
                     <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Thử điều chỉnh tag hoặc từ khoá nhé!</p>
                   )}
                 </div>
@@ -468,51 +409,6 @@ export function MainAppPage() {
                   <RotateCcw className="w-3.5 h-3.5" /> Tìm lại
                 </button>
               </div>
-
-              {/* ── AI Response Box ────────────────────────────────────────── */}
-              {(isAiLoading || aiResponse) && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-8 p-5 rounded-2xl relative overflow-hidden"
-                  style={{
-                    background: "rgba(163,230,53,0.05)",
-                    border: "1px solid rgba(163,230,53,0.2)",
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-                  }}
-                >
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                      <img src="/logo.svg" alt="MealYummy AI" className="w-6 h-6 object-contain" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
-                        Bác Sĩ MealYummy
-                        {isAiLoading && (
-                          <span className="flex gap-1">
-                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                            <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                          </span>
-                        )}
-                      </h3>
-                      <div 
-                        className="text-sm leading-relaxed text-slate-300"
-                        dangerouslySetInnerHTML={{ 
-                          __html: isAiLoading 
-                            ? "Đang phân tích dữ liệu y khoa..." 
-                            : aiResponse
-                                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
-                                .replace(/!\[(.*?)\]\([^)]*(http[^\s)]+)[^)]*\)/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>')
-                                .replace(/\n/g, '<br/>')
-                        }}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
               {results.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {results.map((r) => (
@@ -580,137 +476,115 @@ export function MainAppPage() {
 // ─── Recipe Card ──────────────────────────────────────────────────────────────
 
 function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolean; onToggleFav: () => void }) {
-  const tilt = useTiltCard(9);
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-30px" });
-
   return (
-    <motion.div
-      ref={ref}
+    <div
+      className="group rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1"
       style={{
-        perspective: 900,
-        rotateX: tilt.rotateX,
-        rotateY: tilt.rotateY,
-        scale: tilt.scale,
-        transformStyle: "preserve-3d",
+        background: "rgba(26,31,46,0.9)",
+        border: "1px solid rgba(255,255,255,0.06)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
       }}
-      initial={{ opacity: 0, y: 28, filter: "blur(4px)" }}
-      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      onMouseMove={tilt.onMouseMove}
-      onMouseLeave={tilt.onMouseLeave}
-      whileHover={{ boxShadow: "0 24px 60px rgba(0,0,0,0.5), 0 0 30px rgba(163,230,53,0.1)" }}
-      className="group rounded-2xl overflow-hidden cursor-pointer"
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(163,230,53,0.25)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 8px 32px rgba(0,0,0,0.4), 0 0 20px rgba(163,230,53,0.06)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLDivElement).style.border = "1px solid rgba(255,255,255,0.06)";
+        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
+      }}
     >
-      <div
-        className="rounded-2xl overflow-hidden h-full"
-        style={{
-          background: "rgba(26,31,46,0.9)",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        {/* Image */}
-        <div className="relative overflow-hidden h-44">
-          <motion.div
-            className="w-full h-full"
-            whileHover={{ scale: 1.08 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <ImageWithFallback
-              src={recipe.image}
-              alt={recipe.name}
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      {/* Image */}
+      <div className="relative overflow-hidden h-44">
+        <ImageWithFallback
+          src={recipe.image}
+          alt={recipe.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          {/* Cuisine badge */}
-          <span
-            className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-full"
-            style={{
-              background: "rgba(15,17,23,0.8)",
-              backdropFilter: "blur(8px)",
-              color: "#f1f5f9",
-              border: "1px solid rgba(255,255,255,0.12)",
-            }}
-          >
-            {recipe.cuisine}
-          </span>
+        {/* Cuisine badge */}
+        <span
+          className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-full"
+          style={{
+            background: "rgba(15,17,23,0.8)",
+            backdropFilter: "blur(8px)",
+            color: "#f1f5f9",
+            border: "1px solid rgba(255,255,255,0.12)",
+          }}
+        >
+          {recipe.cuisine}
+        </span>
 
-          {/* Favorite button */}
-          <motion.button
-            onClick={(e) => { e.preventDefault(); onToggleFav(); }}
-            whileHover={{ scale: 1.2 }}
-            whileTap={{ scale: 0.85 }}
-            animate={isFav ? { scale: [1, 1.35, 1] } : {}}
-            transition={{ type: "spring", stiffness: 300 }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center"
-            style={
-              isFav
-                ? { background: "#ef4444", color: "white", boxShadow: "0 0 16px rgba(239,68,68,0.5)" }
-                : {
-                  background: "rgba(15,17,23,0.75)",
-                  backdropFilter: "blur(8px)",
-                  color: "#94a3b8",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }
-            }
-          >
-            <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
-          </motion.button>
+        {/* Favorite button */}
+        <button
+          onClick={(e) => { e.preventDefault(); onToggleFav(); }}
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-all"
+          style={
+            isFav
+              ? { background: "#ef4444", color: "white" }
+              : {
+                background: "rgba(15,17,23,0.75)",
+                backdropFilter: "blur(8px)",
+                color: "#94a3b8",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }
+          }
+        >
+          <Heart className={`w-4 h-4 ${isFav ? "fill-current" : ""}`} />
+        </button>
 
-          {/* Recipe name */}
-          <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
-            <p className="text-white font-bold text-base leading-tight line-clamp-1 drop-shadow-sm">
-              {recipe.name}
-            </p>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="px-4 py-3">
-          <p className="text-xs line-clamp-2 mb-3 leading-relaxed" style={{ color: "#64748b" }}>
-            {recipe.description}
+        {/* Recipe name overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
+          <p className="text-white font-bold text-base leading-tight line-clamp-1 drop-shadow-sm">
+            {recipe.name}
           </p>
-
-          {/* Meta */}
-          <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-lime-400" />
-              {recipe.cookTime}
-            </span>
-            <span className="flex items-center gap-1">
-              <Flame className="w-3.5 h-3.5 text-orange-400" />
-              {recipe.calories}
-            </span>
-            <span className="flex items-center gap-1">
-              <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
-              {recipe.difficulty}
-            </span>
-          </div>
-
-          {/* CTA */}
-          <Link to={`/meal/${recipe.id}`}>
-            <motion.button
-              whileHover={{
-                background: "rgba(163,230,53,0.18)",
-                borderColor: "rgba(163,230,53,0.5)",
-                color: "#bef264",
-                scale: 1.02,
-              }}
-              whileTap={{ scale: 0.97 }}
-              className="w-full h-9 rounded-xl text-xs font-semibold"
-              style={{
-                background: "rgba(163,230,53,0.08)",
-                border: "1px solid rgba(163,230,53,0.2)",
-                color: "#a3e635",
-              }}
-            >
-              Xem dinh dưỡng →
-            </motion.button>
-          </Link>
         </div>
       </div>
-    </motion.div>
+
+      {/* Body */}
+      <div className="px-4 py-3">
+        <p className="text-xs line-clamp-2 mb-3 leading-relaxed" style={{ color: "#64748b" }}>
+          {recipe.description}
+        </p>
+
+        {/* Meta info */}
+        <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-lime-400" />
+            {recipe.cookTime}
+          </span>
+          <span className="flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 text-orange-400" />
+            {recipe.calories}
+          </span>
+          <span className="flex items-center gap-1">
+            <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
+            {recipe.difficulty}
+          </span>
+        </div>
+
+        {/* CTA */}
+        <Link to={`/meal/${recipe.id}`}>
+          <button
+            className="w-full h-9 rounded-xl text-xs font-semibold transition-all"
+            style={{
+              background: "rgba(163,230,53,0.08)",
+              border: "1px solid rgba(163,230,53,0.2)",
+              color: "#a3e635",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)";
+              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.4)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)";
+              (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.2)";
+            }}
+          >
+            Xem dinh dưỡng →
+          </button>
+        </Link>
+      </div>
+    </div>
   );
 }

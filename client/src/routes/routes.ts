@@ -18,7 +18,7 @@ import { GymModePage } from "../app/pages/gym-mode-page";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: LoginPage,
+    Component: HomePage,
   },
   {
     path: "/home",

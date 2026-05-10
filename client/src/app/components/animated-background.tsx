@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { useBrightness } from "../contexts/brightness-context";
-import { useIsMobile } from "../../hooks/useIsMobile";
 
 const BLOBS_DARK = [
   {
@@ -168,22 +167,16 @@ export function AnimatedBackground() {
   const [particles] = useState<Particle[]>(generateParticles);
   const [mouse, setMouse] = useState({ x: -9999, y: -9999 });
   const { isBright } = useBrightness();
-  const isMobile = useIsMobile();
 
   const BLOBS = isBright ? BLOBS_BRIGHT : BLOBS_DARK;
-  // On mobile: balanced reduction — 3 blobs, 3 particles (vs 6+15 on desktop)
-  const activeBlobs = isMobile ? BLOBS.slice(0, 3) : BLOBS;
-  const activeParticles = isMobile ? particles.slice(0, 3) : particles;
 
   useEffect(() => {
-    // Skip mouse tracking on mobile (no mouse)
-    if (isMobile) return;
     const handleMove = (e: MouseEvent) => {
       setMouse({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMove, { passive: true });
     return () => window.removeEventListener("mousemove", handleMove);
-  }, [isMobile]);
+  }, []);
 
   return (
     <div
@@ -212,14 +205,14 @@ export function AnimatedBackground() {
         />
       )}
 
-      {/* ── Animated gradient blobs (reduced on mobile) ── */}
-      {activeBlobs.map((blob) => (
+      {/* ── Animated gradient blobs ── */}
+      {BLOBS.map((blob) => (
         <motion.div
           key={blob.id}
           className="absolute rounded-full"
           style={{
-            width: isMobile ? blob.size * 0.6 : blob.size,
-            height: isMobile ? blob.size * 0.6 : blob.size,
+            width: blob.size,
+            height: blob.size,
             background: blob.gradient,
             filter: `blur(${isBright ? 45 : 70}px)`,
             translateX: "-50%",
@@ -235,73 +228,69 @@ export function AnimatedBackground() {
         />
       ))}
 
-      {/* ── Shimmer rings (desktop only) ── */}
-      {!isMobile && (
-        <>
-          <motion.div
-            className="absolute rounded-full"
-            style={{
-              width: 600, height: 600,
-              left: "50%", top: "50%",
-              translateX: "-50%", translateY: "-50%",
-              border: isBright
-                ? "1.5px solid rgba(132,204,22,0.35)"
-                : "1px solid rgba(163,230,53,0.12)",
-              transition: "border 0.8s ease",
-            }}
-            animate={{ scale: [1, 1.15, 1], opacity: isBright ? [0.6, 1, 0.6] : [0.3, 0.6, 0.3] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute rounded-full"
-            style={{
-              width: 900, height: 900,
-              left: "50%", top: "50%",
-              translateX: "-50%", translateY: "-50%",
-              border: isBright
-                ? "1.5px solid rgba(52,211,153,0.25)"
-                : "1px solid rgba(52,211,153,0.08)",
-              transition: "border 0.8s ease",
-            }}
-            animate={{ scale: [1, 1.08, 1], opacity: isBright ? [0.5, 0.8, 0.5] : [0.2, 0.4, 0.2] }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          />
-          <motion.div
-            className="absolute rounded-full"
-            style={{
-              width: 1200, height: 1200,
-              left: "50%", top: "50%",
-              translateX: "-50%", translateY: "-50%",
-              border: isBright
-                ? "1px solid rgba(163,230,53,0.18)"
-                : "1px solid rgba(163,230,53,0.05)",
-              transition: "border 0.8s ease",
-            }}
-            animate={{ scale: [1, 1.05, 1], opacity: isBright ? [0.3, 0.6, 0.3] : [0.1, 0.25, 0.1] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          />
-        </>
-      )}
+      {/* ── Shimmer rings ── */}
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          width: 600, height: 600,
+          left: "50%", top: "50%",
+          translateX: "-50%", translateY: "-50%",
+          border: isBright
+            ? "1.5px solid rgba(132,204,22,0.35)"
+            : "1px solid rgba(163,230,53,0.12)",
+          transition: "border 0.8s ease",
+        }}
+        animate={{ scale: [1, 1.15, 1], opacity: isBright ? [0.6, 1, 0.6] : [0.3, 0.6, 0.3] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          width: 900, height: 900,
+          left: "50%", top: "50%",
+          translateX: "-50%", translateY: "-50%",
+          border: isBright
+            ? "1.5px solid rgba(52,211,153,0.25)"
+            : "1px solid rgba(52,211,153,0.08)",
+          transition: "border 0.8s ease",
+        }}
+        animate={{ scale: [1, 1.08, 1], opacity: isBright ? [0.5, 0.8, 0.5] : [0.2, 0.4, 0.2] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      />
+      <motion.div
+        className="absolute rounded-full"
+        style={{
+          width: 1200, height: 1200,
+          left: "50%", top: "50%",
+          translateX: "-50%", translateY: "-50%",
+          border: isBright
+            ? "1px solid rgba(163,230,53,0.18)"
+            : "1px solid rgba(163,230,53,0.05)",
+          transition: "border 0.8s ease",
+        }}
+        animate={{ scale: [1, 1.05, 1], opacity: isBright ? [0.3, 0.6, 0.3] : [0.1, 0.25, 0.1] }}
+        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
 
-      {/* ── Floating fitness particles (reduced on mobile) ── */}
-      {activeParticles.map((p) => (
+      {/* ── Floating fitness particles ── */}
+      {particles.map((p) => (
         <motion.div
           key={p.id}
           className="absolute select-none"
           style={{
             left: `${p.left}%`,
             bottom: "-60px",
-            fontSize: isMobile ? p.size * 0.75 : p.size,
+            fontSize: p.size,
             opacity: 0,
           }}
           animate={{
             y: [0, -(window.innerHeight + 120)],
-            rotate: isMobile ? [0, p.rotateDir * 180] : [0, p.rotateDir * 180, p.rotateDir * 360],
+            rotate: [0, p.rotateDir * 180, p.rotateDir * 360],
             opacity: isBright ? [0, 0.85, 0.85, 0] : [0, 0.5, 0.5, 0],
-            scale: isMobile ? [0.8, 1, 0.8] : [0.8, 1.1, 0.9, 0.8],
+            scale: [0.8, 1.1, 0.9, 0.8],
           }}
           transition={{
-            duration: isMobile ? p.duration * 1.3 : p.duration,
+            duration: p.duration,
             repeat: Infinity,
             delay: p.delay,
             ease: "linear",
@@ -315,8 +304,8 @@ export function AnimatedBackground() {
       {/* ── Grid overlay ── */}
       <GridOverlay isBright={isBright} />
 
-      {/* ── Mouse spotlight (desktop only) ── */}
-      {!isMobile && <SpotLight x={mouse.x} y={mouse.y} isBright={isBright} />}
+      {/* ── Mouse spotlight ── */}
+      <SpotLight x={mouse.x} y={mouse.y} isBright={isBright} />
 
       {/* ── Vignette (disabled in bright mode) ── */}
       <div

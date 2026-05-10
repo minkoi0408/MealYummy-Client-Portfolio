@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   ShoppingCart, CheckCircle2, Circle, Plus, Trash2,
@@ -9,14 +9,6 @@ import { AppHeader } from "../components/app-header";
 import { useMealPlan, type MealPlanItem } from "../contexts/meal-plan-context";
 import { toast } from "sonner";
 import { useBrightness } from "../contexts/brightness-context";
-import { ThreeGlobe } from "../components/three-globe";
-
-// Preload earth textures so they're cached before the globe overlay opens
-const EARTH_TEXTURES = [
-  "/textures/earth/earthmap.jpg",
-  "/textures/earth/earth_lights.png",
-  "/textures/earth/cloud_combined.jpg",
-];
 
 interface ShoppingItem {
   id: string; name: string; amount: string; category: string;
@@ -105,14 +97,6 @@ export function ShoppingPage() {
   const [locationMessage, setLocationMessage] = useState("Đang xác định vị trí của bạn...");
   const [overlayPhase, setOverlayPhase] = useState<"scanning" | "zooming" | "done">("scanning");
   const [foundLocation, setFoundLocation] = useState<string | null>(null);
-
-  // Preload earth textures on mount so they're already cached
-  useEffect(() => {
-    EARTH_TEXTURES.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-    });
-  }, []);
 
   const handleFindMarket = useCallback(() => {
     setShowLocationOverlay(true);
@@ -480,7 +464,7 @@ export function ShoppingPage() {
         </div>
       </main>
 
-      {/* ── Location Finding Overlay with 3D Globe ── */}
+      {/* ── Location Finding Overlay with Spinning Earth ── */}
       {showLocationOverlay && (
         <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
           style={{
@@ -490,8 +474,206 @@ export function ShoppingPage() {
             transition: "background 0.8s ease",
           }}>
 
-          {/* 3D Globe (Three.js) — fills the entire overlay */}
-          <ThreeGlobe phase={overlayPhase} />
+          {/* Stars background — fade out when zooming */}
+          <div className="absolute inset-0 overflow-hidden transition-opacity duration-1000"
+            style={{ opacity: overlayPhase === "scanning" ? 1 : 0 }}>
+            {Array.from({ length: 80 }).map((_, i) => (
+              <div key={i} className="absolute rounded-full"
+                style={{
+                  width: `${(i % 3) + 1}px`,
+                  height: `${(i % 3) + 1}px`,
+                  left: `${(i * 37 + 13) % 100}%`,
+                  top: `${(i * 53 + 7) % 100}%`,
+                  background: i % 5 === 0 ? "#a5f3fc" : "#fff",
+                  opacity: ((i * 17) % 60 + 10) / 100,
+                  animation: `twinkle ${(i % 3) + 2}s ease-in-out infinite`,
+                  animationDelay: `${(i % 5) * 0.6}s`,
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Spinning Earth — zooms in when location found */}
+          <div className="relative transition-all duration-[2000ms] ease-in-out"
+            style={{
+              animation: overlayPhase === "scanning" ? "floatEarth 3s ease-in-out infinite" : "none",
+              transform: overlayPhase === "zooming"
+                ? "scale(3.5) translateY(10%)"
+                : overlayPhase === "done"
+                  ? "scale(6) translateY(15%)"
+                  : "scale(1)",
+              opacity: overlayPhase === "done" ? 0 : 1,
+            }}>
+            {/* Outer glow */}
+            <div className="absolute rounded-full"
+              style={{
+                width: 400, height: 400,
+                top: "50%", left: "50%",
+                transform: "translate(-50%, -50%)",
+                background: "radial-gradient(circle, rgba(56,189,248,0.25) 0%, rgba(56,189,248,0.08) 40%, transparent 70%)",
+                animation: overlayPhase === "scanning" ? "pulseGlow 2s ease-in-out infinite" : "none",
+                opacity: overlayPhase === "zooming" ? 0.3 : 1,
+                transition: "opacity 1s ease",
+              }}
+            />
+
+            <svg width="320" height="320" viewBox="0 0 400 400" className="relative z-10"
+              style={{
+                animation: overlayPhase === "scanning" ? "spinEarth 6s linear infinite" : "none",
+                filter: overlayPhase === "zooming"
+                  ? "drop-shadow(0 0 80px rgba(56,189,248,0.5)) blur(0.5px)"
+                  : "drop-shadow(0 0 50px rgba(56,189,248,0.35)) drop-shadow(0 0 100px rgba(56,189,248,0.15))",
+                transition: "filter 1s ease",
+              }}>
+              <defs>
+                <radialGradient id="earthOcean" cx="38%" cy="38%" r="62%">
+                  <stop offset="0%" stopColor="#64b5f6" />
+                  <stop offset="25%" stopColor="#42a5f5" />
+                  <stop offset="50%" stopColor="#1e88e5" />
+                  <stop offset="80%" stopColor="#0d47a1" />
+                  <stop offset="100%" stopColor="#0a2342" />
+                </radialGradient>
+                <radialGradient id="atmo" cx="50%" cy="50%" r="50%">
+                  <stop offset="80%" stopColor="transparent" />
+                  <stop offset="93%" stopColor="rgba(100,200,255,0.08)" />
+                  <stop offset="100%" stopColor="rgba(56,189,248,0.2)" />
+                </radialGradient>
+                <linearGradient id="landGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#66bb6a" />
+                  <stop offset="100%" stopColor="#2e7d32" />
+                </linearGradient>
+                <linearGradient id="landGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#81c784" />
+                  <stop offset="100%" stopColor="#388e3c" />
+                </linearGradient>
+                <linearGradient id="desertGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#d4a843" />
+                  <stop offset="100%" stopColor="#a67c2e" />
+                </linearGradient>
+                <clipPath id="globe"><circle cx="200" cy="200" r="176" /></clipPath>
+              </defs>
+
+              {/* Ocean base */}
+              <circle cx="200" cy="200" r="176" fill="url(#earthOcean)" />
+
+              {/* Continents */}
+              <g clipPath="url(#globe)">
+                {/* North America */}
+                <path d="M55,95 C60,80 75,68 90,62 C105,56 120,58 130,65 C140,72 145,82 142,95 
+                  C140,105 135,112 128,120 C122,128 118,138 115,148 C112,158 108,165 100,168 
+                  C92,171 82,168 75,160 C68,152 62,140 58,128 C54,116 52,108 55,95Z"
+                  fill="url(#landGrad2)" />
+                <path d="M42,78 C48,72 56,70 62,74 C68,78 70,85 66,90 C62,95 55,97 48,94 C41,91 38,84 42,78Z"
+                  fill="#4caf50" />
+                <path d="M100,168 C104,172 110,175 112,182 C114,189 112,196 106,200 
+                  C100,204 95,202 92,196 C89,190 90,182 93,176 C95,172 98,170 100,168Z"
+                  fill="#43a047" />
+                <path d="M130,42 C138,36 150,35 158,40 C166,45 168,55 164,64 
+                  C160,73 152,78 142,76 C132,74 126,66 126,56 C126,48 128,44 130,42Z"
+                  fill="#c8e6c9" />
+
+                {/* South America */}
+                <path d="M102,210 C110,205 120,208 126,216 C132,224 134,235 132,248 
+                  C130,261 125,274 118,284 C111,294 103,302 95,305 
+                  C87,308 80,304 76,296 C72,288 70,276 72,262 
+                  C74,248 78,236 84,226 C90,216 96,212 102,210Z"
+                  fill="url(#landGrad1)" />
+
+                {/* Europe */}
+                <path d="M185,70 C192,64 202,62 210,66 C218,70 222,78 220,88 
+                  C218,95 212,100 205,102 C198,104 190,102 186,96 
+                  C182,90 180,82 182,76 C183,73 184,71 185,70Z"
+                  fill="#81c784" />
+                <path d="M200,48 C205,44 212,44 216,48 C220,52 220,60 216,66 
+                  C212,72 206,74 200,70 C194,66 194,56 200,48Z"
+                  fill="#a5d6a7" />
+                <path d="M172,72 C176,68 182,68 184,72 C186,76 184,82 180,84 
+                  C176,86 172,84 170,80 C168,76 170,74 172,72Z"
+                  fill="#66bb6a" />
+
+                {/* Africa */}
+                <path d="M190,115 C200,108 214,106 224,112 C234,118 238,130 236,144 
+                  C234,158 228,172 220,186 C212,200 204,212 196,220 
+                  C188,228 180,230 174,224 C168,218 166,206 168,190 
+                  C170,174 176,158 182,144 C186,134 188,122 190,115Z"
+                  fill="url(#landGrad1)" />
+                <path d="M248,195 C252,190 256,190 258,194 C260,198 260,206 256,212 
+                  C252,218 248,218 246,214 C244,210 244,200 248,195Z"
+                  fill="#4caf50" />
+                <path d="M195,118 C204,114 216,115 222,120 C228,125 228,132 222,138 
+                  C216,142 206,142 198,138 C190,134 188,126 195,118Z"
+                  fill="url(#desertGrad)" opacity="0.6" />
+
+                {/* Asia */}
+                <path d="M230,60 C248,52 270,50 288,56 C306,62 318,76 322,94 
+                  C326,112 322,132 312,148 C302,164 288,174 272,178 
+                  C256,182 240,178 228,168 C216,158 210,144 210,128 
+                  C210,112 216,96 224,82 C228,74 230,66 230,60Z"
+                  fill="url(#landGrad2)" />
+                <path d="M262,155 C270,148 280,150 284,158 C288,166 286,178 280,188 
+                  C274,198 266,202 260,196 C254,190 254,178 258,168 C260,162 261,158 262,155Z"
+                  fill="#43a047" />
+                <path d="M300,160 C308,155 316,158 320,166 C324,174 320,184 314,190 
+                  C308,196 300,194 296,186 C292,178 294,168 300,160Z"
+                  fill="#388e3c" />
+                <path d="M330,80 C334,74 340,74 342,80 C344,86 342,96 338,102 
+                  C334,108 330,108 328,102 C326,96 326,86 330,80Z"
+                  fill="#66bb6a" />
+                <path d="M318,82 C322,78 326,80 326,86 C326,92 322,96 318,94 C314,92 314,86 318,82Z"
+                  fill="#4caf50" />
+                <path d="M305,200 C310,198 316,200 318,205 C320,210 316,215 310,216 C304,217 300,214 300,208 C300,203 302,200 305,200Z"
+                  fill="#2e7d32" />
+                <path d="M322,208 C326,206 330,208 330,213 C330,218 326,220 322,218 C318,216 318,210 322,208Z"
+                  fill="#388e3c" />
+                <path d="M270,200 C273,198 276,200 276,204 C276,208 273,210 270,208 C267,206 267,202 270,200Z"
+                  fill="#4caf50" />
+
+                {/* Australia & NZ */}
+                <path d="M310,240 C322,232 340,230 354,236 C368,242 374,254 372,268 
+                  C370,282 360,292 346,296 C332,300 318,296 308,286 
+                  C298,276 296,262 302,250 C306,244 308,242 310,240Z"
+                  fill="url(#landGrad1)" />
+                <path d="M372,306 C376,302 380,304 380,310 C380,316 376,322 372,322 
+                  C368,322 366,316 368,310 C369,308 370,306 372,306Z"
+                  fill="#66bb6a" />
+                <path d="M366,324 C370,322 372,326 370,330 C368,334 364,334 362,330 C360,326 362,324 366,324Z"
+                  fill="#4caf50" />
+
+                {/* Poles */}
+                <path d="M150,26 C170,22 210,20 245,22 C265,24 270,30 260,36 
+                  C240,42 200,44 170,40 C150,38 140,32 150,26Z"
+                  fill="#e8f5e9" opacity="0.5" />
+                <path d="M120,365 C150,358 200,356 260,358 C300,360 320,368 300,374 
+                  C270,380 210,382 160,378 C130,376 110,372 120,365Z"
+                  fill="#e0e0e0" opacity="0.4" />
+              </g>
+
+              {/* Cloud layers */}
+              <g clipPath="url(#globe)" opacity="0.25">
+                <path d="M60,90 C80,85 120,82 160,86 C180,88 190,92 170,96 C140,100 90,98 60,90Z" fill="white" />
+                <path d="M220,150 C250,145 290,148 320,155 C340,160 335,168 310,170 C280,172 240,165 220,150Z" fill="white" />
+                <path d="M80,200 C110,194 160,192 200,196 C230,200 235,208 210,212 C175,216 110,212 80,200Z" fill="white" />
+                <path d="M140,280 C170,275 210,276 240,282 C260,286 258,294 235,296 C200,298 160,290 140,280Z" fill="white" />
+                <path d="M280,100 C300,95 330,96 350,102 C360,106 355,112 340,114 C315,116 290,110 280,100Z" fill="white" />
+              </g>
+
+              {/* Atmosphere + highlight */}
+              <circle cx="200" cy="200" r="176" fill="url(#atmo)" />
+              <ellipse cx="145" cy="125" rx="55" ry="50" fill="rgba(255,255,255,0.06)" />
+              <ellipse cx="130" cy="110" rx="30" ry="25" fill="rgba(255,255,255,0.04)" />
+            </svg>
+
+            {/* Location pin */}
+            <div className="absolute z-20 transition-all duration-1000"
+              style={{
+                top: overlayPhase === "zooming" ? "32%" : "28%",
+                left: overlayPhase === "zooming" ? "52%" : "56%",
+                animation: overlayPhase === "scanning" ? "bouncePin 1s ease-in-out infinite" : "none",
+                transform: overlayPhase === "zooming" ? "scale(0.4)" : "scale(1)",
+              }}>
+              <MapPin className="w-8 h-8 text-red-400" style={{ filter: "drop-shadow(0 2px 8px rgba(239,68,68,0.6))" }} />
+            </div>
+          </div>
 
           {/* Found location card — appears when zooming */}
           {(overlayPhase === "zooming" || overlayPhase === "done") && foundLocation && (
@@ -520,7 +702,7 @@ export function ShoppingPage() {
 
           {/* Status text — bottom, only during scanning */}
           {overlayPhase === "scanning" && (
-            <div className="absolute bottom-20 left-0 right-0 text-center z-10" style={{ animation: "fadeSlideIn 0.5s ease" }}>
+            <div className="mt-12 text-center z-10" style={{ animation: "fadeSlideIn 0.5s ease" }}>
               <div className="flex items-center justify-center gap-2.5 mb-3">
                 <Loader2 className="w-5 h-5 text-cyan-400 animate-spin" />
                 <p className="text-lg font-semibold text-white">
@@ -531,6 +713,33 @@ export function ShoppingPage() {
                 Vui lòng cho phép truy cập định vị để có kết quả chính xác hơn
               </p>
             </div>
+          )}
+
+          {/* Scanning rings — only during scanning phase */}
+          {overlayPhase === "scanning" && (
+            <>
+              <div className="absolute" style={{ top: "calc(50% - 20px)", left: "50%", transform: "translate(-50%, -50%)" }}>
+                <div className="rounded-full" style={{
+                  width: 360, height: 360,
+                  border: "1px solid rgba(56,189,248,0.15)",
+                  animation: "scanRing 2.5s ease-out infinite",
+                }} />
+              </div>
+              <div className="absolute" style={{ top: "calc(50% - 20px)", left: "50%", transform: "translate(-50%, -50%)" }}>
+                <div className="rounded-full" style={{
+                  width: 360, height: 360,
+                  border: "1px solid rgba(56,189,248,0.1)",
+                  animation: "scanRing 2.5s ease-out infinite 0.8s",
+                }} />
+              </div>
+              <div className="absolute" style={{ top: "calc(50% - 20px)", left: "50%", transform: "translate(-50%, -50%)" }}>
+                <div className="rounded-full" style={{
+                  width: 360, height: 360,
+                  border: "1px solid rgba(56,189,248,0.06)",
+                  animation: "scanRing 2.5s ease-out infinite 1.6s",
+                }} />
+              </div>
+            </>
           )}
         </div>
       )}

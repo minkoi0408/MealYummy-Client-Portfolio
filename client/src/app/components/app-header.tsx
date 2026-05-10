@@ -16,13 +16,13 @@ import {
 import { useBrightness } from "../contexts/brightness-context";
 
 const NAV_ITEMS = [
-  { label: "Gợi ý", icon: Sparkles, link: "/app", activeColor: "text-lime-400", activeBg: "bg-lime-950/60", dot: "bg-lime-400", activeColorBright: "text-lime-700", activeBgBright: "bg-lime-100" },
-  { label: "Xếp hạng", icon: Trophy, link: "/results", activeColor: "text-amber-400", activeBg: "bg-amber-950/60", dot: "bg-amber-400", activeColorBright: "text-amber-700", activeBgBright: "bg-amber-100" },
-  { label: "Yêu thích", icon: Heart, link: "/dashboard", activeColor: "text-pink-400", activeBg: "bg-pink-950/60", dot: "bg-pink-400", activeColorBright: "text-pink-700", activeBgBright: "bg-pink-100" },
-  { label: "Gym", icon: Dumbbell, link: "/gym", activeColor: "text-lime-300", activeBg: "bg-lime-950/60", dot: "bg-lime-300", activeColorBright: "text-lime-700", activeBgBright: "bg-lime-100" },
-  { label: "Thực đơn", icon: Calendar, link: "/meal-plan", activeColor: "text-cyan-400", activeBg: "bg-cyan-950/60", dot: "bg-cyan-400", activeColorBright: "text-cyan-700", activeBgBright: "bg-cyan-100" },
-  { label: "Lịch sử", icon: History, link: "/history", activeColor: "text-slate-200", activeBg: "bg-slate-800/60", dot: "bg-slate-200", activeColorBright: "text-slate-700", activeBgBright: "bg-slate-200" },
-  { label: "Đi chợ", icon: ShoppingCart, link: "/shopping", activeColor: "text-violet-400", activeBg: "bg-violet-950/60", dot: "bg-violet-400", activeColorBright: "text-violet-700", activeBgBright: "bg-violet-100" },
+  { label: "Gợi ý", icon: Sparkles, link: "/app", activeColor: "text-lime-400", activeBg: "bg-lime-950/60", dot: "bg-lime-400" },
+  { label: "Xếp hạng", icon: Trophy, link: "/results", activeColor: "text-amber-400", activeBg: "bg-amber-950/60", dot: "bg-amber-400" },
+  { label: "Yêu thích", icon: Heart, link: "/dashboard", activeColor: "text-pink-400", activeBg: "bg-pink-950/60", dot: "bg-pink-400" },
+  { label: "Gym", icon: Dumbbell, link: "/gym", activeColor: "text-lime-300", activeBg: "bg-lime-950/60", dot: "bg-lime-300" },
+  { label: "Thực đơn", icon: Calendar, link: "/meal-plan", activeColor: "text-cyan-400", activeBg: "bg-cyan-950/60", dot: "bg-cyan-400" },
+  { label: "Lịch sử", icon: History, link: "/history", activeColor: "text-slate-200", activeBg: "bg-slate-800/60", dot: "bg-slate-200" },
+  { label: "Đi chợ", icon: ShoppingCart, link: "/shopping", activeColor: "text-violet-400", activeBg: "bg-violet-950/60", dot: "bg-violet-400" },
 ];
 
 export function AppHeader() {

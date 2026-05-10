@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { useCallback, useRef, lazy, Suspense } from "react";
 import { Button } from "../components/ui/button";
 import {
   Sparkles,
@@ -16,59 +15,7 @@ import {
   Star,
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useTransform,
-  useInView,
-} from "motion/react";
-
-// Lazy load heavy Three.js components
-const ThreeRobotScene = lazy(() => import("../components/three-robot-scene").then(m => ({ default: m.ThreeRobotScene })));
-const ThreeHeroBg = lazy(() => import("../components/three-hero-bg").then(m => ({ default: m.ThreeHeroBg })));
-const ThreeFoodOrbit = lazy(() => import("../components/three-food-orbit").then(m => ({ default: m.ThreeFoodOrbit })));
-
-// ─── 3D tilt hook ─────────────────────────────────────────────────────────────
-function useTilt3D(strength = 14) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 280, damping: 28 });
-  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 280, damping: 28 });
-  const scale = useSpring(1, { stiffness: 280, damping: 24 });
-  const glowX = useTransform(x, [-0.5, 0.5], [0, 100]);
-  const glowY = useTransform(y, [-0.5, 0.5], [0, 100]);
-
-  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    x.set((e.clientX - rect.left) / rect.width - 0.5);
-    y.set((e.clientY - rect.top) / rect.height - 0.5);
-    scale.set(1.04);
-  }, [x, y, scale]);
-
-  const onMouseLeave = useCallback(() => {
-    x.set(0); y.set(0); scale.set(1);
-  }, [x, y, scale]);
-
-  return { rotateX, rotateY, scale, glowX, glowY, onMouseMove, onMouseLeave };
-}
-
-// ─── FadeUp scroll-reveal ──────────────────────────────────────────────────────
-function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40, filter: "blur(6px)" }}
-      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+import { motion } from "motion/react";
 
 const features = [
   {
@@ -126,6 +73,11 @@ const stats = [
   { value: "4.9★", label: "Đánh giá từ VĐV", icon: Star },
 ];
 
+const macros = [
+  { label: "PROTEIN", value: "35%", color: "#a3e635", bg: "rgba(163,230,53,0.1)" },
+  { label: "CARBS", value: "45%", color: "#60a5fa", bg: "rgba(96,165,250,0.1)" },
+  { label: "FAT", value: "20%", color: "#f472b6", bg: "rgba(244,114,182,0.1)" },
+];
 
 const testimonials = [
   {
@@ -151,161 +103,13 @@ const testimonials = [
   },
 ];
 
-// ─── Star Marquee (infinite scrolling star conveyor belt) ─────────────────────
-function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | "right"; speed?: number }) {
-  const stars = Array.from({ length: 20 }, (_, i) => i);
-  return (
-    <div className="relative w-full overflow-hidden py-3" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
-      <motion.div
-        className="flex gap-2 w-max"
-        animate={{ x: direction === "left" ? ["-50%", "0%"] : ["0%", "-50%"] }}
-        transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
-      >
-        {[...stars, ...stars].map((_, i) => {
-          const colors = ["#a3e635", "#fbbf24", "#fb923c", "#4ade80", "#60a5fa", "#f472b6", "#a78bfa"];
-          const color = colors[i % colors.length];
-          const size = 10 + (i % 4) * 4;
-          return (
-            <motion.div
-              key={i}
-              animate={{
-                scale: [1, 1.3, 1],
-                rotate: [0, 15, -15, 0],
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: 2 + (i % 3) * 0.5,
-                repeat: Infinity,
-                delay: (i % 7) * 0.3,
-                ease: "easeInOut",
-              }}
-              className="flex-shrink-0"
-            >
-              <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
-              </svg>
-            </motion.div>
-          );
-        })}
-      </motion.div>
-    </div>
-  );
-}
-
-// ─── Rainbow Border Button ────────────────────────────────────────────────────
-function RainbowButton({ children, className = "", ...props }: React.ComponentProps<typeof Link>) {
-  return (
-    <Link {...props} className={`group relative inline-block ${className}`}>
-      {/* Rotating rainbow border */}
-      <div
-        className="absolute -inset-[2px] rounded-2xl opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: "conic-gradient(from var(--rainbow-angle, 0deg), #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff00ff, #ff0000)",
-          animation: "rainbowSpin 3s linear infinite",
-          filter: "blur(1px)",
-        }}
-      />
-      {/* Glow layer */}
-      <div
-        className="absolute -inset-[2px] rounded-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-300"
-        style={{
-          background: "conic-gradient(from var(--rainbow-angle, 0deg), #ff0000, #ff8800, #ffff00, #00ff00, #0088ff, #8800ff, #ff00ff, #ff0000)",
-          animation: "rainbowSpin 3s linear infinite",
-          filter: "blur(12px)",
-        }}
-      />
-      {/* Inner button */}
-      <div
-        className="relative h-14 px-10 flex items-center justify-center gap-2 rounded-xl font-black text-gray-900 transition-all group-hover:scale-[1.02]"
-        style={{
-          background: "linear-gradient(135deg, #a3e635, #4ade80)",
-          fontSize: "1.1rem",
-          letterSpacing: "0.05em",
-        }}
-      >
-        {children}
-      </div>
-    </Link>
-  );
-}
-
-// ─── TestimonialCard with 3D tilt ─────────────────────────────────────────────
-function TestimonialCard({ t, delay }: { t: typeof testimonials[0]; delay: number }) {
-  const tilt = useTilt3D(12);
-  return (
-    <FadeUp delay={delay}>
-      <motion.div
-        style={{
-          perspective: 1000,
-          rotateX: tilt.rotateX,
-          rotateY: tilt.rotateY,
-          scale: tilt.scale,
-          transformStyle: "preserve-3d",
-          background: "rgba(26,31,46,0.9)",
-          border: "1px solid rgba(255,255,255,0.07)",
-        }}
-        onMouseMove={tilt.onMouseMove}
-        onMouseLeave={tilt.onMouseLeave}
-        whileHover={{ borderColor: "rgba(163,230,53,0.25)", boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 30px rgba(163,230,53,0.08)" }}
-        className="rounded-2xl p-6 relative overflow-hidden cursor-default"
-      >
-        {/* Animated Stars */}
-        <div className="flex gap-0.5 mb-4">
-          {Array.from({ length: t.rating }).map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: delay + i * 0.1, type: "spring", stiffness: 400, damping: 10 }}
-            >
-              <motion.div
-                animate={{
-                  scale: [1, 1.25, 1],
-                  rotate: [0, 10, -10, 0],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: "easeInOut",
-                }}
-              >
-                <Star className="w-4 h-4 text-lime-400 fill-lime-400 drop-shadow-[0_0_4px_rgba(163,230,53,0.6)]" />
-              </motion.div>
-            </motion.div>
-          ))}
-        </div>
-        <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
-        <div className="flex items-center gap-3">
-          <motion.div
-            whileHover={{ scale: 1.2, rotate: 8 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-gray-900 flex-shrink-0"
-            style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
-          >
-            {t.avatar}
-          </motion.div>
-          <div>
-            <p className="text-white font-semibold text-sm">{t.name}</p>
-            <p className="text-slate-500 text-xs">{t.role}</p>
-          </div>
-        </div>
-      </motion.div>
-    </FadeUp>
-  );
-}
-
 export function HomePage() {
   return (
     <div className="min-h-screen bg-transparent">
       <AppHeader />
 
-      {/* ── HERO SECTION ──────────────────────────────────────── */}
+      {/* ── HERO SECTION ──────────────────────────────────── */}
       <section className="relative py-20 px-6 overflow-hidden">
-        {/* Three.js animated background */}
-        <Suspense fallback={null}>
-          <ThreeHeroBg />
-        </Suspense>
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
 
@@ -370,23 +174,129 @@ export function HomePage() {
               </div>
             </motion.div>
 
-            {/* Right — Robot Chef Scene (3D on desktop, static image on mobile) */}
+            {/* Right — Macro card floating */}
             <motion.div
-              initial={{ opacity: 0, x: 50, scale: 0.9 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              transition={{ duration: 0.85, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="relative flex items-center justify-center"
-              style={{ minHeight: "auto" }}
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="relative hidden lg:block"
             >
-              <Suspense fallback={
-                <div className="w-full flex items-center justify-center" style={{ height: 300 }}>
-                  <div className="w-24 h-24 rounded-full" style={{ background: "radial-gradient(circle, rgba(163,230,53,0.15) 0%, transparent 70%)" }}>
-                    <div className="w-full h-full flex items-center justify-center text-4xl animate-pulse">🍔</div>
+              {/* Main card */}
+              <div
+                className="relative rounded-3xl p-8 overflow-hidden"
+                style={{
+                  background: "rgba(26,31,46,0.9)",
+                  border: "1px solid rgba(163,230,53,0.15)",
+                  backdropFilter: "blur(20px)",
+                  boxShadow: "0 25px 60px rgba(0,0,0,0.5), 0 0 80px rgba(163,230,53,0.05)",
+                }}
+              >
+                {/* Glow accent */}
+                <div className="absolute top-0 right-0 w-48 h-48 rounded-full"
+                  style={{
+                    background: "radial-gradient(circle, rgba(163,230,53,0.12) 0%, transparent 70%)",
+                  }}
+                />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: "rgba(163,230,53,0.15)", border: "1px solid rgba(163,230,53,0.3)" }}>
+                      <Target className="w-5 h-5 text-lime-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 uppercase tracking-widest">Daily Target</p>
+                      <p className="text-white font-bold">Muscle Gain Plan</p>
+                    </div>
+                    <div className="ml-auto px-3 py-1 rounded-full text-xs font-semibold"
+                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                      Active
+                    </div>
+                  </div>
+
+                  {/* Calorie ring */}
+                  <div className="flex items-center justify-center mb-6">
+                    <div className="relative">
+                      <svg width="140" height="140" viewBox="0 0 140 140">
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="10" />
+                        <circle cx="70" cy="70" r="58" fill="none" stroke="url(#grad1)" strokeWidth="10"
+                          strokeDasharray="364" strokeDashoffset="91" strokeLinecap="round"
+                          transform="rotate(-90 70 70)" />
+                        <defs>
+                          <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="#a3e635" />
+                            <stop offset="100%" stopColor="#4ade80" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <p className="text-3xl font-black text-white">2,450</p>
+                        <p className="text-xs text-slate-500 uppercase tracking-wide">KCAL / ngày</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Macros */}
+                  <div className="grid grid-cols-3 gap-3">
+                    {macros.map((m) => (
+                      <div key={m.label} className="rounded-xl p-3 text-center"
+                        style={{ background: m.bg, border: `1px solid ${m.color}30` }}>
+                        <p className="text-lg font-black" style={{ color: m.color }}>{m.value}</p>
+                        <p className="text-xs text-slate-500 font-semibold tracking-wider mt-0.5">{m.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* AI badge */}
+                  <div className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl"
+                    style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)" }}>
+                    <Sparkles className="w-4 h-4 text-lime-400" />
+                    <span className="text-sm text-slate-300">AI đã tối ưu cho mục tiêu của bạn</span>
+                    <ChevronRight className="w-4 h-4 text-slate-500 ml-auto" />
                   </div>
                 </div>
-              }>
-                <ThreeRobotScene className="w-full h-full" />
-              </Suspense>
+              </div>
+
+              {/* Floating mini cards */}
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute -top-6 -left-8 rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: "rgba(26,31,46,0.95)",
+                  border: "1px solid rgba(96,165,250,0.3)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(96,165,250,0.15)" }}>
+                  <Dumbbell className="w-5 h-5 text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold">Protein hôm nay</p>
+                  <p className="text-blue-400 text-xs font-semibold">152g / 180g</p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                className="absolute -bottom-6 -right-6 rounded-2xl px-4 py-3 flex items-center gap-3"
+                style={{
+                  background: "rgba(26,31,46,0.95)",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                  boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+                }}
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                  style={{ background: "rgba(163,230,53,0.15)" }}>
+                  <Flame className="w-5 h-5 text-lime-400" />
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold">Calo đã nạp</p>
+                  <p className="text-lime-400 text-xs font-semibold">1,840 / 2,450 kcal</p>
+                </div>
+              </motion.div>
             </motion.div>
 
           </div>
@@ -504,25 +414,6 @@ export function HomePage() {
             })}
           </div>
         </div>
-
-          {/* Three.js Food Orbit Scene */}
-          <div className="mt-16">
-            <div className="text-center mb-6">
-              <span
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
-                style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.25)", color: "#fb923c" }}
-              >
-                🍲 3D Food Universe
-              </span>
-            </div>
-            <Suspense fallback={
-              <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
-                <div className="text-4xl animate-pulse">🍲</div>
-              </div>
-            }>
-              <ThreeFoodOrbit className="w-full" />
-            </Suspense>
-          </div>
       </section>
 
       {/* ── MACRO TRACKER BANNER ──────────────────────────────────── */}
@@ -604,7 +495,7 @@ export function HomePage() {
       {/* ── TESTIMONIALS SECTION ──────────────────────────────────── */}
       <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-4">
+          <div className="text-center mb-10">
             <h2
               className="text-4xl font-black text-white mb-2"
             >
@@ -613,17 +504,40 @@ export function HomePage() {
             <p className="text-slate-500">Hơn 10,000+ người tập hài lòng</p>
           </div>
 
-          {/* Star marquee conveyor belt */}
-          <StarMarquee direction="left" speed={25} />
-
           <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
-              <TestimonialCard key={i} t={t} delay={i * 0.12} />
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="rounded-2xl p-6"
+                style={{
+                  background: "rgba(26,31,46,0.8)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div className="flex gap-0.5 mb-4">
+                  {Array.from({ length: t.rating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 text-lime-400 fill-lime-400" />
+                  ))}
+                </div>
+                <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-black text-gray-900"
+                    style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
+                  >
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">{t.name}</p>
+                    <p className="text-slate-500 text-xs">{t.role}</p>
+                  </div>
+                </div>
+              </motion.div>
             ))}
           </div>
-
-          {/* Second star marquee going opposite direction */}
-          <StarMarquee direction="right" speed={30} />
         </div>
       </section>
 
@@ -646,10 +560,21 @@ export function HomePage() {
           <p className="text-slate-400 text-lg mb-8">
             Tham gia cùng hàng ngàn VĐV đang tối ưu hóa chế độ dinh dưỡng với MealYummy.
           </p>
-          <RainbowButton to="/app">
-            <Sparkles className="w-5 h-5" />
-            BẮT ĐẦU MIỄN PHÍ
-          </RainbowButton>
+          <Link to="/app">
+            <Button
+              size="lg"
+              className="h-14 px-10 text-base font-black rounded-xl text-gray-900 border-0 hover:scale-105 transition-all"
+              style={{
+                background: "linear-gradient(135deg, #a3e635, #4ade80)",
+                boxShadow: "0 0 40px rgba(163,230,53,0.4)",
+                letterSpacing: "0.05em",
+                fontSize: "1.1rem",
+              }}
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              BẮT ĐẦU MIỄN PHÍ
+            </Button>
+          </Link>
         </div>
       </section>
 
