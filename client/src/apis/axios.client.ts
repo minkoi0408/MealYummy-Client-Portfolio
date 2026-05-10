@@ -1,8 +1,6 @@
 import axios, {
   type AxiosInstance,
-  type InternalAxiosRequestConfig,
   type AxiosResponse,
-  type AxiosError,
   type AxiosRequestConfig,
   type Method,
 } from 'axios';

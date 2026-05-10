@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   UtensilsCrossed, Sparkles, Clock, Heart, ChefHat,
   ShoppingCart, Calendar, Trophy, ArrowRight, Star,
@@ -8,6 +8,15 @@ import {
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { AppHeader } from "../components/app-header";
 import { mockRecipes } from "../data/mock-recipes";
+import {
+  motion,
+  useScroll,
+  useTransform,
+  useSpring,
+  useInView,
+  useMotionValue,
+} from "motion/react";
+import { FoodScene3D } from "../components/food-scene-3d";
 
 // ─── animated counter hook ────────────────────────────────────────────────────
 function useCounter(target: number, duration = 1800, start = false) {
@@ -79,11 +88,135 @@ const STATS = [
   { value: 49,   suffix: "★", label: "Đánh giá", icon: Star, divisor: 10 },
 ];
 
-// ─── component ────────────────────────────────────────────────────────────────
+// ─── 3D tilt hook ─────────────────────────────────────────────────────────────
+function useTilt(strength = 12) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 300, damping: 30 });
+  const scale = useSpring(1, { stiffness: 300, damping: 25 });
 
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.03);
+  }, [x, y, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    x.set(0); y.set(0); scale.set(1);
+  }, [x, y, scale]);
+
+  return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
+}
+
+// ─── fade-up section wrapper ───────────────────────────────────────────────────
+function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 48, filter: "blur(4px)" }}
+      animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
+      transition={{ duration: 0.75, delay, ease: [0.16, 1, 0.3, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+// ─── BentoCard with 3D tilt ───────────────────────────────────────────────────
+function BentoCard({ feature, isWide, Icon }: { feature: typeof FEATURES[0]; isWide: boolean; Icon: any }) {
+  const tilt = useTilt(10);
+  return (
+    <Link to={feature.link} className="block h-full">
+      <motion.div
+        style={{
+          perspective: 1000,
+          rotateX: tilt.rotateX,
+          rotateY: tilt.rotateY,
+          scale: tilt.scale,
+          transformStyle: "preserve-3d",
+        }}
+        onMouseMove={tilt.onMouseMove}
+        onMouseLeave={tilt.onMouseLeave}
+        className={`group relative rounded-3xl border overflow-hidden bg-white/70 backdrop-blur-sm h-full cursor-pointer ${feature.border}`}
+      >
+        {/* Image with parallax */}
+        <div className="relative overflow-hidden h-48">
+          <motion.div
+            style={{ scale: 1.08 }}
+            whileHover={{ scale: 1.15 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="w-full h-full"
+          >
+            <ImageWithFallback
+              src={feature.img}
+              alt={feature.title}
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
+          {/* Feature badge */}
+          <motion.div
+            style={{ translateZ: 20 }}
+            className={`absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${feature.color} text-white text-xs font-semibold shadow-md`}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {feature.label}
+          </motion.div>
+          {isWide && (
+            <motion.span
+              style={{ translateZ: 20 }}
+              className="absolute top-3 right-3 px-2 py-1 bg-white/90 text-amber-700 text-[10px] font-bold rounded-full shadow-sm"
+            >
+              ⭐ Chính
+            </motion.span>
+          )}
+        </div>
+
+        {/* Text */}
+        <div className="p-5">
+          <h3 className="font-bold text-base text-foreground mb-1.5 group-hover:text-amber-700 transition-colors">{feature.title}</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">{feature.desc}</p>
+          <motion.div
+            className="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-600"
+            animate={{ gap: "4px" }}
+            whileHover={{ gap: "8px" }}
+          >
+            Khám phá <ArrowRight className="w-3.5 h-3.5" />
+          </motion.div>
+        </div>
+
+        {/* Hover glow overlay */}
+        <motion.div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          style={{
+            background: "radial-gradient(circle at 50% 0%, rgba(251,191,36,0.08) 0%, transparent 70%)",
+          }}
+        />
+      </motion.div>
+    </Link>
+  );
+}
+
+// ─── component ─────────────────────────────────────────────────────────────────
 export function LandingPage() {
   const [statsVisible, setStatsVisible] = useState(false);
   const statsRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-based parallax
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ["start start", "end start"] });
+  const heroY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const heroScale = useTransform(scrollYProgress, [0, 0.4], [1, 0.94]);
+
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -103,7 +236,7 @@ export function LandingPage() {
   const featuredRecipes = mockRecipes.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-transparent overflow-x-hidden">
+    <div ref={containerRef} className="min-h-screen bg-transparent overflow-x-hidden">
 
       {/* ──────────────────── HEADER ───────────────────────────── */}
       <AppHeader />
@@ -111,216 +244,198 @@ export function LandingPage() {
       {/* ──────────────────── HERO ─────────────────────────────── */}
       <section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden px-6 py-16">
         {/* Ambient blobs */}
-        <div className="absolute top-[-80px] right-[-80px] w-[500px] h-[500px] bg-gradient-to-br from-amber-300/25 to-orange-300/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-[-40px] left-[-60px] w-[400px] h-[400px] bg-gradient-to-tr from-yellow-200/20 to-amber-200/15 rounded-full blur-3xl pointer-events-none" />
+        <motion.div style={{ y: useTransform(scrollYProgress, [0,1], [0, -60]) }} className="absolute top-[-80px] right-[-80px] w-[500px] h-[500px] bg-gradient-to-br from-amber-300/25 to-orange-300/20 rounded-full blur-3xl pointer-events-none" />
+        <motion.div style={{ y: useTransform(scrollYProgress, [0,1], [0, -30]) }} className="absolute bottom-[-40px] left-[-60px] w-[400px] h-[400px] bg-gradient-to-tr from-yellow-200/20 to-amber-200/15 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <motion.div
+          style={{ y: heroY, opacity: heroOpacity, scale: heroScale }}
+          className="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+        >
 
           {/* ── Left: copy ───────────────────────────────────────── */}
           <div className="space-y-8 relative z-10">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/70 text-amber-600 px-3.5 py-1.5 rounded-full text-sm font-semibold shadow-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/70 text-amber-600 px-3.5 py-1.5 rounded-full text-sm font-semibold shadow-sm"
+            >
               <Sparkles className="w-4 h-4" />
               AI gợi ý món ăn thông minh ✨
-            </div>
+            </motion.div>
 
             {/* Headline */}
             <div>
               <h1 className="text-6xl font-black leading-[1.05] tracking-tight mb-4">
-                <span className="block text-foreground">Ăn ngon</span>
-                <span className="block bg-gradient-to-r from-amber-500 via-orange-500 to-red-400 bg-clip-text text-transparent">
-                  mỗi ngày
-                </span>
-                <span className="block text-foreground/80">không lo nghĩ</span>
+                {["Ăn ngon", "mỗi ngày", "không lo nghĩ"].map((word, i) => (
+                  <motion.span
+                    key={word}
+                    className={`block ${i === 1 ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-400 bg-clip-text text-transparent" : i === 2 ? "text-foreground/80" : "text-foreground"}`}
+                    initial={{ opacity: 0, x: -32, filter: "blur(8px)" }}
+                    animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.7, delay: 0.2 + i * 0.12, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    {word}
+                  </motion.span>
+                ))}
               </h1>
-              <p className="text-lg text-muted-foreground leading-relaxed max-w-md">
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.62 }}
+                className="text-lg text-muted-foreground leading-relaxed max-w-md"
+              >
                 MealYummy dùng AI để gợi ý món ăn theo <strong className="text-foreground">khẩu vị, ngân sách</strong> và <strong className="text-foreground">chế độ dinh dưỡng</strong> của bạn — chỉ trong vài giây.
-              </p>
+              </motion.p>
             </div>
 
             {/* CTA group */}
-            <div className="flex flex-wrap gap-3">
+            <motion.div
+              className="flex flex-wrap gap-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.75 }}
+            >
               <Link to="/app">
-                <button className="flex items-center gap-2 h-12 px-6 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-semibold rounded-2xl shadow-lg shadow-amber-200/60 transition-all active:scale-[0.98] text-sm">
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: "0 12px 40px rgba(251,146,60,0.4)" }}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center gap-2 h-12 px-6 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-semibold rounded-2xl shadow-lg shadow-amber-200/60 text-sm"
+                >
                   <Sparkles className="w-4 h-4" />
                   Gợi ý món ngay
                   <ArrowRight className="w-4 h-4" />
-                </button>
+                </motion.button>
               </Link>
               <Link to="/results">
-                <button className="flex items-center gap-2 h-12 px-6 bg-white/80 backdrop-blur-sm border border-amber-200/60 hover:border-amber-300 hover:bg-amber-50/50 text-foreground font-semibold rounded-2xl transition-all text-sm">
+                <motion.button
+                  whileHover={{ scale: 1.04, backgroundColor: "rgba(255,251,235,0.8)" }}
+                  whileTap={{ scale: 0.97 }}
+                  className="flex items-center gap-2 h-12 px-6 bg-white/80 backdrop-blur-sm border border-amber-200/60 text-foreground font-semibold rounded-2xl text-sm"
+                >
                   <Trophy className="w-4 h-4 text-amber-500" />
                   Xem top món ăn
-                </button>
+                </motion.button>
               </Link>
-            </div>
+            </motion.div>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap items-center gap-4 pt-2">
+            <motion.div
+              className="flex flex-wrap items-center gap-4 pt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.9 }}
+            >
               {[
                 { emoji: "⚡", text: "Gợi ý trong 3 giây" },
                 { emoji: "🧑‍🍳", text: "1000+ công thức" },
                 { emoji: "🌟", text: "Đánh giá 4.9★" },
-              ].map(({ emoji, text }) => (
-                <div key={text} className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              ].map(({ emoji, text }, i) => (
+                <motion.div
+                  key={text}
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.95 + i * 0.08 }}
+                >
                   <span>{emoji}</span>
                   <span>{text}</span>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
 
-          {/* ── Right: food mosaic ───────────────────────────────── */}
-          <div className="hidden lg:grid grid-cols-3 grid-rows-3 gap-3 h-[520px] relative">
-            {/* Floating badge 1 */}
-            <div className="absolute -top-4 -left-6 z-20 bg-white/90 backdrop-blur-sm border border-amber-200/60 rounded-2xl px-3.5 py-2.5 shadow-xl flex items-center gap-2 animate-float-slow">
-              <span className="text-xl">🔥</span>
-              <div>
-                <p className="text-xs font-bold text-foreground leading-none">Phở bò Hà Nội</p>
-                <p className="text-[10px] text-amber-500 mt-0.5">⭐ Phổ biến nhất</p>
-              </div>
-            </div>
-            {/* Floating badge 2 */}
-            <div className="absolute -bottom-3 -right-4 z-20 bg-white/90 backdrop-blur-sm border border-green-200/60 rounded-2xl px-3.5 py-2.5 shadow-xl flex items-center gap-2 animate-float-medium">
-              <span className="text-xl">✅</span>
-              <div>
-                <p className="text-xs font-bold text-foreground leading-none">AI tìm ra ngay!</p>
-                <p className="text-[10px] text-green-500 mt-0.5">Dưới 3 giây</p>
-              </div>
-            </div>
-            {/* Floating badge 3 */}
-            <div className="absolute top-1/2 -right-8 z-20 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl px-3 py-2 shadow-xl text-white animate-float-fast">
-              <p className="text-xs font-bold leading-none">10K+ người dùng</p>
-              <p className="text-[10px] opacity-80 mt-0.5">Hài lòng 😋</p>
-            </div>
-
-            {/* Image cells */}
-            <div className="col-span-2 row-span-2 rounded-3xl overflow-hidden shadow-2xl">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1757715377459-92ce5a081789?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx2aWV0bmFtZXNlJTIwZm9vZCUyMHNwcmVhZCUyMGNvbG9yZnVsJTIwb3ZlcmhlYWR8ZW58MXx8fHwxNzcyNTUyMDg4fDA&ixlib=rb-4.1.0&q=80&w=800"
-                alt="Vietnamese food spread"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-              />
-            </div>
-            <div className="col-span-1 row-span-1 rounded-2xl overflow-hidden shadow-xl">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1648912500365-e0930ea34924?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwaG8lMjBib3dsJTIwdmlldG5hbWVzZSUyMG5vb2RsZSUyMHNvdXAlMjBzdGVhbXxlbnwxfHx8fDE3NzI1NTIwODl8MA&ixlib=rb-4.1.0&q=80&w=400"
-                alt="Pho bowl"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-              />
-            </div>
-            <div className="col-span-1 row-span-1 rounded-2xl overflow-hidden shadow-xl">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1765448856945-481569592cf3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjaGVmJTIwY29va2luZyUyMHdvayUyMGZpcmUlMjByZXN0YXVyYW50JTIwa2l0Y2hlbnxlbnwxfHx8fDE3NzI1NTIwOTB8MA&ixlib=rb-4.1.0&q=80&w=400"
-                alt="Chef cooking"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-              />
-            </div>
-            <div className="col-span-2 row-span-1 rounded-2xl overflow-hidden shadow-xl">
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1609811159533-72e7ab01f13c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxhc2lhbiUyMGZvb2QlMjBtYXJrZXQlMjBmcmVzaCUyMHZlZ2V0YWJsZXMlMjBjb2xvcmZ1bHxlbnwxfHx8fDE3NzI1NTIwODl8MA&ixlib=rb-4.1.0&q=80&w=800"
-                alt="Asian food market"
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
-              />
-            </div>
-          </div>
-        </div>
+          {/* ── Right: 3D animated food scene ────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, x: 60 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.9, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            className="hidden lg:flex items-center justify-center h-[520px] relative"
+          >
+            <FoodScene3D className="w-full h-full" />
+          </motion.div>
+        </motion.div>
 
         {/* Scroll hint */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 animate-bounce-slow opacity-60">
+        <motion.div
+          animate={{ y: [0, 6, 0], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5"
+        >
           <div className="w-5 h-8 border-2 border-muted-foreground/40 rounded-full flex justify-center pt-1.5">
-            <div className="w-1 h-2 bg-muted-foreground/50 rounded-full animate-scroll-dot" />
+            <motion.div
+              animate={{ y: [0, 8, 0], opacity: [1, 0, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-1 h-2 bg-muted-foreground/50 rounded-full"
+            />
           </div>
           <span className="text-[10px] text-muted-foreground/50 tracking-widest uppercase">Cuộn xuống</span>
-        </div>
+        </motion.div>
       </section>
 
       {/* ──────────────────── HOW IT WORKS ─────────────────────── */}
       <section className="py-20 px-6 bg-gradient-to-b from-transparent via-amber-50/30 to-transparent">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
+          <FadeUp className="text-center mb-14">
             <span className="inline-block px-3.5 py-1 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full mb-3">Siêu đơn giản</span>
             <h2 className="text-4xl font-black text-foreground mb-3">Chỉ 3 bước thôi</h2>
             <p className="text-muted-foreground">Từ ý tưởng đến bàn ăn — nhanh hơn bạn nghĩ</p>
-          </div>
+          </FadeUp>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Connector line (desktop) */}
             <div className="hidden md:block absolute top-10 left-[16.5%] right-[16.5%] h-px bg-gradient-to-r from-amber-200 via-orange-300 to-amber-200 z-0" />
 
             {STEPS.map((step, i) => (
-              <div key={i} className="relative z-10 flex flex-col items-center text-center group">
-                {/* Number bubble */}
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex flex-col items-center justify-center shadow-lg shadow-amber-200/60 mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-all duration-300">
+              <FadeUp key={i} delay={i * 0.15} className="relative z-10 flex flex-col items-center text-center">
+                <motion.div
+                  whileHover={{ scale: 1.15, rotate: -5, boxShadow: "0 20px 60px rgba(251,146,60,0.5)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex flex-col items-center justify-center shadow-lg shadow-amber-200/60 mb-5 cursor-pointer"
+                >
                   <span className="text-2xl">{step.icon}</span>
                   <span className="text-white/70 text-[10px] font-bold tracking-widest">{step.n}</span>
-                </div>
+                </motion.div>
                 <h3 className="font-bold text-base text-foreground mb-2">{step.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-[200px]">{step.desc}</p>
-              </div>
+              </FadeUp>
             ))}
           </div>
 
-          <div className="text-center mt-12">
+          <FadeUp delay={0.3} className="text-center mt-12">
             <Link to="/app">
-              <button className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-semibold rounded-2xl shadow-lg shadow-amber-200/50 transition-all text-sm">
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: "0 16px 48px rgba(251,146,60,0.45)" }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-semibold rounded-2xl shadow-lg shadow-amber-200/50 text-sm"
+              >
                 <Sparkles className="w-4 h-4" />
                 Bắt đầu ngay — miễn phí
-              </button>
+              </motion.button>
             </Link>
-          </div>
+          </FadeUp>
         </div>
       </section>
 
       {/* ──────────────────── FEATURES BENTO ──────────────────── */}
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
+          <FadeUp className="text-center mb-12">
             <span className="inline-block px-3.5 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full mb-3">Đầy đủ tính năng</span>
             <h2 className="text-4xl font-black text-foreground mb-3">5 tính năng của MealYummy</h2>
             <p className="text-muted-foreground">Mọi thứ bạn cần cho bữa ăn hoàn hảo, trong một app duy nhất</p>
-          </div>
+          </FadeUp>
 
-          {/* Bento grid — row 1: big + small, row 2: small + big */}
+          {/* Bento grid — 3D tilt cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {FEATURES.map((f, i) => {
               const Icon = f.icon;
               const isWide = i === 0;
               return (
-                <Link
-                  key={f.label}
-                  to={f.link}
-                  className={`group relative rounded-3xl border overflow-hidden bg-white/70 backdrop-blur-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 ${f.border} ${isWide ? "md:col-span-2" : "col-span-1"}`}
-                >
-                  {/* Image */}
-                  <div className="relative overflow-hidden h-48">
-                    <ImageWithFallback
-                      src={f.img}
-                      alt={f.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                    {/* Feature badge */}
-                    <div className={`absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r ${f.color} text-white text-xs font-semibold shadow-md`}>
-                      <Icon className="w-3.5 h-3.5" />
-                      {f.label}
-                    </div>
-                    {i === 0 && (
-                      <span className="absolute top-3 right-3 px-2 py-1 bg-white/90 text-amber-700 text-[10px] font-bold rounded-full shadow-sm">
-                        ⭐ Chính
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Text */}
-                  <div className="p-5">
-                    <h3 className="font-bold text-base text-foreground mb-1.5 group-hover:text-amber-700 transition-colors">{f.title}</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-                    <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-amber-600 group-hover:gap-2 transition-all">
-                      Khám phá <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </Link>
+                <FadeUp key={f.label} delay={i * 0.1} className={isWide ? "md:col-span-2" : "col-span-1"}>
+                  <BentoCard feature={f} isWide={isWide} Icon={Icon} />
+                </FadeUp>
               );
             })}
           </div>
