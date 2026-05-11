@@ -6,11 +6,12 @@
  *  • Holographic label chips as HTML overlays via @react-three/drei Html
  *  • Mouse-driven camera tilt
  *  • Particle dust field
+ *  • Click to open/close with rotation reset
  *
  * MOBILE: Shows animated CSS food cards instead of WebGL
  */
 
-import { useRef, useMemo, Suspense } from "react";
+import { useRef, useMemo, Suspense, useEffect, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   Float,
@@ -24,6 +25,31 @@ import {
 import * as THREE from "three";
 import { useIsMobile } from "../../hooks/useIsMobile";
 
+// Mobile 3D Configuration
+const getMobile3DConfig = (isMobile: boolean) => ({
+  pixelRatio: isMobile ? Math.min(window.devicePixelRatio, 1.5) : window.devicePixelRatio,
+  antialias: !isMobile,
+  shadows: !isMobile,
+  particleCount: isMobile ? 30 : 100,
+  trailLength: isMobile ? 10 : 20,
+  orbitSpeed: isMobile ? 0.7 : 1,
+});
+
+// Memory cleanup utility
+const disposeObject = (obj: THREE.Object3D) => {
+  if (obj instanceof THREE.Mesh) {
+    if (obj.geometry) obj.geometry.dispose();
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach(mat => mat.dispose());
+      } else {
+        obj.material.dispose();
+      }
+    }
+  }
+  obj.children.forEach(child => disposeObject(child));
+};
+
 // ─── Orbiting food proxy meshes ───────────────────────────────────────────────
 const FOOD_ITEMS = [
   { emoji: "🍜", label: "Phở bò",     orbitR: 3.2,  speed: 0.28, phase: 0,            color: "#fb923c", shape: "ico"   },
@@ -35,25 +61,55 @@ const FOOD_ITEMS = [
 ];
 
 // ─── Single Orbiting Object ───────────────────────────────────────────────────
-function OrbitingFood({ item, index }: { item: typeof FOOD_ITEMS[0]; index: number }) {
+function OrbitingFood({ 
+  item, 
+  index, 
+  isOpen, 
+  onClick 
+}: { 
+  item: typeof FOOD_ITEMS[0]; 
+  index: number;
+  isOpen: boolean;
+  onClick: () => void;
+}) {
   const meshRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
+  const isMobile = useIsMobile();
+  const config = getMobile3DConfig(isMobile);
   const pivot = useMemo(() => new THREE.Object3D(), []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const angle = item.phase + t * item.speed;
-    // Elliptical orbit (x, y slightly)
-    const x = Math.cos(angle) * item.orbitR;
-    const z = Math.sin(angle) * item.orbitR * 0.55;
-    const y = Math.sin(angle * 0.7 + index) * 0.6;
+    
+    if (isOpen) {
+      // Khi mở: dừng xoay, về vị trí ban đầu
+      const targetX = Math.cos(item.phase) * item.orbitR;
+      const targetZ = Math.sin(item.phase) * item.orbitR * 0.55;
+      const targetY = Math.sin(item.phase * 0.7 + index) * 0.6;
+      
+      if (groupRef.current) {
+        groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.1);
+        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY, 0.1);
+        groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, targetZ, 0.1);
+      }
+      if (meshRef.current) {
+        meshRef.current.rotation.x = THREE.MathUtils.lerp(meshRef.current.rotation.x, 0, 0.1);
+        meshRef.current.rotation.y = THREE.MathUtils.lerp(meshRef.current.rotation.y, 0, 0.1);
+      }
+    } else {
+      // Khi đóng: tiếp tục xoay
+      const angle = item.phase + t * item.speed * config.orbitSpeed;
+      const x = Math.cos(angle) * item.orbitR;
+      const z = Math.sin(angle) * item.orbitR * 0.55;
+      const y = Math.sin(angle * 0.7 + index) * 0.6;
 
-    if (groupRef.current) {
-      groupRef.current.position.set(x, y, z);
-    }
-    if (meshRef.current) {
-      meshRef.current.rotation.x = t * 0.4 + index;
-      meshRef.current.rotation.y = t * 0.3;
+      if (groupRef.current) {
+        groupRef.current.position.set(x, y, z);
+      }
+      if (meshRef.current) {
+        meshRef.current.rotation.x = t * 0.4 + index;
+        meshRef.current.rotation.y = t * 0.3;
+      }
     }
     void pivot;
   });
@@ -62,48 +118,70 @@ function OrbitingFood({ item, index }: { item: typeof FOOD_ITEMS[0]; index: numb
   const emissiveIntensity = 0.5;
 
   return (
-    <group ref={groupRef}>
-      <Float speed={2} floatIntensity={0.2} rotationIntensity={0}>
+    <group ref={groupRef} onClick={onClick}>
+      <Float speed={isOpen ? 0.5 : 2} floatIntensity={isOpen ? 0.05 : 0.2} rotationIntensity={0}>
         {/* 3D Mesh proxy */}
         {item.shape === "ico" && (
           <mesh ref={meshRef}>
-            <icosahedronGeometry args={[0.28, 0]} />
+            <icosahedronGeometry args={[isOpen ? 0.35 : 0.28, 0]} />
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={emissiveIntensity}
+              emissiveIntensity={isOpen ? emissiveIntensity * 1.5 : emissiveIntensity}
               roughness={0.15}
               metalness={0.5}
               transparent
-              opacity={0.85}
+              opacity={isOpen ? 1 : 0.85}
             />
           </mesh>
         )}
         {item.shape === "oct" && (
-          <Octahedron ref={meshRef} args={[0.3]}>
+          <Octahedron ref={meshRef} args={[isOpen ? 0.38 : 0.3]}>
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={emissiveIntensity}
+              emissiveIntensity={isOpen ? emissiveIntensity * 1.5 : emissiveIntensity}
               roughness={0.1}
               metalness={0.6}
               transparent
-              opacity={0.85}
+              opacity={isOpen ? 1 : 0.85}
             />
           </Octahedron>
         )}
         {item.shape === "tk" && (
-          <TorusKnot ref={meshRef} args={[0.18, 0.07, 32, 8]}>
+          <TorusKnot ref={meshRef} args={[isOpen ? 0.22 : 0.18, 0.07, 32, 8]}>
             <meshStandardMaterial
               color={color}
               emissive={color}
-              emissiveIntensity={emissiveIntensity * 0.7}
+              emissiveIntensity={isOpen ? emissiveIntensity * 1.2 : emissiveIntensity * 0.7}
               roughness={0.2}
               metalness={0.4}
               transparent
-              opacity={0.82}
+              opacity={isOpen ? 1 : 0.82}
             />
           </TorusKnot>
+        )}
+        
+        {/* Hiển thị label khi mở */}
+        {isOpen && (
+          <Html center distanceFactor={3} style={{ pointerEvents: "none" }}>
+            <div
+              style={{
+                background: "rgba(0,0,0,0.85)",
+                backdropFilter: "blur(12px)",
+                border: `2px solid ${color}`,
+                borderRadius: 12,
+                padding: "8px 16px",
+                color: "white",
+                fontSize: 13,
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                boxShadow: `0 8px 32px ${color}40`,
+              }}
+            >
+              {item.emoji} {item.label}
+            </div>
+          </Html>
         )}
       </Float>
     </group>
@@ -111,32 +189,42 @@ function OrbitingFood({ item, index }: { item: typeof FOOD_ITEMS[0]; index: numb
 }
 
 // ─── Central Hero Orb ─────────────────────────────────────────────────────────
-function HeroOrb() {
+function HeroOrb({ isOpen, onClick }: { isOpen: boolean; onClick: () => void }) {
   const orbRef = useRef<THREE.Mesh>(null);
   const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
     if (orbRef.current) {
-      orbRef.current.rotation.y = t * 0.2;
-      orbRef.current.rotation.z = t * 0.1;
+      if (isOpen) {
+        orbRef.current.rotation.y = THREE.MathUtils.lerp(orbRef.current.rotation.y, 0, 0.1);
+        orbRef.current.rotation.z = THREE.MathUtils.lerp(orbRef.current.rotation.z, 0, 0.1);
+      } else {
+        orbRef.current.rotation.y = t * 0.2;
+        orbRef.current.rotation.z = t * 0.1;
+      }
     }
     if (ringRef.current) {
-      ringRef.current.rotation.x = t * 0.3;
-      ringRef.current.rotation.z = t * 0.15;
+      if (isOpen) {
+        ringRef.current.rotation.x = THREE.MathUtils.lerp(ringRef.current.rotation.x, 0, 0.1);
+        ringRef.current.rotation.z = THREE.MathUtils.lerp(ringRef.current.rotation.z, 0, 0.1);
+      } else {
+        ringRef.current.rotation.x = t * 0.3;
+        ringRef.current.rotation.z = t * 0.15;
+      }
     }
   });
 
   return (
-    <group>
+    <group onClick={onClick}>
       {/* Outer glow sphere */}
-      <Sphere args={[1.12, 16, 16]}>
+      <Sphere args={[isOpen ? 1.3 : 1.12, 16, 16]}>
         <meshStandardMaterial
           color="#fb923c"
           emissive="#fb923c"
-          emissiveIntensity={0.15}
+          emissiveIntensity={isOpen ? 0.25 : 0.15}
           transparent
-          opacity={0.08}
+          opacity={isOpen ? 0.12 : 0.08}
           roughness={0}
           metalness={0}
           side={THREE.BackSide}
@@ -144,26 +232,26 @@ function HeroOrb() {
       </Sphere>
 
       {/* Main orb - simplified from MeshDistortMaterial */}
-      <Sphere ref={orbRef} args={[0.85, 24, 24]}>
+      <Sphere ref={orbRef} args={[isOpen ? 1.0 : 0.85, 24, 24]}>
         <meshStandardMaterial
           color="#fb923c"
           emissive="#f97316"
-          emissiveIntensity={0.4}
+          emissiveIntensity={isOpen ? 0.6 : 0.4}
           roughness={0.05}
           metalness={0.5}
           transparent
-          opacity={0.75}
+          opacity={isOpen ? 0.9 : 0.75}
         />
       </Sphere>
 
       {/* Inner core - simplified from MeshWobbleMaterial */}
-      <Sphere args={[0.55, 16, 16]}>
+      <Sphere args={[isOpen ? 0.65 : 0.55, 16, 16]}>
         <meshStandardMaterial
           color="#fbbf24"
           emissive="#fbbf24"
-          emissiveIntensity={0.6}
+          emissiveIntensity={isOpen ? 0.8 : 0.6}
           transparent
-          opacity={0.6}
+          opacity={isOpen ? 0.75 : 0.6}
           roughness={0.1}
           metalness={0.3}
         />
@@ -171,13 +259,13 @@ function HeroOrb() {
 
       {/* Spinning ring */}
       <mesh ref={ringRef}>
-        <torusGeometry args={[1.3, 0.025, 12, 48]} />
+        <torusGeometry args={[isOpen ? 1.5 : 1.3, 0.025, 12, 48]} />
         <meshStandardMaterial
           color="#fb923c"
           emissive="#fb923c"
-          emissiveIntensity={0.9}
+          emissiveIntensity={isOpen ? 1.2 : 0.9}
           transparent
-          opacity={0.5}
+          opacity={isOpen ? 0.7 : 0.5}
         />
       </mesh>
 
@@ -191,19 +279,25 @@ function HeroOrb() {
         >
           <div
             style={{
-              fontSize: 13,
+              fontSize: isOpen ? 16 : 13,
               fontWeight: 900,
               background: "linear-gradient(90deg, #fb923c, #fbbf24)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               letterSpacing: "0.05em",
               marginBottom: 2,
+              transition: "font-size 0.3s ease",
             }}
           >
             MealYummy AI
           </div>
-          <div style={{ fontSize: 10, color: "rgba(251,146,60,0.65)", fontWeight: 600 }}>
-            Món ngon mỗi ngày ✨
+          <div style={{ 
+            fontSize: isOpen ? 12 : 10, 
+            color: "rgba(251,146,60,0.65)", 
+            fontWeight: 600,
+            transition: "font-size 0.3s ease",
+          }}>
+            {isOpen ? "🍲 Click để đóng" : "Món ngon mỗi ngày ✨"}
           </div>
         </div>
       </Html>
@@ -292,33 +386,72 @@ function CameraRig() {
 // ─── Main ThreeFoodOrbit Component ────────────────────────────────────────────
 export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
   const isMobile = useIsMobile();
+  const config = getMobile3DConfig(isMobile);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // On mobile: keep 3D but reduce elements
   const activeFoods = isMobile ? FOOD_ITEMS.slice(0, 4) : FOOD_ITEMS;
 
+  const handleToggle = (index?: number) => {
+    if (index !== undefined) {
+      // Click vào món ăn
+      if (selectedIndex === index && isOpen) {
+        // Đang mở món này -> đóng lại
+        setIsOpen(false);
+        setSelectedIndex(null);
+      } else {
+        // Mở món mới
+        setIsOpen(true);
+        setSelectedIndex(index);
+      }
+    } else {
+      // Click vào hero orb
+      setIsOpen(!isOpen);
+      setSelectedIndex(null);
+    }
+  };
+
+  // Memory cleanup
+  useEffect(() => {
+    return () => {
+      // Cleanup will be handled by individual components
+    };
+  }, []);
+
   return (
     <div className={`relative ${className}`} style={{ height: isMobile ? 340 : 460 }}>
       <Canvas
-        gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-        style={{ background: "transparent" }}
-        dpr={isMobile ? [1, 1] : [1, 1.5]}
+        gl={{ 
+          antialias: config.antialias, 
+          alpha: true, 
+          powerPreference: "high-performance" 
+        }}
+        style={{ background: "transparent", cursor: "pointer" }}
+        dpr={[1, config.pixelRatio]}
       >
-        <PerspectiveCamera makeDefault fov={55} position={[0, 1, 8]} />
+        <PerspectiveCamera makeDefault fov={isMobile ? 60 : 55} position={[0, 1, 8]} />
         <CameraRig />
 
         {/* Lights — fewer on mobile */}
-        <ambientLight intensity={0.4} />
-        <pointLight position={[5, 5, 5]} intensity={1.5} color="#fb923c" />
+        <ambientLight intensity={isMobile ? 0.3 : 0.4} />
+        <pointLight position={[5, 5, 5]} intensity={isMobile ? 1.2 : 1.5} color="#fb923c" />
         {!isMobile && <pointLight position={[-5, -5, -3]} intensity={0.8} color="#f97316" />}
         {!isMobile && <pointLight position={[0, 8, 2]} intensity={0.5} color="#fbbf24" />}
 
         <Suspense fallback={null}>
-          <HeroOrb />
+          <HeroOrb isOpen={isOpen && selectedIndex === null} onClick={() => handleToggle()} />
           {activeFoods.map((item, i) => (
-            <OrbitingFood key={i} item={item} index={i} />
+            <OrbitingFood 
+              key={i} 
+              item={item} 
+              index={i} 
+              isOpen={isOpen && selectedIndex === i}
+              onClick={() => handleToggle(i)}
+            />
           ))}
-          {/* Orbit trails — skip on mobile */}
-          {!isMobile && activeFoods.map((item, i) => (
+          {/* Orbit trails — skip on mobile or when open */}
+          {!isMobile && !isOpen && activeFoods.map((item, i) => (
             <OrbitTrail
               key={i}
               radius={item.orbitR}
@@ -327,10 +460,31 @@ export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
               color={item.color}
             />
           ))}
-          {/* Particle dust — skip on mobile */}
-          {!isMobile && <ParticleDust />}
+          {/* Particle dust — skip on mobile or when open */}
+          {!isMobile && !isOpen && <ParticleDust />}
         </Suspense>
       </Canvas>
+      
+      {/* Instruction text */}
+      <div 
+        style={{
+          position: "absolute",
+          bottom: 16,
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: "rgba(0,0,0,0.7)",
+          backdropFilter: "blur(8px)",
+          padding: "8px 16px",
+          borderRadius: 8,
+          fontSize: 12,
+          color: "rgba(251,146,60,0.9)",
+          fontWeight: 600,
+          pointerEvents: "none",
+          border: "1px solid rgba(251,146,60,0.3)",
+        }}
+      >
+        {isOpen ? "🍲 Click để đóng và xoay tiếp" : "✨ Click vào món ăn để xem chi tiết"}
+      </div>
     </div>
   );
 }

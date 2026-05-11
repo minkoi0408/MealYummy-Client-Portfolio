@@ -1,5 +1,8 @@
 import { Link } from "react-router";
-import { useCallback, useRef, lazy, Suspense } from "react";
+import { useCallback, useRef, lazy, Suspense, useState, useEffect } from "react";
+import { gsap } from "gsap";
+import { usePerformanceOptimizer } from "../../hooks/usePerformanceOptimizer";
+import { AdaptiveParticles } from "../../components/performance/AdaptiveComponent";
 import { Button } from "../components/ui/button";
 import {
   Sparkles,
@@ -29,41 +32,97 @@ const ThreeRobotScene = lazy(() => import("../components/three-robot-scene").the
 const ThreeHeroBg = lazy(() => import("../components/three-hero-bg").then(m => ({ default: m.ThreeHeroBg })));
 const ThreeFoodOrbit = lazy(() => import("../components/three-food-orbit").then(m => ({ default: m.ThreeFoodOrbit })));
 
-// ─── 3D tilt hook ─────────────────────────────────────────────────────────────
+// ─── 3D tilt hook với tối ưu mobile ─────────────────────────────────────────────────────────────
 function useTilt3D(strength = 14) {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 280, damping: 28 });
-  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 280, damping: 28 });
-  const scale = useSpring(1, { stiffness: 280, damping: 24 });
+  
+  // Giảm độ phức tạp animation trên mobile
+  const springConfig = isMobile 
+    ? { stiffness: 150, damping: 20 } 
+    : { stiffness: 280, damping: 28 };
+    
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), springConfig);
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), springConfig);
+  const scale = useSpring(1, { stiffness: 200, damping: 20 });
   const glowX = useTransform(x, [-0.5, 0.5], [0, 100]);
   const glowY = useTransform(y, [-0.5, 0.5], [0, 100]);
 
   const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return; // Tắt mouse effects trên mobile
     const rect = e.currentTarget.getBoundingClientRect();
     x.set((e.clientX - rect.left) / rect.width - 0.5);
     y.set((e.clientY - rect.top) / rect.height - 0.5);
     scale.set(1.04);
-  }, [x, y, scale]);
+  }, [x, y, scale, isMobile]);
 
   const onMouseLeave = useCallback(() => {
+    if (isMobile) return;
     x.set(0); y.set(0); scale.set(1);
-  }, [x, y, scale]);
+  }, [x, y, scale, isMobile]);
 
   return { rotateX, rotateY, scale, glowX, glowY, onMouseMove, onMouseLeave };
 }
 
-// ─── FadeUp scroll-reveal ──────────────────────────────────────────────────────
+// ─── FadeUp scroll-reveal với GSAP tối ưu ──────────────────────────────────────────────────────
 function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Use GSAP for desktop, Motion for mobile
+  useEffect(() => {
+    if (!ref.current || !inView) return;
+
+    if (!isMobile) {
+      // GSAP animation for desktop (smoother)
+      gsap.fromTo(ref.current, 
+        { 
+          opacity: 0, 
+          y: 40, 
+          filter: "blur(6px)",
+        },
+        { 
+          opacity: 1, 
+          y: 0, 
+          filter: "blur(0px)",
+          duration: 0.7,
+          delay: delay,
+          ease: "power3.out",
+        }
+      );
+    }
+  }, [inView, isMobile, delay]);
+
+  // Always use Motion for consistency
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 40, filter: "blur(6px)" }}
+      initial={{ opacity: 0, y: isMobile ? 20 : 40, filter: isMobile ? "blur(0px)" : "blur(6px)" }}
       animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ 
+        duration: isMobile ? 0.4 : 0.7, 
+        delay: isMobile ? delay * 0.5 : delay, 
+        ease: [0.16, 1, 0.3, 1] 
+      }}
       className={className}
+      style={{ willChange: 'transform, opacity' }}
     >
       {children}
     </motion.div>
@@ -151,43 +210,104 @@ const testimonials = [
   },
 ];
 
-// ─── Star Marquee (infinite scrolling star conveyor belt) ─────────────────────
+// ─── Star Marquee với CSS animations cho desktop ─────────────────────────────────────────────
 function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | "right"; speed?: number }) {
-  const stars = Array.from({ length: 20 }, (_, i) => i);
+  const [isMobile, setIsMobile] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const stars = Array.from({ length: isMobile ? 12 : 20 }, (_, i) => i);
+  
+  // Use GSAP for desktop smooth animation
+  useEffect(() => {
+    if (!containerRef.current || isMobile) return;
+
+    const container = containerRef.current;
+    const timeline = gsap.timeline({ repeat: -1, ease: "none" });
+    
+    timeline.to(container, {
+      x: direction === "left" ? "-50%" : "50%",
+      duration: speed,
+      ease: "none"
+    });
+
+    return () => {
+      timeline.kill();
+    };
+  }, [direction, speed, isMobile]);
+  
   return (
     <div className="relative w-full overflow-hidden py-3" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
-      <motion.div
-        className="flex gap-2 w-max"
-        animate={{ x: direction === "left" ? ["-50%", "0%"] : ["0%", "-50%"] }}
-        transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
-      >
-        {[...stars, ...stars].map((_, i) => {
-          const colors = ["#a3e635", "#fbbf24", "#fb923c", "#4ade80", "#60a5fa", "#f472b6", "#a78bfa"];
-          const color = colors[i % colors.length];
-          const size = 10 + (i % 4) * 4;
-          return (
-            <motion.div
-              key={i}
-              animate={{
-                scale: [1, 1.3, 1],
-                rotate: [0, 15, -15, 0],
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: 2 + (i % 3) * 0.5,
-                repeat: Infinity,
-                delay: (i % 7) * 0.3,
-                ease: "easeInOut",
-              }}
-              className="flex-shrink-0"
-            >
-              <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-                <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
-              </svg>
-            </motion.div>
-          );
-        })}
-      </motion.div>
+      {!isMobile ? (
+        // GSAP controlled for desktop
+        <div
+          ref={containerRef}
+          className="flex gap-2 w-max"
+          style={{ willChange: 'transform' }}
+        >
+          {[...stars, ...stars].map((_, i) => {
+            const colors = ["#a3e635", "#fbbf24", "#fb923c", "#4ade80", "#60a5fa", "#f472b6", "#a78bfa"];
+            const color = colors[i % colors.length];
+            const size = 10 + (i % 4) * 4;
+            return (
+              <div
+                key={i}
+                className="animate-star-twinkle"
+                style={{
+                  animationDuration: `${3 + (i % 3) * 0.5}s`,
+                  animationDelay: `${(i % 7) * 0.3}s`,
+                }}
+              >
+                <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
+                </svg>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        // Motion for mobile
+        <motion.div
+          className="flex gap-2 w-max"
+          animate={{ x: direction === "left" ? ["-50%", "0%"] : ["0%", "-50%"] }}
+          transition={{ duration: speed * 0.7, repeat: Infinity, ease: "linear" }}
+          style={{ willChange: 'transform' }}
+        >
+          {[...stars, ...stars].map((_, i) => {
+            const colors = ["#a3e635", "#fbbf24", "#fb923c", "#4ade80", "#60a5fa", "#f472b6", "#a78bfa"];
+            const color = colors[i % colors.length];
+            const size = 10 + (i % 4) * 4;
+            return (
+              <motion.div
+                key={i}
+                animate={{
+                  scale: [1, 1.3, 1],
+                  rotate: [0, 15, -15, 0],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 3 + (i % 3) * 0.3,
+                  repeat: Infinity,
+                  delay: (i % 7) * 0.3,
+                  ease: "easeInOut",
+                }}
+                className="flex-shrink-0"
+                style={{ willChange: 'transform, opacity' }}
+              >
+                <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
+                </svg>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -296,8 +416,21 @@ function TestimonialCard({ t, delay }: { t: typeof testimonials[0]; delay: numbe
 }
 
 export function HomePage() {
+  const { config, metrics, forceGC } = usePerformanceOptimizer();
+
+  // Auto garbage collection for long sessions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (metrics.memory > 0.7) {
+        forceGC();
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [metrics.memory, forceGC]);
+
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent" data-performance-mode={config.animations}>
       <AppHeader />
 
       {/* ── HERO SECTION ──────────────────────────────────────── */}
@@ -614,7 +747,9 @@ export function HomePage() {
           </div>
 
           {/* Star marquee conveyor belt */}
-          <StarMarquee direction="left" speed={25} />
+          <AdaptiveParticles>
+            <StarMarquee direction="left" speed={25} />
+          </AdaptiveParticles>
 
           <div className="grid md:grid-cols-3 gap-5">
             {testimonials.map((t, i) => (
@@ -623,7 +758,9 @@ export function HomePage() {
           </div>
 
           {/* Second star marquee going opposite direction */}
-          <StarMarquee direction="right" speed={30} />
+          <AdaptiveParticles>
+            <StarMarquee direction="right" speed={30} />
+          </AdaptiveParticles>
         </div>
       </section>
 
