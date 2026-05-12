@@ -465,26 +465,7 @@ export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
         </Suspense>
       </Canvas>
       
-      {/* Instruction text */}
-      <div 
-        style={{
-          position: "absolute",
-          bottom: 16,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "rgba(0,0,0,0.7)",
-          backdropFilter: "blur(8px)",
-          padding: "8px 16px",
-          borderRadius: 8,
-          fontSize: 12,
-          color: "rgba(251,146,60,0.9)",
-          fontWeight: 600,
-          pointerEvents: "none",
-          border: "1px solid rgba(251,146,60,0.3)",
-        }}
-      >
-        {isOpen ? "🍲 Click để đóng và xoay tiếp" : "✨ Click vào món ăn để xem chi tiết"}
-      </div>
+
     </div>
   );
 }

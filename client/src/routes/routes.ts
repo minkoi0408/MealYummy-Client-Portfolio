@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router";
+import { ProtectedRoute } from "./protected-route";
 import { HomePage } from "../app/pages/home-page";
 import { LoginPage } from "../app/pages/login-page";
 import { MainAppPage } from "../app/pages/main-app-page";
@@ -21,64 +22,69 @@ export const router = createBrowserRouter([
     Component: LoginPage,
   },
   {
-    path: "/home",
-    Component: HomePage,
-  },
-  {
     path: "/login",
     Component: LoginPage,
   },
   {
-    path: "/app",
-    Component: MainAppPage,
-  },
-  {
-    path: "/results",
-    Component: ResultsPage,
-  },
-  {
-    path: "/dashboard",
-    Component: DashboardPage,
-  },
-  {
-    path: "/recipe/:id",
-    Component: RecipeDetailPage,
-  },
-  {
-    path: "/meal-plan",
-    Component: MealPlanPage,
-  },
-  {
-    path: "/history",
-    Component: MealHistoryPage,
-  },
-  {
-    path: "/gym",
-    Component: GymModePage,
-  },
-  {
-    path: "/profile",
-    Component: ProfilePage,
-  },
-  {
-    path: "/recipe/:id/nearby",
-    Component: NearbyRestaurantsPage,
-  },
-  {
-    path: "/nearby-restaurants",
-    Component: NearbyRestaurantsPage,
-  },
-  {
-    path: "/shopping",
-    Component: ShoppingPage,
-  },
-  {
-    path: "/meal/:id",
-    Component: MealDetailPage,
-  },
-  {
-    path: "/membership",
-    Component: MembershipPage,
+    Component: ProtectedRoute,
+    children: [
+      {
+        path: "/home",
+        Component: HomePage,
+      },
+      {
+        path: "/app",
+        Component: MainAppPage,
+      },
+      {
+        path: "/results",
+        Component: ResultsPage,
+      },
+      {
+        path: "/dashboard",
+        Component: DashboardPage,
+      },
+      {
+        path: "/recipe/:id",
+        Component: RecipeDetailPage,
+      },
+      {
+        path: "/meal-plan",
+        Component: MealPlanPage,
+      },
+      {
+        path: "/history",
+        Component: MealHistoryPage,
+      },
+      {
+        path: "/gym",
+        Component: GymModePage,
+      },
+      {
+        path: "/profile",
+        Component: ProfilePage,
+      },
+      {
+        path: "/recipe/:id/nearby",
+        Component: NearbyRestaurantsPage,
+      },
+      {
+        path: "/nearby-restaurants",
+        Component: NearbyRestaurantsPage,
+      },
+      {
+        path: "/shopping",
+        Component: ShoppingPage,
+      },
+      {
+        path: "/meal/:id",
+        Component: MealDetailPage,
+      },
+      {
+        path: "/membership",
+        Component: MembershipPage,
+      },
+    ]
   },
   {
     path: "*",

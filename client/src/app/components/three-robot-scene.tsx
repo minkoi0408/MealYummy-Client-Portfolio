@@ -502,14 +502,7 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
             </motion.div>
           )}
         </AnimatePresence>
-        <AnimatePresence>
-          {!hovered && (
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.65 }} exit={{ opacity: 0 }}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-slate-500 whitespace-nowrap">
-              🔄 Kéo để xoay 360° · Click mở · Thả đóng
-            </motion.p>
-          )}
-        </AnimatePresence>
+
       </div>
     </div>
   );
