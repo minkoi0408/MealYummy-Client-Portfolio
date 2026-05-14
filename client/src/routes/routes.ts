@@ -9,6 +9,7 @@ import { RecipeDetailPage } from "../app/pages/recipe-detail-page";
 import { MealPlanPage } from "../app/pages/meal-plan-page";
 import { ProfilePage } from "../app/pages/profile-page";
 import { NearbyRestaurantsPage } from "../app/pages/nearby-restaurants-page";
+import { NearbyMarketsPage } from "../app/pages/nearby-markets-page";
 import { ShoppingPage } from "../app/pages/shopping-page";
 import { MealDetailPage } from "../app/pages/meal-detail-page";
 import { NotFoundPage } from "../app/pages/not-found-page";
@@ -71,6 +72,10 @@ export const router = createBrowserRouter([
       {
         path: "/nearby-restaurants",
         Component: NearbyRestaurantsPage,
+      },
+      {
+        path: "/nearby-markets",
+        Component: NearbyMarketsPage,
       },
       {
         path: "/shopping",
