@@ -60,7 +60,7 @@ const useMeal = create<MealState>((set, get) => ({
             const responses = await Promise.all(
                 tagIds.map((tagId) => mealAPI.getByTag(tagId))
             );
-            const arrays: Meal[][] = responses.map((r) => r.data?.data || []);
+            const arrays: Meal[][] = responses.map((r: any) => r.data?.data || []);
             let merged = arrays[0] ?? [];
             for (let i = 1; i < arrays.length; i++) {
                 const ids = new Set(arrays[i].map((m) => m.id));

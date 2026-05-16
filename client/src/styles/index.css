@@ -83,7 +83,6 @@ body.bright-mode {
         opacity: 0;
         transform: translateX(-8px) scale(0.95);
     }
-
     to {
         opacity: 1;
         transform: translateX(0) scale(1);
@@ -91,75 +90,33 @@ body.bright-mode {
 }
 
 @keyframes spinEarth {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 @keyframes floatEarth {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-12px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
 }
 
 @keyframes bouncePin {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-8px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
 }
 
 @keyframes pulseGlow {
-
-    0%,
-    100% {
-        opacity: 0.6;
-        transform: translate(-50%, -50%) scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1.15);
-    }
+    0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
 }
 
 @keyframes scanRing {
-    0% {
-        transform: scale(1);
-        opacity: 0.6;
-    }
-
-    100% {
-        transform: scale(2.5);
-        opacity: 0;
-    }
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
 }
 
 @keyframes twinkle {
-
-    0%,
-    100% {
-        opacity: 0.1;
-    }
-
-    50% {
-        opacity: 0.8;
-    }
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.8; }
 }
 
 /* Rainbow border spinning animation */
@@ -170,13 +127,8 @@ body.bright-mode {
 }
 
 @keyframes rainbowSpin {
-    from {
-        --rainbow-angle: 0deg;
-    }
-
-    to {
-        --rainbow-angle: 360deg;
-    }
+    from { --rainbow-angle: 0deg; }
+    to { --rainbow-angle: 360deg; }
 }
 
 /* ── High-performance particle animations ── */
@@ -185,17 +137,14 @@ body.bright-mode {
         transform: translate3d(0, 0, 0) rotate(0deg) scale(0.8);
         opacity: 0;
     }
-
     10% {
         opacity: var(--opacity-max, 0.5);
         transform: translate3d(0, -10vh, 0) rotate(calc(var(--rotate-dir, 1) * 36deg)) scale(1.1);
     }
-
     85% {
         opacity: var(--opacity-max, 0.5);
         transform: translate3d(0, -85vh, 0) rotate(calc(var(--rotate-dir, 1) * 324deg)) scale(0.9);
     }
-
     100% {
         opacity: 0;
         transform: translate3d(0, var(--final-y, -100vh), 0) rotate(calc(var(--rotate-dir, 1) * 360deg)) scale(0.8);
@@ -211,20 +160,15 @@ body.bright-mode {
 
 /* ── Optimized blob animations ── */
 @keyframes blob-float {
-
-    0%,
-    100% {
+    0%, 100% {
         transform: translate3d(-50%, -50%, 0) scale(1);
     }
-
     25% {
         transform: translate3d(-50%, -50%, 0) scale(1.05);
     }
-
     50% {
         transform: translate3d(-50%, -50%, 0) scale(0.95);
     }
-
     75% {
         transform: translate3d(-50%, -50%, 0) scale(1.02);
     }
@@ -238,23 +182,18 @@ body.bright-mode {
 
 /* ── Star animations ── */
 @keyframes star-twinkle {
-
-    0%,
-    100% {
+    0%, 100% {
         transform: scale(1) rotate(0deg);
         opacity: 0.5;
     }
-
     25% {
         transform: scale(1.3) rotate(15deg);
         opacity: 1;
     }
-
     50% {
         transform: scale(1) rotate(-15deg);
         opacity: 0.5;
     }
-
     75% {
         transform: scale(1.2) rotate(0deg);
         opacity: 0.8;
@@ -266,77 +205,76 @@ body.bright-mode {
     will-change: transform, opacity;
     backface-visibility: hidden;
 }
-
 /* Performance Optimizations */
 [data-performance-mode="off"] * {
-    animation: none !important;
-    transition: none !important;
+  animation: none !important;
+  transition: none !important;
 }
 
 [data-performance-mode="minimal"] * {
-    animation-duration: 0.1s !important;
-    transition-duration: 0.1s !important;
+  animation-duration: 0.1s !important;
+  transition-duration: 0.1s !important;
 }
 
 [data-performance-mode="reduced"] * {
-    animation-duration: 0.3s !important;
-    transition-duration: 0.3s !important;
+  animation-duration: 0.3s !important;
+  transition-duration: 0.3s !important;
 }
 
 /* Thermal throttling styles */
 .thermal-critical {
-    filter: grayscale(0.3);
-    opacity: 0.8;
+  filter: grayscale(0.3);
+  opacity: 0.8;
 }
 
 .thermal-critical * {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
 }
 
 /* Low battery mode */
 .low-battery {
-    filter: brightness(0.8);
+  filter: brightness(0.8);
 }
 
 .low-battery * {
-    animation-duration: 2s !important;
-    transition-duration: 0.5s !important;
+  animation-duration: 2s !important;
+  transition-duration: 0.5s !important;
 }
 
 /* Mobile optimizations */
 @media (max-width: 768px) {
-    .mobile-optimized {
-        will-change: auto;
-        transform: translateZ(0);
-    }
-
-    .mobile-optimized * {
-        animation-duration: 0.5s !important;
-        transition-duration: 0.3s !important;
-    }
+  .mobile-optimized {
+    will-change: auto;
+    transform: translateZ(0);
+  }
+  
+  .mobile-optimized * {
+    animation-duration: 0.5s !important;
+    transition-duration: 0.3s !important;
+  }
 }
 
 /* Reduced motion support */
 @media (prefers-reduced-motion: reduce) {
-    * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* GPU acceleration for performance */
 .gpu-accelerated {
-    transform: translateZ(0);
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    perspective: 1000px;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 /* Memory efficient animations */
 .memory-efficient {
-    contain: layout style paint;
-    content-visibility: auto;
+  contain: layout style paint;
+  content-visibility: auto;
 }

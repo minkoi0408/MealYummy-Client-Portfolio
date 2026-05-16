@@ -47,7 +47,7 @@ class ObjectPool<T> {
   constructor(createFn: () => T, resetFn: (obj: T) => void, initialSize = 10) {
     this.createFn = createFn;
     this.resetFn = resetFn;
-
+    
     // Pre-populate pool
     for (let i = 0; i < initialSize; i++) {
       this.pool.push(this.createFn());
@@ -430,11 +430,11 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
       style={{ width: "100%", height: isMobile ? 340 : 480, cursor: "grab" }}>
 
       <Canvas
-        gl={{
-          antialias: config.antialias,
-          alpha: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: isMobile ? 2.0 : 2.5,
+        gl={{ 
+          antialias: config.antialias, 
+          alpha: true, 
+          toneMapping: THREE.ACESFilmicToneMapping, 
+          toneMappingExposure: isMobile ? 2.0 : 2.5, 
           powerPreference: "high-performance",
           // Desktop optimizations
           precision: isMobile ? "mediump" : "highp",
@@ -468,13 +468,13 @@ export function ThreeRobotScene({ className = "" }: { className?: string }) {
             setHovered={setHovered}
             handleClick={handleClick}
           />
-          <Sparkles
-            count={config.sparkleCount}
-            scale={[3, 4.5, 3]}
-            size={isMobile ? 0.8 : 1}
-            speed={isMobile ? 0.2 : 0.3}
-            opacity={isMobile ? 0.3 : 0.45}
-            color="#fbbf24"
+          <Sparkles 
+            count={config.sparkleCount} 
+            scale={[3, 4.5, 3]} 
+            size={isMobile ? 0.8 : 1} 
+            speed={isMobile ? 0.2 : 0.3} 
+            opacity={isMobile ? 0.3 : 0.45} 
+            color="#fbbf24" 
           />
         </Suspense>
       </Canvas>

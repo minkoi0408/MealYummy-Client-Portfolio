@@ -52,22 +52,22 @@ const disposeObject = (obj: THREE.Object3D) => {
 
 // ─── Orbiting food proxy meshes ───────────────────────────────────────────────
 const FOOD_ITEMS = [
-  { emoji: "🍜", label: "Phở bò", orbitR: 3.2, speed: 0.28, phase: 0, color: "#fb923c", shape: "ico" },
-  { emoji: "🥗", label: "Salad", orbitR: 2.6, speed: -0.22, phase: Math.PI * 0.4, color: "#4ade80", shape: "oct" },
-  { emoji: "🍱", label: "Bento", orbitR: 3.8, speed: 0.18, phase: Math.PI * 0.8, color: "#60a5fa", shape: "tk" },
-  { emoji: "🍛", label: "Cà ri", orbitR: 3.0, speed: -0.32, phase: Math.PI * 1.2, color: "#fbbf24", shape: "ico" },
-  { emoji: "🥩", label: "Thịt nướng", orbitR: 3.5, speed: 0.25, phase: Math.PI * 1.6, color: "#f472b6", shape: "oct" },
-  { emoji: "🫙", label: "Healthy", orbitR: 2.8, speed: -0.20, phase: Math.PI * 0.6, color: "#a78bfa", shape: "tk" },
+  { emoji: "🍜", label: "Phở bò",     orbitR: 3.2,  speed: 0.28, phase: 0,            color: "#fb923c", shape: "ico"   },
+  { emoji: "🥗", label: "Salad",       orbitR: 2.6,  speed: -0.22, phase: Math.PI*0.4, color: "#4ade80", shape: "oct"   },
+  { emoji: "🍱", label: "Bento",       orbitR: 3.8,  speed: 0.18, phase: Math.PI*0.8,  color: "#60a5fa", shape: "tk"    },
+  { emoji: "🍛", label: "Cà ri",       orbitR: 3.0,  speed: -0.32, phase: Math.PI*1.2, color: "#fbbf24", shape: "ico"   },
+  { emoji: "🥩", label: "Thịt nướng", orbitR: 3.5,  speed: 0.25, phase: Math.PI*1.6,  color: "#f472b6", shape: "oct"   },
+  { emoji: "🫙", label: "Healthy",     orbitR: 2.8,  speed: -0.20, phase: Math.PI*0.6, color: "#a78bfa", shape: "tk"    },
 ];
 
 // ─── Single Orbiting Object ───────────────────────────────────────────────────
-function OrbitingFood({
-  item,
-  index,
-  isOpen,
-  onClick
-}: {
-  item: typeof FOOD_ITEMS[0];
+function OrbitingFood({ 
+  item, 
+  index, 
+  isOpen, 
+  onClick 
+}: { 
+  item: typeof FOOD_ITEMS[0]; 
   index: number;
   isOpen: boolean;
   onClick: () => void;
@@ -80,13 +80,13 @@ function OrbitingFood({
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-
+    
     if (isOpen) {
       // Khi mở: dừng xoay, về vị trí ban đầu
       const targetX = Math.cos(item.phase) * item.orbitR;
       const targetZ = Math.sin(item.phase) * item.orbitR * 0.55;
       const targetY = Math.sin(item.phase * 0.7 + index) * 0.6;
-
+      
       if (groupRef.current) {
         groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, targetX, 0.1);
         groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, targetY, 0.1);
@@ -161,7 +161,7 @@ function OrbitingFood({
             />
           </TorusKnot>
         )}
-
+        
         {/* Hiển thị label khi mở */}
         {isOpen && (
           <Html center distanceFactor={3} style={{ pointerEvents: "none" }}>
@@ -291,9 +291,9 @@ function HeroOrb({ isOpen, onClick }: { isOpen: boolean; onClick: () => void }) 
           >
             MealYummy AI
           </div>
-          <div style={{
-            fontSize: isOpen ? 12 : 10,
-            color: "rgba(251,146,60,0.65)",
+          <div style={{ 
+            fontSize: isOpen ? 12 : 10, 
+            color: "rgba(251,146,60,0.65)", 
             fontWeight: 600,
             transition: "font-size 0.3s ease",
           }}>
@@ -341,7 +341,7 @@ function ParticleDust() {
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 12;
+      arr[i * 3]     = (Math.random() - 0.5) * 12;
       arr[i * 3 + 1] = (Math.random() - 0.5) * 8;
       arr[i * 3 + 2] = (Math.random() - 0.5) * 8;
     }
@@ -422,10 +422,10 @@ export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
   return (
     <div className={`relative ${className}`} style={{ height: isMobile ? 340 : 460 }}>
       <Canvas
-        gl={{
-          antialias: config.antialias,
-          alpha: true,
-          powerPreference: "high-performance"
+        gl={{ 
+          antialias: config.antialias, 
+          alpha: true, 
+          powerPreference: "high-performance" 
         }}
         style={{ background: "transparent", cursor: "pointer" }}
         dpr={[1, config.pixelRatio]}
@@ -442,10 +442,10 @@ export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
         <Suspense fallback={null}>
           <HeroOrb isOpen={isOpen && selectedIndex === null} onClick={() => handleToggle()} />
           {activeFoods.map((item, i) => (
-            <OrbitingFood
-              key={i}
-              item={item}
-              index={i}
+            <OrbitingFood 
+              key={i} 
+              item={item} 
+              index={i} 
               isOpen={isOpen && selectedIndex === i}
               onClick={() => handleToggle(i)}
             />
@@ -464,7 +464,7 @@ export function ThreeFoodOrbit({ className = "" }: { className?: string }) {
           {!isMobile && !isOpen && <ParticleDust />}
         </Suspense>
       </Canvas>
-
+      
 
     </div>
   );

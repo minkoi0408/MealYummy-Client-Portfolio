@@ -119,6 +119,23 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Stitch Design System Colors */
+  --color-stitch-background: #11150a;
+  --color-stitch-surface: #11150a;
+  --color-stitch-surface-bright: #363b2e;
+  --color-stitch-primary: #ccff80;
+  --color-stitch-primary-container: #a3e635;
+  --color-stitch-secondary: #4de082;
+  --color-stitch-secondary-container: #00b55d;
+  --color-stitch-on-background: #e0e4d2;
+  --color-stitch-on-surface: #e0e4d2;
+  --color-stitch-outline: #8c947c;
+  --color-stitch-outline-variant: #424936;
+
+  /* Stitch Typography Fonts */
+  --font-lexend: "Lexend", sans-serif;
+  --font-space-grotesk: "Space Grotesk", sans-serif;
 }
 
 @layer base {
