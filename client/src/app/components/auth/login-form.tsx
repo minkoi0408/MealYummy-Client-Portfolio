@@ -1,15 +1,19 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { authApi } from "../../../apis/auth.api";
-import type { LoginRequestDTO } from "../../../types/auth.types";
+import type { LoginRequestDTO, GoogleTokenRequestDTO } from "../../../types/auth.types";
+import { useAuth } from "../../contexts/auth-context";
 
 export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email: string, rememberMe: boolean, message?: string, hasTotp?: boolean) => void, onForgotPassword?: () => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "" });
+  const googleBtnRef = React.useRef<HTMLDivElement>(null);
 
   // Load remembered email on mount
   React.useEffect(() => {
@@ -25,6 +29,80 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Global loading cursor state
+  React.useEffect(() => {
+    if (loading) {
+      document.body.classList.add('cursor-wait');
+    } else {
+      document.body.classList.remove('cursor-wait');
+    }
+    return () => document.body.classList.remove('cursor-wait');
+  }, [loading]);
+
+  // Google Login Initialization
+  React.useEffect(() => {
+    let timer: any;
+
+    const initGoogle = () => {
+      const btnElement = googleBtnRef.current;
+      if (window.google && btnElement) {
+        btnElement.innerHTML = "";
+        window.google.accounts.id.initialize({
+          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          callback: handleGoogleResponse,
+        });
+
+        window.google.accounts.id.renderButton(
+          btnElement,
+          { theme: "outline", size: "large", width: "100%", shape: "circle" }
+        );
+        return true;
+      }
+      return false;
+    };
+
+    timer = setInterval(() => {
+      if (initGoogle()) {
+        clearInterval(timer);
+      }
+    }, 200);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleGoogleResponse = async (response: any) => {
+    if (!response.credential) {
+      toast.error("Quá trình đăng nhập Google bị hủy hoặc gặp lỗi.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const request: GoogleTokenRequestDTO = {
+        token: response.credential,
+      };
+      const result = await authApi.loginWithGoogle(request);
+      const payload = result.data.data;
+
+      login(
+        payload.accessToken,
+        payload.refreshToken,
+        {
+          username: payload.username,
+          email: payload.email,
+          avatarUrl: payload.avatarUrl
+        },
+        true // Google login default to remember
+      );
+
+      toast.success("Đăng nhập bằng Google thành công!");
+      navigate(location.state?.from?.pathname || "/home", { replace: true });
+    } catch (error: any) {
+      toast.error("Đăng nhập bằng Google thất bại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -33,7 +111,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
         username: formData.email, // backend maps this properly
         password: formData.password,
       };
-      const response = await authApi.login(request);
+      const response = await authApi.sendOtpLogin(request);
 
       // Xử lý Ghi nhớ tôi
       if (rememberMe) {
@@ -66,7 +144,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
   return (
     <form onSubmit={handleLogin} className="space-y-5" noValidate>
       <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Email / Username</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Email / Username</label>
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">mail</span>
           <input
@@ -75,14 +153,14 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
             required
             value={formData.email}
             onChange={handleInputChange}
-            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500"
             placeholder="example@mealyummy.fit"
           />
         </div>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Mật khẩu</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Mật khẩu</label>
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">lock</span>
           <input
@@ -91,13 +169,13 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
             required
             value={formData.password}
             onChange={handleInputChange}
-            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500"
             placeholder="••••••••"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-stitch-outline hover:text-white transition-colors"
+            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
           >
             {showPassword ? "visibility_off" : "visibility"}
           </button>
@@ -131,6 +209,29 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
         {loading ? "Đang xử lý..." : "Đăng nhập ngay"}
         <span className="material-symbols-outlined text-xl">login</span>
       </button>
+
+      <div className="space-y-6 pt-4 border-t border-white/5">
+        <div className="relative flex items-center">
+          <div className="flex-grow border-t border-white/5" />
+          <span className="flex-shrink mx-4 text-[10px] uppercase tracking-widest text-stitch-outline font-bold">Hoặc đăng nhập với</span>
+          <div className="flex-grow border-t border-white/5" />
+        </div>
+
+        {/* Khóa cứng chiều rộng và chiều cao khớp 100% với config Javascript */}
+        <div className="flex justify-center w-full">
+          <div className="w-[280px] h-[40px] flex justify-center items-center overflow-hidden rounded-[4px]">
+            <div ref={googleBtnRef}></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="text-center mt-4">
+        <p className="text-[10px] text-stitch-outline">
+          <Link to="#" className="text-stitch-primary-container hover:underline">Terms and Conditions</Link>
+          {" "}và{" "}
+          <Link to="#" className="text-stitch-primary-container hover:underline">Privacy Policy</Link>
+        </p>
+      </div>
     </form>
   );
 }
