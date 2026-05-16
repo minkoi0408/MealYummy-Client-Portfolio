@@ -146,31 +146,44 @@ export function ShoppingPage() {
       );
     });
 
-    Promise.all([minDelay, geoPromise]).then(([, coords]) => {
-      // Phase 2: Zoom into location
+    Promise.all([minDelay, geoPromise]).then(async ([, coords]) => {
       setOverlayPhase("zooming");
       if (coords.lat && coords.lng) {
         setFoundLocation(`${coords.lat.toFixed(4)}°N, ${coords.lng.toFixed(4)}°E`);
         setLocationMessage("📍 Đã xác định vị trí!");
+
+        try {
+          setTimeout(() => setLocationMessage("🔍 Đang tải dữ liệu các chợ lân cận..."), 1200);
+          
+          const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+          const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+          const res = await fetch(`${API_URL}/map/nearby-markets?lat=${coords.lat}&lng=${coords.lng}`, {
+            headers: { "Authorization": token ? `Bearer ${token}` : "" }
+          });
+          const data = await res.json();
+          const markets = data.results || [];
+
+          setTimeout(() => {
+            setOverlayPhase("done");
+            setLocationMessage(`✅ Đã tìm thấy ${markets.length} siêu thị/chợ!`);
+          }, 1000);
+
+          setTimeout(() => {
+            setShowLocationOverlay(false);
+            navigate("/nearby-markets", { state: { markets, userLat: coords.lat, userLng: coords.lng } });
+          }, 3500);
+
+        } catch (error) {
+          console.error("Lỗi khi gọi API bản đồ:", error);
+          setLocationMessage("❌ Lỗi khi tìm chợ!");
+          setTimeout(() => setShowLocationOverlay(false), 2000);
+        }
+
       } else {
         setFoundLocation("TP. Hồ Chí Minh, Việt Nam");
-        setLocationMessage("📍 Đang dùng vị trí mặc định");
+        setLocationMessage("📍 Vui lòng cấp quyền vị trí để tìm chợ!");
+        setTimeout(() => setShowLocationOverlay(false), 2000);
       }
-
-      // Phase 3: Navigate
-      setTimeout(() => {
-        setLocationMessage("🔍 Đang tìm chợ & siêu thị gần bạn...");
-      }, 1200);
-
-      setTimeout(() => {
-        setOverlayPhase("done");
-        setLocationMessage("✅ Đã tìm thấy!");
-      }, 2500);
-
-      setTimeout(() => {
-        setShowLocationOverlay(false);
-        navigate("/nearby-restaurants");
-      }, 3500);
     });
   }, [navigate]);
 

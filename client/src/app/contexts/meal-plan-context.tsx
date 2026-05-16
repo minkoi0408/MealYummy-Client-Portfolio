@@ -19,28 +19,61 @@ interface MealPlanContextType {
 const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined);
 
 export function MealPlanProvider({ children }: { children: ReactNode }) {
-  const [mealPlan, setMealPlan] = useState<MealPlanItem[]>(() => {
-    const saved = localStorage.getItem("mealyummy-meal-plan");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([]);
 
   useEffect(() => {
-    localStorage.setItem("mealyummy-meal-plan", JSON.stringify(mealPlan));
-  }, [mealPlan]);
+    // Fetch meal plan from backend on load
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (token) {
+      fetch("http://localhost:8082/api/v1/meal-plan", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setMealPlan(data.data);
+        }
+      })
+      .catch(err => console.error("Error fetching meal plan:", err));
+    }
+  }, []);
 
   const addToMealPlan = (recipe: Recipe, date?: string, mealType: MealPlanItem["mealType"] = "lunch") => {
     const today = new Date().toISOString().split("T")[0];
-    const newItem: MealPlanItem = {
-      id: `${recipe.id}-${Date.now()}`,
-      recipe,
-      date: date || today,
-      mealType,
-    };
-    setMealPlan((prev) => [...prev, newItem]);
+    const targetDate = date || today;
+    
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    fetch("http://localhost:8082/api/v1/meal-plan", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}` 
+      },
+      body: JSON.stringify({ recipe, date: targetDate, mealType })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data && data.data) {
+        setMealPlan((prev) => [data.data, ...prev]);
+      }
+    })
+    .catch(err => console.error("Error adding meal plan:", err));
   };
 
   const removeFromMealPlan = (id: string) => {
-    setMealPlan((prev) => prev.filter((item) => item.id !== id));
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    fetch(`http://localhost:8082/api/v1/meal-plan/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => {
+      setMealPlan((prev) => prev.filter((item) => item.id !== id));
+    })
+    .catch(err => console.error("Error removing meal plan:", err));
   };
 
   const getMealsByDate = (date: string) => {
@@ -48,7 +81,17 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   };
 
   const clearMealPlan = () => {
-    setMealPlan([]);
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    fetch(`http://localhost:8082/api/v1/meal-plan`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(() => {
+      setMealPlan([]);
+    })
+    .catch(err => console.error("Error clearing meal plan:", err));
   };
 
   return (

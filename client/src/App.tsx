@@ -5,10 +5,12 @@ import { MealPlanProvider } from "./app/contexts/meal-plan-context";
 import { Toaster } from "./app/components/ui/sonner";
 import { AnimatedBackground } from "./app/components/animated-background";
 import { BrightnessProvider } from "./app/contexts/brightness-context";
+import { AuthProvider } from "./app/contexts/auth-context";
 
 export default function App() {
   return (
-    <BrightnessProvider>
+    <AuthProvider>
+      <BrightnessProvider>
       <FavoritesProvider>
         <MealPlanProvider>
           <AnimatedBackground />
@@ -19,5 +21,6 @@ export default function App() {
         </MealPlanProvider>
       </FavoritesProvider>
     </BrightnessProvider>
+    </AuthProvider>
   );
 }

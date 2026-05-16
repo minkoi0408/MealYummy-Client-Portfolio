@@ -1,48 +1,48 @@
 import { callAPI } from './axios.client';
+import type { AxiosResponse } from 'axios';
 import type { 
-  LoginRequestDTO,
-  RegisterRequestDTO, 
-  OtpVerifyDTO, 
+  BaseApiResponse,
+  AuthResponseDTO,
+  RegisterRequestDTO,
+  VerifyLoginDTO,
+  ResetPasswordDTO,
+  RefreshTokenRequestDTO,
   GoogleTokenRequestDTO,
+  SendOtpToEmailRequestDTO,
+  LoginRequestDTO
 } from '../types/auth.types';
 
 export const authApi = {
-  login: (data: LoginRequestDTO) => 
+  register: (data: RegisterRequestDTO): Promise<AxiosResponse<BaseApiResponse<string>>> => 
+    callAPI('POST', '/auth/register', data),
+
+  login: (data: VerifyLoginDTO): Promise<AxiosResponse<BaseApiResponse<AuthResponseDTO>>> => 
     callAPI('POST', '/auth/login', data),
 
-  verifyMfaLogin: (data: any) =>
-    callAPI('POST', '/auth/verify-mfa-login', data),
-  
-  register: (data: RegisterRequestDTO) => 
-    callAPI('POST', '/auth/register', data),
-  
-  verifyOtp: (data: OtpVerifyDTO) => 
-    callAPI('POST', '/auth/verify-otp', data),
-  
-  resendOtp: (email: string) => 
-    callAPI('POST', `/auth/resend-otp?email=${email}`),
-  
-  logout: (accessToken: string) => 
-    callAPI('POST', '/auth/logout', null, { accessToken }),
-
-  sendLoginOtp: (email: string) =>
-    callAPI('POST', `/auth/send-login-otp?email=${email}`),
-
-  loginWithGoogle: (data: GoogleTokenRequestDTO) =>
-    callAPI('POST', '/auth/google', data),
-
-  sendOtpRegister: (email: string) =>
-    callAPI('POST', `/auth/send-otp-register?email=${email}`),
-
-  forgotPassword: (email: string) =>
-    callAPI('POST', `/auth/forgot-password?email=${email}`),
-
-  resetPassword: (data: any) =>
+  resetPassword: (data: ResetPasswordDTO): Promise<AxiosResponse<BaseApiResponse<string>>> => 
     callAPI('POST', '/auth/reset-password', data),
 
-  setupTotp: (username: string) =>
-    callAPI('POST', `/auth/setup-totp?username=${username}`),
+  logout: (token: string): Promise<AxiosResponse<BaseApiResponse<string>>> => 
+    callAPI('GET', '/auth/logout', null, null, { Authorization: `Bearer ${token}` }),
 
-  verifyTotpSetup: (username: string, code: string) =>
-    callAPI('POST', `/auth/verify-totp-setup?username=${username}&code=${code}`),
+  refresh: (data: RefreshTokenRequestDTO): Promise<AxiosResponse<BaseApiResponse<AuthResponseDTO>>> => 
+    callAPI('POST', '/auth/refresh', data),
+
+  loginWithGoogle: (data: GoogleTokenRequestDTO): Promise<AxiosResponse<BaseApiResponse<AuthResponseDTO>>> => 
+    callAPI('POST', '/auth/google', data),
+
+  setupTotp: (username: string): Promise<AxiosResponse<BaseApiResponse<string>>> =>
+    callAPI('POST', '/auth/setup-totp', null, { username }),
+
+  verifyTotpSetup: (username: string, code: string): Promise<AxiosResponse<BaseApiResponse<string>>> =>
+    callAPI('POST', '/auth/verify-totp-setup', null, { username, code }),
+
+  sendOtpRegistration: (data: SendOtpToEmailRequestDTO): Promise<AxiosResponse<BaseApiResponse<string>>> =>
+    callAPI('POST', '/notification/otp-registration', data),
+
+  sendOtpForgotPassword: (data: SendOtpToEmailRequestDTO): Promise<AxiosResponse<BaseApiResponse<string>>> =>
+    callAPI('POST', '/notification/otp-forgot-password', data),
+
+  sendOtpLogin: (data: LoginRequestDTO): Promise<AxiosResponse<BaseApiResponse<string>>> =>
+    callAPI('POST', '/notification/otp-login', data),
 };
