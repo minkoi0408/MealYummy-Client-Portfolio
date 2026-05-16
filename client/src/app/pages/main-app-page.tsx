@@ -52,6 +52,53 @@ const QUICK_PROMPTS = [
   { label: "🍳 Bữa sáng", q: "Bữa sáng" },
 ];
 
+// ─── 3D card tilt hook ────────────────────────────────────────────────────────
+function useTiltCard(strength = 10) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 300, damping: 30 });
+  const scale = useSpring(1, { stiffness: 300, damping: 26 });
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.04);
+  }, [x, y, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    x.set(0); y.set(0); scale.set(1);
+  }, [x, y, scale]);
+
+  return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
+}
+
+// ─── Chat Message Formatter ──────────────────────────────────────────────────
+function formatChatMessage(text: string) {
+  let html = text;
+
+  // 1. Convert markdown images to tokens
+  html = html.replace(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, '###IMG:$1|$2###');
+
+  // 2. Convert markdown links that point to images (Cloudinary/Unsplash) to tokens
+  html = html.replace(/\[(.*?)\]\(((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s)]+)\)/g, '###IMG:$1|$2###');
+
+  // 3. Convert plain Cloudinary or Unsplash URLs to tokens
+  html = html.replace(/((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s<)]+)/g, '###IMG:Meal Image|$1###');
+
+  // 4. Restore tokens to img HTML
+  html = html.replace(/###IMG:(.*?)\|(https?:\/\/[^\s]+)###/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>');
+
+  // 5. Bold text
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+
+  // 6. Line breaks
+  html = html.replace(/\n/g, '<br/>');
+
+  return html;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function MainAppPage() {
@@ -422,6 +469,83 @@ export function MainAppPage() {
                   </button>
                 </div>
               </div>
+
+              {/* ── AI Chat History Box ────────────────────────────────────────── */}
+              {chatHistory.length > 0 && (
+                <div className="mb-8 flex flex-col gap-4">
+                  {chatHistory.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-4 sm:p-5 rounded-2xl relative overflow-hidden ${msg.role === 'user' ? 'ml-8 sm:ml-12' : 'mr-8 sm:mr-12'}`}
+                      style={msg.role === 'user' ? {
+                        background: "rgba(30,41,59,0.7)",
+                        border: "1px solid rgba(255,255,255,0.05)"
+                      } : {
+                        background: "rgba(163,230,53,0.05)",
+                        border: "1px solid rgba(163,230,53,0.2)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                      }}
+                    >
+                      {msg.role === 'model' && <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />}
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        {msg.role === 'model' ? (
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                            <img src="/logo.svg" alt="MealYummy AI" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-slate-700 text-white font-bold text-xs sm:text-sm shadow-inner">
+                            Bạn
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-xs sm:text-sm font-bold mb-1.5 flex items-center gap-2 ${msg.role === 'model' ? 'text-lime-400' : 'text-slate-300'}`}>
+                            {msg.role === 'model' ? 'Bác Sĩ MealYummy' : 'Bạn đã hỏi:'}
+                          </h3>
+                          <div
+                            className="text-sm leading-relaxed text-slate-200"
+                            dangerouslySetInnerHTML={{
+                              __html: formatChatMessage(msg.content)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {isAiLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 sm:p-5 rounded-2xl relative overflow-hidden mr-8 sm:mr-12"
+                      style={{
+                        background: "rgba(163,230,53,0.05)",
+                        border: "1px solid rgba(163,230,53,0.2)"
+                      }}
+                    >
+                      <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)" }}>
+                          <img src="/logo.svg" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xs sm:text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
+                            Bác Sĩ MealYummy
+                            <span className="flex gap-1 ml-1">
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                            </span>
+                          </h3>
+                          <div className="text-sm text-slate-400">Đang phân tích dữ liệu y khoa...</div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
               {results.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {results.map((r) => (
