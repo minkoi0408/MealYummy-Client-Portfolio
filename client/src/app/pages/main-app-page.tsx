@@ -10,6 +10,11 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
 
+interface ChatMessage {
+  role: "user" | "model";
+  content: string;
+}
+
 // ─── Tags ─────────────────────────────────────────────────────────────────────
 
 const CATEGORY_TAGS = [
@@ -52,6 +57,56 @@ const QUICK_PROMPTS = [
   { label: "🍳 Bữa sáng", q: "Bữa sáng" },
 ];
 
+<<<<<<< HEAD
+// ─── 3D card tilt hook ────────────────────────────────────────────────────────
+function useTiltCard(strength = 10) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), { stiffness: 300, damping: 30 });
+  const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), { stiffness: 300, damping: 30 });
+  const scale = useSpring(1, { stiffness: 300, damping: 26 });
+
+  const onMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    x.set((e.clientX - rect.left) / rect.width - 0.5);
+    y.set((e.clientY - rect.top) / rect.height - 0.5);
+    scale.set(1.04);
+  }, [x, y, scale]);
+
+  const onMouseLeave = useCallback(() => {
+    x.set(0); y.set(0); scale.set(1);
+  }, [x, y, scale]);
+
+  return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
+}
+
+// ─── Chat Message Formatter ──────────────────────────────────────────────────
+function formatChatMessage(text: string) {
+  let html = text;
+  
+  // 1. Convert markdown images to tokens
+  html = html.replace(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, '###IMG:$1|$2###');
+  
+  // 2. Convert markdown links that point to images (Cloudinary/Unsplash) to tokens
+  html = html.replace(/\[(.*?)\]\(((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s)]+)\)/g, '###IMG:$1|$2###');
+  
+  // 3. Convert plain Cloudinary or Unsplash URLs to tokens
+  html = html.replace(/((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s<)]+)/g, '###IMG:Meal Image|$1###');
+  
+  // 4. Restore tokens to img HTML
+  html = html.replace(/###IMG:(.*?)\|(https?:\/\/[^\s]+)###/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>');
+  
+  // 5. Bold text
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+  
+  // 6. Line breaks
+  html = html.replace(/\n/g, '<br/>');
+  
+  return html;
+}
+
+=======
+>>>>>>> feat/develop
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function MainAppPage() {
@@ -62,6 +117,41 @@ export function MainAppPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
+<<<<<<< HEAD
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  
+  useEffect(() => {
+    // DB là nguồn sự thật duy nhất - load từ DB khi khởi động
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (token) {
+      fetch("http://localhost:8082/api/v1/ai/knowledge/chat/history", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.data && Array.isArray(data.data)) {
+          setChatHistory(data.data);
+        }
+      })
+      .catch(console.error);
+    } else {
+      // Guest: dùng localStorage
+      const saved = localStorage.getItem("ai_chat_history");
+      if (saved) setChatHistory(JSON.parse(saved));
+    }
+  }, []);
+
+  // Lưu vào localStorage chỉ khi là guest (không có token)
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) {
+      localStorage.setItem("ai_chat_history", JSON.stringify(chatHistory));
+    }
+  }, [chatHistory]);
+
+  const [isAiLoading, setIsAiLoading] = useState(false);
+=======
+>>>>>>> feat/develop
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -109,6 +199,41 @@ export function MainAppPage() {
     setResults(computeResults());
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+<<<<<<< HEAD
+
+    // 2. Gọi API Bác sĩ AI (RAG) nếu user có nhập text
+    if (prompt.trim()) {
+      const question = prompt.trim();
+      setPrompt("");
+      const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: question }];
+      setChatHistory(newHistory);
+      setIsAiLoading(true);
+      
+      try {
+        const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ question: question, history: chatHistory })
+        });
+        const data = await response.json();
+        if (data.data) {
+          setChatHistory([...newHistory, { role: "model", content: data.data }]);
+        } else {
+          setChatHistory([...newHistory, { role: "model", content: "Không nhận được phản hồi từ AI." }]);
+        }
+      } catch (error) {
+        console.error("Lỗi gọi AI:", error);
+        setChatHistory([...newHistory, { role: "model", content: "Xin lỗi, hệ thống AI đang gặp sự cố kết nối. Vui lòng thử lại sau." }]);
+      } finally {
+        setIsAiLoading(false);
+      }
+    }
+=======
+>>>>>>> feat/develop
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -126,13 +251,47 @@ export function MainAppPage() {
     setResults(filtered.length ? filtered : mockRecipes.sort(() => Math.random() - 0.5).slice(0, 8));
     setSubmitted(true);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+<<<<<<< HEAD
+
+    // Gọi AI luôn cho Quick Prompt
+    const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: q }];
+    setChatHistory(newHistory);
+    setIsAiLoading(true);
+    
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, { 
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ question: q, history: chatHistory })
+    })
+      .then(res => res.json())
+      .then(data => setChatHistory([...newHistory, { role: "model", content: data.data || "Không có phản hồi" }]))
+      .catch(() => setChatHistory([...newHistory, { role: "model", content: "Lỗi kết nối AI" }]))
+      .finally(() => setIsAiLoading(false));
+=======
+>>>>>>> feat/develop
   }
 
-  function handleReset() {
+  const handleReset = () => {
     setPrompt("");
     setActiveTags(new Set());
     setSubmitted(false);
     setResults(mockRecipes);
+<<<<<<< HEAD
+    setChatHistory([]);
+    localStorage.removeItem("ai_chat_history");
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (token) {
+      fetch(`http://localhost:8082/api/v1/ai/knowledge/chat/history`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(console.error);
+    }
+=======
+>>>>>>> feat/develop
   }
 
   const activeCnt = activeTags.size + (prompt.trim() ? 1 : 0);
@@ -392,23 +551,123 @@ export function MainAppPage() {
                 <div>
                   <h2 className="font-bold text-base text-white">
                     {results.length > 0
+<<<<<<< HEAD
+                      ? `${results.length} món gợi ý từ menu`
+                      : (isAiLoading || chatHistory.length > 0) ? "" : "Không tìm thấy kết quả"}
+                  </h2>
+                  {results.length === 0 && !isAiLoading && chatHistory.length === 0 && (
+=======
                       ? `${results.length} món phù hợp`
                       : "Không tìm thấy kết quả"}
                   </h2>
                   {results.length === 0 && (
+>>>>>>> feat/develop
                     <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Thử điều chỉnh tag hoặc từ khoá nhé!</p>
                   )}
                 </div>
-                <button
-                  onClick={handleReset}
-                  className="text-xs flex items-center gap-1 transition-colors"
-                  style={{ color: "#64748b" }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f1f5f9"; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
-                >
-                  <RotateCcw className="w-3.5 h-3.5" /> Tìm lại
-                </button>
+                <div className="flex items-center gap-3">
+                  {chatHistory.length > 0 && (
+                    <button
+                      onClick={handleReset}
+                      className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all"
+                      style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.2)"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; }}
+                    >
+                      🗑️ Xóa lịch sử chat
+                    </button>
+                  )}
+                  <button
+                    onClick={handleReset}
+                    className="text-xs flex items-center gap-1 transition-colors"
+                    style={{ color: "#64748b" }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f1f5f9"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#64748b"; }}
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" /> Tìm lại
+                  </button>
+                </div>
               </div>
+<<<<<<< HEAD
+
+              {/* ── AI Chat History Box ────────────────────────────────────────── */}
+              {chatHistory.length > 0 && (
+                <div className="mb-8 flex flex-col gap-4">
+                  {chatHistory.map((msg, idx) => (
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-4 sm:p-5 rounded-2xl relative overflow-hidden ${msg.role === 'user' ? 'ml-8 sm:ml-12' : 'mr-8 sm:mr-12'}`}
+                      style={msg.role === 'user' ? {
+                        background: "rgba(30,41,59,0.7)",
+                        border: "1px solid rgba(255,255,255,0.05)"
+                      } : {
+                        background: "rgba(163,230,53,0.05)",
+                        border: "1px solid rgba(163,230,53,0.2)",
+                        boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+                      }}
+                    >
+                      {msg.role === 'model' && <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />}
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        {msg.role === 'model' ? (
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                            <img src="/logo.svg" alt="MealYummy AI" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-slate-700 text-white font-bold text-xs sm:text-sm shadow-inner">
+                            Bạn
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`text-xs sm:text-sm font-bold mb-1.5 flex items-center gap-2 ${msg.role === 'model' ? 'text-lime-400' : 'text-slate-300'}`}>
+                            {msg.role === 'model' ? 'Bác Sĩ MealYummy' : 'Bạn đã hỏi:'}
+                          </h3>
+                          <div 
+                            className="text-sm leading-relaxed text-slate-200"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatChatMessage(msg.content)
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {isAiLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-4 sm:p-5 rounded-2xl relative overflow-hidden mr-8 sm:mr-12"
+                      style={{
+                        background: "rgba(163,230,53,0.05)",
+                        border: "1px solid rgba(163,230,53,0.2)"
+                      }}
+                    >
+                      <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />
+                      <div className="flex items-start gap-3 sm:gap-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)" }}>
+                          <img src="/logo.svg" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xs sm:text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
+                            Bác Sĩ MealYummy
+                            <span className="flex gap-1 ml-1">
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
+                            </span>
+                          </h3>
+                          <div className="text-sm text-slate-400">Đang phân tích dữ liệu y khoa...</div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
+=======
+>>>>>>> feat/develop
               {results.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {results.map((r) => (

@@ -104,8 +104,21 @@ const testimonials = [
 ];
 
 export function HomePage() {
+  const { config, metrics, forceGC } = usePerformanceOptimizer();
+
+  // Auto garbage collection for long sessions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (metrics.memory > 0.7) {
+        forceGC();
+      }
+    }, 30000); // Every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [metrics.memory, forceGC]);
+
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-screen bg-transparent" data-performance-mode={config.animations}>
       <AppHeader />
 
       {/* ── HERO SECTION ──────────────────────────────────── */}

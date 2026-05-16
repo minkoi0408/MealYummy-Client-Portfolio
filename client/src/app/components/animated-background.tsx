@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useBrightness } from "../contexts/brightness-context";
 
 const BLOBS_DARK = [
@@ -180,8 +180,14 @@ export function AnimatedBackground() {
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 overflow-hidden pointer-events-none z-0"
-      style={{ transition: "background 0.8s ease" }}
+      style={{
+        transition: "background 0.8s ease",
+        // Hardware acceleration for mobile
+        transform: "translateZ(0)",
+        willChange: isMobile ? "auto" : "transform"
+      }}
     >
       {/* ── Base background ── */}
       <div
