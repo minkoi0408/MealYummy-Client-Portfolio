@@ -147,7 +147,6 @@ export function ShoppingPage() {
     });
 
     Promise.all([minDelay, geoPromise]).then(async ([, coords]) => {
-      // Phase 2: Zoom into location
       setOverlayPhase("zooming");
       if (coords.lat && coords.lng) {
         setFoundLocation(`${coords.lat.toFixed(4)}°N, ${coords.lng.toFixed(4)}°E`);
@@ -156,13 +155,10 @@ export function ShoppingPage() {
         try {
           setTimeout(() => setLocationMessage("🔍 Đang tải dữ liệu các chợ lân cận..."), 1200);
           
-          // Call our own Backend API which securely uses Google Maps API
           const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
           const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
           const res = await fetch(`${API_URL}/map/nearby-markets?lat=${coords.lat}&lng=${coords.lng}`, {
-            headers: {
-              "Authorization": token ? `Bearer ${token}` : ""
-            }
+            headers: { "Authorization": token ? `Bearer ${token}` : "" }
           });
           const data = await res.json();
           const markets = data.results || [];

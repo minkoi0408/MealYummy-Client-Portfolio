@@ -80,6 +80,31 @@ function useTiltCard(strength = 10) {
   return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
 }
 
+// ─── Chat Message Formatter ──────────────────────────────────────────────────
+function formatChatMessage(text: string) {
+  let html = text;
+  
+  // 1. Convert markdown images to tokens
+  html = html.replace(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, '###IMG:$1|$2###');
+  
+  // 2. Convert markdown links that point to images (Cloudinary/Unsplash) to tokens
+  html = html.replace(/\[(.*?)\]\(((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s)]+)\)/g, '###IMG:$1|$2###');
+  
+  // 3. Convert plain Cloudinary or Unsplash URLs to tokens
+  html = html.replace(/((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s<)]+)/g, '###IMG:Meal Image|$1###');
+  
+  // 4. Restore tokens to img HTML
+  html = html.replace(/###IMG:(.*?)\|(https?:\/\/[^\s]+)###/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>');
+  
+  // 5. Bold text
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
+  
+  // 6. Line breaks
+  html = html.replace(/\n/g, '<br/>');
+  
+  return html;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function MainAppPage() {
@@ -581,10 +606,7 @@ export function MainAppPage() {
                           <div 
                             className="text-sm leading-relaxed text-slate-200"
                             dangerouslySetInnerHTML={{ 
-                              __html: msg.content
-                                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>')
-                                .replace(/!\[(.*?)\]\([^)]*(http[^\s)]+)[^)]*\)/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>')
-                                .replace(/\n/g, '<br/>')
+                              __html: formatChatMessage(msg.content)
                             }}
                           />
                         </div>
