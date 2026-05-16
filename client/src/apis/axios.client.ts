@@ -39,7 +39,8 @@ const callAPI = async (
   method: Method | string,
   endPoint: string,
   data?: unknown,
-  params?: Record<string, string | number | boolean> | null
+  params?: Record<string, string | number | boolean> | null,
+  headers?: Record<string, string>
 ): Promise<AxiosResponse> => {
   const options: AxiosRequestConfig = {
     method: method,
@@ -48,6 +49,7 @@ const callAPI = async (
     ...(params ? { params } : {}),
     headers: {
       'Content-Type': 'application/json',
+      ...headers,
     },
     responseType: 'json',
   };

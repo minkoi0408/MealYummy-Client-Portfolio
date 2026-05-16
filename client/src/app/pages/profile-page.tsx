@@ -528,7 +528,18 @@ export function ProfilePage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    
+    if (token) {
+      try {
+        const { authApi } = await import("../../apis/auth.api");
+        await authApi.logout(token);
+      } catch (error) {
+        console.error("Logout API error:", error);
+      }
+    }
+
     // Dọn sạch mọi dấu vết ở cả 2 kho lưu trữ
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");

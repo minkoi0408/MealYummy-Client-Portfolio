@@ -1,11 +1,12 @@
-import { Navigate, Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router-dom";
+import { useAuth } from "../app/contexts/auth-context";
+import { RequireLoginPage } from "../app/pages/require-login-page";
 
 export function ProtectedRoute() {
-  const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+  const { isAuthenticated } = useAuth();
   
-  if (!token) {
-    // Redirect to login if there is no token
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <RequireLoginPage />;
   }
 
   return <Outlet />;

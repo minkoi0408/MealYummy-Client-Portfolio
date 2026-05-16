@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   Sparkles,
@@ -11,9 +11,11 @@ import {
   User,
   Menu,
   X,
-  Lightbulb
+  Lightbulb,
+  LogOut
 } from "lucide-react";
 import { useBrightness } from "../contexts/brightness-context";
+import { useAuth } from "../contexts/auth-context";
 
 const NAV_ITEMS = [
   { label: "Gợi ý", icon: Sparkles, link: "/app", activeColor: "text-lime-400", activeBg: "bg-lime-950/60", dot: "bg-lime-400", activeColorBright: "text-lime-700", activeBgBright: "bg-lime-100" },
@@ -29,6 +31,7 @@ export function AppHeader() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isBright, toggleBrightness } = useBrightness();
+  const { isAuthenticated, logout } = useAuth();
 
   return (
     <>
@@ -112,40 +115,44 @@ export function AppHeader() {
           />
 
           {/* ── Nav items (desktop) ────────────────────────────────── */}
-          <nav className="hidden lg:flex items-center gap-1 flex-1">
-            {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, dot, activeColorBright, activeBgBright }) => {
-              const isActive = location.pathname === link;
-              return (
-                <Link
-                  key={link}
-                  to={link}
-                  className={`
-                    relative flex items-center gap-2 px-3.5 py-2 rounded-xl
-                    text-sm font-medium transition-all select-none
-                    ${isActive
-                      ? isBright
-                        ? `${activeColorBright} ${activeBgBright} shadow-sm`
-                        : `${activeColor} ${activeBg} shadow-sm`
-                      : isBright
-                        ? "text-slate-600 hover:text-slate-800 hover:bg-lime-100/80"
-                        : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                    }
-                  `}
-                >
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
-                  <span>{label}</span>
-                  {isActive && (
-                    <span
-                      className={`absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${dot}`}
-                      style={{
-                        filter: isBright ? "brightness(0.7)" : "none",
-                      }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
+          {isAuthenticated ? (
+            <nav className="hidden lg:flex items-center gap-1 flex-1">
+              {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, dot, activeColorBright, activeBgBright }) => {
+                const isActive = location.pathname === link;
+                return (
+                  <Link
+                    key={link}
+                    to={link}
+                    className={`
+                      relative flex items-center gap-2 px-3.5 py-2 rounded-xl
+                      text-sm font-medium transition-all select-none
+                      ${isActive
+                        ? isBright
+                          ? `${activeColorBright} ${activeBgBright} shadow-sm`
+                          : `${activeColor} ${activeBg} shadow-sm`
+                        : isBright
+                          ? "text-slate-600 hover:text-slate-800 hover:bg-lime-100/80"
+                          : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                      }
+                    `}
+                  >
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
+                    <span>{label}</span>
+                    {isActive && (
+                      <span
+                        className={`absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${dot}`}
+                        style={{
+                          filter: isBright ? "brightness(0.7)" : "none",
+                        }}
+                      />
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          ) : (
+            <div className="hidden lg:flex flex-1" />
+          )}
 
           {/* ── Lightbulb + User profile & Mobile menu toggle ─────────────────────────────── */}
           <div className="flex items-center gap-2 sm:gap-3 ml-auto">
@@ -187,30 +194,57 @@ export function AppHeader() {
               />
             </button>
 
-            {/* Profile */}
-            <Link to="/profile" className="flex-shrink-0">
-              <div
-                className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
-                style={{
-                  background: isBright
-                    ? "linear-gradient(135deg, rgba(132,204,22,0.3), rgba(34,197,94,0.3))"
-                    : "linear-gradient(135deg, rgba(163,230,53,0.15), rgba(74,222,128,0.15))",
-                  border: isBright
-                    ? "1.5px solid rgba(132,204,22,0.6)"
-                    : "1px solid rgba(163,230,53,0.3)",
-                  boxShadow: isBright ? "0 2px 12px rgba(132,204,22,0.25)" : "none",
-                  transition: "all 0.8s ease",
-                }}
-              >
-                <User
-                  className="w-4 h-4"
+            {isAuthenticated ? (
+              <>
+                {/* Profile */}
+                <Link to="/profile" className="flex-shrink-0">
+                  <div
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+                    style={{
+                      background: isBright
+                        ? "linear-gradient(135deg, rgba(132,204,22,0.3), rgba(34,197,94,0.3))"
+                        : "linear-gradient(135deg, rgba(163,230,53,0.15), rgba(74,222,128,0.15))",
+                      border: isBright
+                        ? "1.5px solid rgba(132,204,22,0.6)"
+                        : "1px solid rgba(163,230,53,0.3)",
+                      boxShadow: isBright ? "0 2px 12px rgba(132,204,22,0.25)" : "none",
+                      transition: "all 0.8s ease",
+                    }}
+                  >
+                    <User
+                      className="w-4 h-4"
+                      style={{
+                        color: isBright ? "#15803d" : "#a3e635",
+                        transition: "color 0.8s ease",
+                      }}
+                    />
+                  </div>
+                </Link>
+
+                {/* Logout Button */}
+                <button
+                  onClick={logout}
+                  className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
                   style={{
-                    color: isBright ? "#15803d" : "#a3e635",
-                    transition: "color 0.8s ease",
+                    background: isBright
+                      ? "rgba(239, 68, 68, 0.1)"
+                      : "rgba(248, 113, 113, 0.1)",
+                    border: isBright
+                      ? "1px solid rgba(239, 68, 68, 0.3)"
+                      : "1px solid rgba(248, 113, 113, 0.2)",
                   }}
-                />
-              </div>
-            </Link>
+                  title="Đăng xuất"
+                >
+                  <LogOut className="w-4 h-4 text-red-500" />
+                </button>
+              </>
+            ) : (
+              <Link to="/login">
+                <button className="px-5 py-2 rounded-full bg-stitch-primary-container text-black font-bold text-xs tracking-wide hover:scale-105 hover:shadow-[0_0_15px_rgba(163,230,53,0.4)] transition-all">
+                  Đăng nhập
+                </button>
+              </Link>
+            )}
 
             {/* Mobile menu button */}
             <button
@@ -244,31 +278,57 @@ export function AppHeader() {
             }}
           >
             <nav className="max-w-7xl mx-auto px-4 py-3 space-y-1">
-              {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, activeColorBright, activeBgBright }) => {
-                const isActive = location.pathname === link;
-                return (
+              {isAuthenticated ? (
+                <>
+                  {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, activeColorBright, activeBgBright }) => {
+                    const isActive = location.pathname === link;
+                    return (
+                      <Link
+                        key={link}
+                        to={link}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`
+                          flex items-center gap-3 px-4 py-3 rounded-xl
+                          text-sm font-medium transition-all
+                          ${isActive
+                            ? isBright
+                              ? `${activeColorBright} ${activeBgBright} shadow-sm`
+                              : `${activeColor} ${activeBg} shadow-sm`
+                            : isBright
+                              ? "text-slate-600 hover:text-slate-800 hover:bg-lime-100/80"
+                              : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
+                          }
+                        `}
+                      >
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
+                        <span>{label}</span>
+                      </Link>
+                    );
+                  })}
+                  <div className="pt-2 mt-2 border-t border-white/5">
+                    <button
+                      onClick={() => {
+                        logout();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <LogOut className="w-5 h-5 flex-shrink-0" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="py-2">
                   <Link
-                    key={link}
-                    to={link}
+                    to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-xl
-                      text-sm font-medium transition-all
-                      ${isActive
-                        ? isBright
-                          ? `${activeColorBright} ${activeBgBright} shadow-sm`
-                          : `${activeColor} ${activeBg} shadow-sm`
-                        : isBright
-                          ? "text-slate-600 hover:text-slate-800 hover:bg-lime-100/80"
-                          : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-                      }
-                    `}
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-stitch-primary-container text-black font-bold text-sm tracking-wide transition-all"
                   >
-                    <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
-                    <span>{label}</span>
+                    <span>Đăng nhập</span>
                   </Link>
-                );
-              })}
+                </div>
+              )}
             </nav>
           </div>
         )}

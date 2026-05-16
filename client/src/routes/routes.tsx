@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./protected-route";
 import { HomePage } from "../app/pages/home-page";
 import { LoginPage } from "../app/pages/login-page";
@@ -20,19 +20,19 @@ import { GymModePage } from "../app/pages/gym-mode-page";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: LoginPage,
+    element: <Navigate to="/home" replace />,
   },
   {
     path: "/login",
     Component: LoginPage,
   },
   {
+    path: "/home",
+    Component: HomePage,
+  },
+  {
     Component: ProtectedRoute,
     children: [
-      {
-        path: "/home",
-        Component: HomePage,
-      },
       {
         path: "/app",
         Component: MainAppPage,

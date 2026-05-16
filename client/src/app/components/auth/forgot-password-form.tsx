@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { authApi } from "../../../apis/auth.api";
+import type { ResetPasswordDTO, SendOtpToEmailRequestDTO } from "../../../types/auth.types";
 
 export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,16 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     return () => clearInterval(interval);
   }, [timer]);
 
+  // Global loading cursor state
+  useEffect(() => {
+    if (loading) {
+      document.body.classList.add('cursor-wait');
+    } else {
+      document.body.classList.remove('cursor-wait');
+    }
+    return () => document.body.classList.remove('cursor-wait');
+  }, [loading]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -38,7 +49,8 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     }
     setLoading(true);
     try {
-      await authApi.forgotPassword(formData.email);
+      const request: SendOtpToEmailRequestDTO = { email: formData.email };
+      await authApi.sendOtpForgotPassword(request);
       toast.success("Mã OTP đã được gửi tới email của bạn!");
       setStep("reset");
       setTimer(59);
@@ -75,11 +87,12 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 
     setLoading(true);
     try {
-      await authApi.resetPassword({
+      const request: ResetPasswordDTO = {
         email: formData.email,
         otp: formData.otp,
         newPassword: formData.newPassword,
-      });
+      };
+      await authApi.resetPassword(request);
       toast.success("Đặt lại mật khẩu thành công! Bạn có thể đăng nhập ngay.");
       onSuccess();
     } catch (error: any) {
@@ -93,7 +106,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     return (
       <form onSubmit={handleSendOtp} className="space-y-6" noValidate>
         <div className="space-y-1.5">
-          <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Email khôi phục</label>
+          <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Email khôi phục</label>
           <div className="relative group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">mail</span>
             <input
@@ -101,7 +114,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
               type="email"
               value={formData.email}
               onChange={handleInputChange}
-              className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10"
+              className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500"
               placeholder="example@mealyummy.fit"
             />
           </div>
@@ -122,7 +135,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
     <form onSubmit={handleResetPassword} className="space-y-5" noValidate>
       {/* OTP Input */}
       <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Mã xác thực OTP</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Mã xác thực OTP</label>
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">shield_lock</span>
           <input
@@ -134,7 +147,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
               const val = e.target.value.replace(/\D/g, "");
               setFormData(prev => ({ ...prev, otp: val }));
             }}
-            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10 tracking-[0.5em] font-bold"
+            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-4 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500 tracking-[0.5em] font-bold"
             placeholder="••••••"
           />
         </div>
@@ -142,7 +155,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 
       {/* New Password */}
       <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Mật khẩu mới</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Mật khẩu mới</label>
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">lock</span>
           <input
@@ -150,13 +163,13 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
             type={showPassword ? "text" : "password"}
             value={formData.newPassword}
             onChange={handleInputChange}
-            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500"
             placeholder="••••••••"
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-stitch-outline hover:text-white transition-colors"
+            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
           >
             {showPassword ? "visibility_off" : "visibility"}
           </button>
@@ -165,7 +178,7 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
 
       {/* Confirm Password */}
       <div className="space-y-1.5">
-        <label className="text-[10px] uppercase tracking-widest text-stitch-outline font-bold ml-1">Xác nhận mật khẩu mới</label>
+        <label className="text-[10px] uppercase tracking-widest text-gray-200 font-bold ml-1">Xác nhận mật khẩu mới</label>
         <div className="relative group">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-stitch-primary-container text-xl">verified_user</span>
           <input
@@ -173,13 +186,13 @@ export function ForgotPasswordForm({ onSuccess }: { onSuccess: () => void }) {
             type={showConfirmPassword ? "text" : "password"}
             value={formData.confirmPassword}
             onChange={handleInputChange}
-            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-stitch-surface-bright/30 border border-stitch-outline-variant rounded-lg py-3.5 pl-12 pr-12 text-white focus:border-stitch-primary-container focus:ring-1 focus:ring-stitch-primary-container outline-none transition-all placeholder:text-gray-500"
             placeholder="••••••••"
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-stitch-outline hover:text-white transition-colors"
+            className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
           >
             {showConfirmPassword ? "visibility_off" : "visibility"}
           </button>
