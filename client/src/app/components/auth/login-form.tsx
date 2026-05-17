@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { authApi } from "../../../apis/auth.api";
 import type { LoginRequestDTO, GoogleTokenRequestDTO } from "../../../types/auth.types";
@@ -94,8 +95,19 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
         true // Google login default to remember
       );
 
+      let role = "";
+      try {
+        const decoded: any = jwtDecode(payload.accessToken);
+        role = decoded.role || decoded.Role || "";
+      } catch (e) {}
+
       toast.success("Đăng nhập bằng Google thành công!");
-      navigate(location.state?.from?.pathname || "/home", { replace: true });
+      
+      if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate(location.state?.from?.pathname || "/home", { replace: true });
+      }
     } catch (error: any) {
       toast.error("Đăng nhập bằng Google thất bại.");
     } finally {
