@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { authApi } from "../../apis/auth.api";
@@ -27,7 +28,7 @@ export function LoginPage() {
   const [rememberMeContext, setRememberMeContext] = useState(false);
   const [mfaMessage, setMfaMessage] = useState("");
   const [hasTotpContext, setHasTotpContext] = useState(false);
-  const [loading, setLoading] = useState(false);
+
 
   const location = useLocation();
   const from = location.state?.from?.pathname || "/home";
@@ -36,7 +37,17 @@ export function LoginPage() {
   useEffect(() => {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (token) {
-      navigate(from, { replace: true });
+      let role = "";
+      try {
+        const decoded: any = jwtDecode(token);
+        role = decoded.role || decoded.Role || "";
+      } catch (e) {}
+
+      if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
+        navigate("/dashboard", { replace: true });
+      } else {
+        navigate(from === "/login" ? "/home" : from, { replace: true });
+      }
     }
   }, [navigate, from]);
 
@@ -160,7 +171,21 @@ export function LoginPage() {
                   {mode === "otp" && <OtpForm email={emailForOtp} context={otpContext} rememberMe={rememberMeContext} initialMessage={mfaMessage} hasTotp={hasTotpContext} onSuccess={() => {
                     if (otpContext === "login") {
                       setMode("loading");
-                      setTimeout(() => navigate(from, { replace: true }), 2500);
+                      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+                      let role = "";
+                      if (token) {
+                        try {
+                          const decoded: any = jwtDecode(token);
+                          role = decoded.role || decoded.Role || "";
+                        } catch (e) {}
+                      }
+                      if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
+                        navigate("/dashboard", { replace: true });
+                      } else {
+                        setTimeout(() => {
+                          navigate(from === "/login" ? "/home" : from, { replace: true });
+                        }, 2500);
+                      }
                     } else {
                       setMode("login");
                     }
