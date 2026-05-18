@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Check,
   X,
@@ -17,8 +17,16 @@ import {
   Calculator,
   Utensils,
   UtensilsCrossed,
+  CreditCard,
+  Wallet,
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
+import { bundleApi } from "../../apis/bundle.api";
+import { paymentApi } from "../../apis/payment.api";
+import type { Bundle } from "../../types/bundle.types";
+import { useAuth } from "../contexts/auth-context";
+import { toast } from "sonner";
+import type { PaymentMethod } from "../../types/payment.types";
 
 /* ── Plan feature lists ─────────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -36,13 +44,6 @@ const MEMBER_FEATURES = [
   { icon: <ShoppingCart className="w-4 h-4" />, text: "AI tự lên danh sách nguyên liệu cần mua" },
   { icon: <Check className="w-4 h-4" />, text: "Check list nguyên liệu thông minh" },
   { icon: <Rocket className="w-4 h-4" />, text: "Liên kết cửa hàng thực phẩm mua online" },
-];
-
-/* ── Membership pricing tiers ───────────────────────────────────────────── */
-const TIERS = [
-  { id: "monthly", label: "1 Tháng", price: 89000, badge: null, saving: null },
-  { id: "quarterly", label: "3 Tháng", price: 249000, perMonth: 83000, badge: "Tiết kiệm nhất", saving: "Tiết kiệm 18.000đ" },
-  { id: "yearly", label: "1 Năm", price: 999000, perMonth: 83250, badge: "Siêu ưu đãi", saving: "Tiết kiệm 69.000đ" },
 ];
 
 /* ── FAQ ─────────────────────────────────────────────────────────────────── */
@@ -91,6 +92,61 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 /* ── Page ────────────────────────────────────────────────────────────────── */
 export function MembershipPage() {
   const [selectedTier, setSelectedTier] = useState("monthly");
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const { user } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    bundleApi.getAllActiveBundles()
+      .then(res => {
+        if (res.data?.data) {
+          setBundles(res.data.data);
+          const premium = res.data.data.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+          if (premium && premium.durations && premium.durations.length > 0) {
+            setSelectedTier(premium.durations[0].durationCode);
+          }
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const handlePayment = async (method: PaymentMethod) => {
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để tiếp tục");
+      return;
+    }
+    const premiumBundle = bundles.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+    if (!premiumBundle) return;
+
+    setIsProcessing(true);
+    const toastId = toast.loading(`Đang khởi tạo thanh toán qua ${method}...`);
+    try {
+      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      const res = await paymentApi.createPayment({
+        // Extract id properly in case user object structure varies
+        userId: (user as any).id || (user as any)._id || (user as any).sub || "",
+        bundleId: premiumBundle.id,
+        durationCode: selectedTier,
+        paymentMethod: method
+      }, token || "");
+      
+      if (res.data?.data?.paymentUrl) {
+        toast.success("Chuyển hướng...", { id: toastId });
+        window.location.href = res.data.data.paymentUrl;
+      } else {
+        toast.error("Không nhận được URL thanh toán", { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || "Lỗi khởi tạo thanh toán", { id: toastId });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const freeBundle = bundles.find(b => b.name.toLowerCase().includes("free") || (b.durations && b.durations.length > 0 && b.durations[0].price === 0));
+  const premiumBundle = bundles.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+  const activeDuration = premiumBundle?.durations?.find(d => d.durationCode === selectedTier) || premiumBundle?.durations?.[0];
+
 
   return (
     <div className="min-h-screen" style={{ background: "#0f1117" }}>
@@ -131,7 +187,7 @@ export function MembershipPage() {
               <div className="flex items-center gap-3 mb-5">
                 <div className="text-4xl">🥉</div>
                 <div>
-                  <h2 className="text-2xl font-black text-white">Free</h2>
+                  <h2 className="text-2xl font-black text-white">{freeBundle?.name || "Free"}</h2>
                   <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#64748b" }}>Người trải nghiệm</p>
                 </div>
                 <div className="ml-auto px-3 py-1 rounded-full text-xs font-bold" style={{ background: "rgba(100,116,139,0.15)", color: "#94a3b8", border: "1px solid rgba(100,116,139,0.25)" }}>
@@ -145,7 +201,15 @@ export function MembershipPage() {
 
               {/* Features */}
               <ul className="space-y-3 flex-1 mb-6">
-                {FREE_FEATURES.map((f, i) => (
+                {freeBundle?.features?.length ? freeBundle.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(100,116,139,0.15)", color: "#94a3b8" }}>
+                      <Check className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm" style={{ color: "#cbd5e1" }}>{f}</span>
+                  </li>
+                )) : FREE_FEATURES.map((f, i) => (
                   <li key={i} className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: "rgba(100,116,139,0.15)", color: "#94a3b8" }}>
@@ -169,6 +233,7 @@ export function MembershipPage() {
             </div>
 
             {/* ── Card MEMBERSHIP ──────────────────── */}
+            {premiumBundle && (
             <div className="relative rounded-2xl p-6 flex flex-col h-full"
               style={{
                 background: "rgba(163,230,53,0.05)",
@@ -187,62 +252,58 @@ export function MembershipPage() {
               <div className="flex items-center gap-3 mb-5 mt-2">
                 <div className="text-4xl">🥇</div>
                 <div>
-                  <h2 className="text-2xl font-black text-white">Membership</h2>
+                  <h2 className="text-2xl font-black text-white">{premiumBundle.name}</h2>
                   <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#a3e635" }}>Gymer Pro</p>
                 </div>
               </div>
 
               {/* Tier selector */}
               <div className="flex gap-2 mb-5">
-                {TIERS.map((t) => (
+                {premiumBundle.durations?.map((t) => (
                   <button
-                    key={t.id}
-                    onClick={() => setSelectedTier(t.id)}
+                    key={t.durationCode}
+                    onClick={() => setSelectedTier(t.durationCode)}
                     className="flex-1 relative rounded-xl py-2.5 px-1 text-center transition-all"
                     style={{
-                      background: selectedTier === t.id ? "rgba(163,230,53,0.12)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${selectedTier === t.id ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.08)"}`,
+                      background: selectedTier === t.durationCode ? "rgba(163,230,53,0.12)" : "rgba(255,255,255,0.04)",
+                      border: `1px solid ${selectedTier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.08)"}`,
                     }}
                   >
-                    {t.badge && (
+                    {t.originalPrice && (
                       <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap"
                         style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}>
-                        {t.badge}
+                        Tiết kiệm {vnd(t.originalPrice - t.price)}
                       </div>
                     )}
-                    <div className={`text-xs font-bold ${selectedTier === t.id ? "text-lime-300" : "text-slate-400"}`}>{t.label}</div>
-                    <div className={`text-sm font-black mt-0.5 ${selectedTier === t.id ? "text-white" : "text-slate-300"}`}>
+                    <div className={`text-xs font-bold ${selectedTier === t.durationCode ? "text-lime-300" : "text-slate-400"}`}>{t.durationCode.replace("_", " ")}</div>
+                    <div className={`text-sm font-black mt-0.5 ${selectedTier === t.durationCode ? "text-white" : "text-slate-300"}`}>
                       {vnd(t.price)}
                     </div>
-                    {t.saving && (
-                      <div className="text-[10px] mt-0.5" style={{ color: "#a3e635" }}>{t.saving}</div>
-                    )}
                   </button>
                 ))}
               </div>
 
               {/* Active price display */}
               {(() => {
-                const tier = TIERS.find((t) => t.id === selectedTier)!;
                 return (
-                  <div className="flex items-end gap-2 mb-1">
-                    <span className="text-4xl font-black" style={{ color: "#a3e635" }}>{vnd(tier.price)}</span>
-                    <span className="text-sm mb-1.5" style={{ color: "#64748b" }}>/ {tier.label.toLowerCase()}</span>
+                  <div className="flex items-end gap-2 mb-6">
+                    <span className="text-4xl font-black" style={{ color: "#a3e635" }}>{activeDuration ? vnd(activeDuration.price) : "Liên hệ"}</span>
+                    <span className="text-sm mb-1.5" style={{ color: "#64748b" }}>/ {activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</span>
                   </div>
                 );
               })()}
-              {TIERS.find((t) => t.id === selectedTier)?.perMonth && (
-                <p className="text-xs mb-6" style={{ color: "#64748b" }}>
-                  ≈ {vnd(TIERS.find((t) => t.id === selectedTier)!.perMonth!)}/tháng
-                </p>
-              )}
-              {!TIERS.find((t) => t.id === selectedTier)?.perMonth && (
-                <p className="text-xs mb-6" style={{ color: "#64748b" }}>Gia hạn hàng tháng</p>
-              )}
 
               {/* Features */}
               <ul className="space-y-3 flex-1 mb-6">
-                {MEMBER_FEATURES.map((f, i) => (
+                {premiumBundle.features?.length ? premiumBundle.features.map((f, i) => (
+                  <li key={i} className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                      <Check className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm" style={{ color: "#cbd5e1" }}>{f}</span>
+                  </li>
+                )) : MEMBER_FEATURES.map((f, i) => (
                   <li key={i} className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
@@ -253,17 +314,35 @@ export function MembershipPage() {
                 ))}
               </ul>
 
-              {/* CTA */}
-              <button className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{
-                  background: "linear-gradient(135deg,#a3e635,#4ade80)",
-                  color: "#0f1117",
-                  boxShadow: "0 4px 24px rgba(163,230,53,0.35)",
-                }}>
-                <Sparkles className="w-4 h-4" /> Đăng ký Membership <ArrowRight className="w-4 h-4" />
-              </button>
-              <p className="text-[11px] text-center mt-2.5" style={{ color: "#475569" }}>Hoàn tiền 100% trong 7 ngày nếu không hài lòng</p>
+              {/* CTAs */}
+              <div className="space-y-2 mt-auto">
+                <button 
+                  disabled={isProcessing}
+                  onClick={() => handlePayment("VNPAY")}
+                  className="w-full h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.95)",
+                    color: "#005BAA", // VNPay blue
+                    boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
+                  }}>
+                  <CreditCard className="w-4 h-4" /> Thanh toán qua VNPay
+                </button>
+
+                <button 
+                  disabled={isProcessing}
+                  onClick={() => handlePayment("MOMO")}
+                  className="w-full h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{
+                    background: "#A50064", // MoMo pink
+                    color: "white",
+                    boxShadow: "0 4px 16px rgba(165,0,100,0.3)",
+                  }}>
+                  <Wallet className="w-4 h-4" /> Thanh toán qua MoMo
+                </button>
+              </div>
+              <p className="text-[11px] text-center mt-3" style={{ color: "#475569" }}>Thanh toán an toàn, không tự động gia hạn</p>
             </div>
+            )}
           </div>
 
           {/* Feature comparison table */}
