@@ -1,29 +1,11 @@
 
 
-import {
-  Check,
-  Settings,
-  Lock,
-  Bell,
-  Shield,
-  LogOut,
-  Edit2,
-  Mail,
-  Calendar,
-  Trophy,
-  Rocket,
-  User,
-  Crown,
-  Star,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-} from "lucide-react";
+import {Check,Settings,Lock,Bell,Shield,LogOut,Edit2,Mail,Calendar,Trophy,Rocket,User,Crown,Star,Sparkles,ArrowRight,TrendingUp,} from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from "html-to-image";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/app-header";
 import {
   Dialog,
@@ -35,6 +17,7 @@ import {
 } from "../components/ui/dialog";
 import { Switch } from "../components/ui/switch";
 import { toast } from "sonner";
+import { useAuth } from "../contexts/auth-context";
 
 type UserMetrics = {
   weight: number;
@@ -234,10 +217,10 @@ function PricingCards() {
             </li>
           ))}
         </ul>
-        <button className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
+        <Link to="/membership" className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
           style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
-          <Sparkles className="w-3.5 h-3.5" /> Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+          Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );
@@ -264,6 +247,7 @@ export function ProfilePage() {
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
+  const { logout, role, user } = useAuth();
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -660,7 +644,7 @@ export function ProfilePage() {
                   <p className="text-sm mb-3" style={{ color: "#64748b" }}>{profile.email}</p>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)", color: "#a3e635" }}>
-                    <Crown className="w-3 h-3" /> Gói Free
+                    <Crown className="w-3 h-3" /> {role === "ROLE_FREE" ? "Gói Free" : "Gói Membership"}
                   </span>
                 </div>
 

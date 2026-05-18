@@ -69,7 +69,7 @@ const FEATURES = [
   {
     icon: Heart, label: "Yêu thích", title: "Lưu món bạn mê",
     desc: "Bộ sưu tập món ăn yêu thích, xem lại bất cứ lúc nào.",
-    link: "/dashboard", color: "from-pink-400 to-rose-500", bg: "bg-pink-50", border: "border-pink-200/60",
+    link: "/favorites", color: "from-pink-400 to-rose-500", bg: "bg-pink-50", border: "border-pink-200/60",
     img: "https://images.unsplash.com/photo-1638720772346-b745bcd72f5f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGh5JTIwZnJlc2glMjBtZWFsfGVufDF8fHx8MTc3MjQ0MTkxM3ww&ixlib=rb-4.1.0&q=80&w=400",
     span: "col-span-1",
   },
@@ -689,7 +689,7 @@ export function LandingPage() {
                 {[
                   { label: "Gợi ý AI", to: "/app" },
                   { label: "Xếp hạng món", to: "/results" },
-                  { label: "Món yêu thích", to: "/dashboard" },
+                  { label: "Món yêu thích", to: "/favorites" },
                   { label: "Lên thực đơn", to: "/meal-plan" },
                   { label: "Danh sách đi chợ", to: "/shopping" },
                 ].map(({ label, to }) => (
