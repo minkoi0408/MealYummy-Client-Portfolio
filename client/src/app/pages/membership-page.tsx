@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 import {
   Check,
   X,
@@ -23,10 +24,13 @@ import {
 import { AppHeader } from "../components/app-header";
 import { bundleApi } from "../../apis/bundle.api";
 import { paymentApi } from "../../apis/payment.api";
+import { subscriptionApi, type UserSubscription } from "../../apis/subscription.api";
+import { authApi } from "../../apis/auth.api";
 import type { Bundle } from "../../types/bundle.types";
 import { useAuth } from "../contexts/auth-context";
 import { toast } from "sonner";
 import type { PaymentMethod } from "../../types/payment.types";
+import { useSearchParams, useNavigate } from "react-router-dom";
 
 /* ── Plan feature lists ─────────────────────────────────────────────────── */
 const FREE_FEATURES = [
@@ -91,12 +95,81 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 /* ── Page ────────────────────────────────────────────────────────────────── */
 export function MembershipPage() {
-  const [selectedTier, setSelectedTier] = useState("monthly");
+  const [selectedTier, setSelectedTier] = useState("1_MONTH");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [bundles, setBundles] = useState<Bundle[]>([]);
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // 1. Kiểm tra thanh toán từ URL
+    const paymentStatus = searchParams.get("payment");
+    if (paymentStatus === "success") {
+      toast.success("🎉 Thanh toán thành công! Đã nâng cấp Membership.");
+
+      // Xóa params trước để tránh lặp khi render lại
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("payment");
+      setSearchParams(newParams, { replace: true });
+
+      // Auto-refresh token để cập nhật quyền ROLE_MEMBERSHIP mới
+      const isLocalStorage = !!localStorage.getItem("accessToken");
+      const refreshToken = localStorage.getItem("refreshToken") || sessionStorage.getItem("refreshToken");
+      if (refreshToken) {
+        authApi.refresh({ refreshToken }).then(res => {
+          const data = res.data?.data;
+          if (data?.accessToken) {
+            // Lưu token mới vào đúng storage
+            const storage = isLocalStorage ? localStorage : sessionStorage;
+            storage.setItem("accessToken", data.accessToken);
+            if (data.refreshToken) storage.setItem("refreshToken", data.refreshToken);
+
+            // Cập nhật user trong storage với role mới được decode từ token mới
+            const storedUser = JSON.parse(storage.getItem("user") || "{}");
+            try {
+              const decoded: any = jwtDecode(data.accessToken);
+              const newRole = decoded.role || decoded.Role || storedUser.role;
+              const updatedUser = { ...storedUser, role: newRole };
+              storage.setItem("user", JSON.stringify(updatedUser));
+              login(data.accessToken, data.refreshToken, updatedUser, isLocalStorage);
+            } catch {
+              login(data.accessToken, data.refreshToken, storedUser, isLocalStorage);
+            }
+
+            // Sau khi cập nhật token, lấy thông tin subscription mới
+            setTimeout(() => {
+              subscriptionApi.getCurrentSubscription()
+                .then(r => { if (r.data?.data) setSubscription(r.data.data); })
+                .catch(() => {});
+            }, 500);
+          }
+        }).catch(err => console.error("Auto refresh token thất bại:", err));
+      }
+    } else if (paymentStatus === "failed") {
+      toast.error("Thanh toán thất bại hoặc đã bị hủy.");
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("payment");
+      setSearchParams(newParams, { replace: true });
+    }
+
+    // 2. Fetch gói hiện tại (an toàn - không throw nếu 403)
+    if (user) {
+      subscriptionApi.getCurrentSubscription()
+        .then(res => {
+          if (res.data?.data) {
+            setSubscription(res.data.data);
+          }
+        })
+        .catch(() => {
+          // Im lặng - user có thể chưa có subscription hoặc chưa đăng nhập
+        });
+    }
+
+    // 3. Fetch danh sách các gói cước
     bundleApi.getAllActiveBundles()
       .then(res => {
         if (res.data?.data) {
@@ -121,14 +194,13 @@ export function MembershipPage() {
     setIsProcessing(true);
     const toastId = toast.loading(`Đang khởi tạo thanh toán qua ${method}...`);
     try {
-      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
       const res = await paymentApi.createPayment({
         // Extract id properly in case user object structure varies
         userId: (user as any).id || (user as any)._id || (user as any).sub || "",
         bundleId: premiumBundle.id,
         durationCode: selectedTier,
         paymentMethod: method
-      }, token || "");
+      });
       
       if (res.data?.data?.paymentUrl) {
         toast.success("Chuyển hướng...", { id: toastId });
@@ -146,6 +218,9 @@ export function MembershipPage() {
   const freeBundle = bundles.find(b => b.name.toLowerCase().includes("free") || (b.durations && b.durations.length > 0 && b.durations[0].price === 0));
   const premiumBundle = bundles.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
   const activeDuration = premiumBundle?.durations?.find(d => d.durationCode === selectedTier) || premiumBundle?.durations?.[0];
+
+  const remainingDays = subscription ? Math.max(0, Math.ceil((new Date(subscription.endDate).getTime() - new Date().getTime()) / (1000 * 3600 * 24))) : 0;
+  const isPremiumActive = subscription && subscription.status === 'ACTIVE' && remainingDays > 0;
 
 
   return (
@@ -233,115 +308,163 @@ export function MembershipPage() {
             </div>
 
             {/* ── Card MEMBERSHIP ──────────────────── */}
-            {premiumBundle && (
-            <div className="relative rounded-2xl p-6 flex flex-col h-full"
-              style={{
-                background: "rgba(163,230,53,0.05)",
-                border: "2px solid rgba(163,230,53,0.3)",
-                boxShadow: "0 0 40px rgba(163,230,53,0.12)",
-              }}>
-              {/* Popular badge */}
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <div className="px-4 py-1 rounded-full text-xs font-black flex items-center gap-1.5 text-gray-900 shadow-lg"
-                  style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)" }}>
-                  <Star className="w-3 h-3 fill-current" /> Được chọn nhiều nhất
+            {isPremiumActive ? (
+              // HIỂN THỊ KHI ĐÃ MUA GÓI
+              <div className="relative rounded-2xl p-6 flex flex-col h-full items-center justify-center text-center overflow-hidden"
+                style={{
+                  background: "linear-gradient(145deg, rgba(26,31,46,0.95), rgba(16,21,36,0.95))",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                  boxShadow: "0 10px 40px rgba(163,230,53,0.15)",
+                }}>
+                <div className="absolute top-0 left-0 w-full h-1" style={{ background: "linear-gradient(90deg,#a3e635,#4ade80)" }}></div>
+                
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-2xl"
+                  style={{ background: "rgba(163,230,53,0.1)", border: "2px solid rgba(163,230,53,0.4)" }}>
+                  <Crown className="w-10 h-10" style={{ color: "#a3e635" }} />
                 </div>
-              </div>
-
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-5 mt-2">
-                <div className="text-4xl">🥇</div>
-                <div>
-                  <h2 className="text-2xl font-black text-white">{premiumBundle.name}</h2>
-                  <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#a3e635" }}>Gymer Pro</p>
-                </div>
-              </div>
-
-              {/* Tier selector */}
-              <div className="flex gap-2 mb-5">
-                {premiumBundle.durations?.map((t) => (
-                  <button
-                    key={t.durationCode}
-                    onClick={() => setSelectedTier(t.durationCode)}
-                    className="flex-1 relative rounded-xl py-2.5 px-1 text-center transition-all"
-                    style={{
-                      background: selectedTier === t.durationCode ? "rgba(163,230,53,0.12)" : "rgba(255,255,255,0.04)",
-                      border: `1px solid ${selectedTier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.08)"}`,
-                    }}
-                  >
-                    {t.originalPrice && (
-                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[9px] font-black whitespace-nowrap"
-                        style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}>
-                        Tiết kiệm {vnd(t.originalPrice - t.price)}
-                      </div>
-                    )}
-                    <div className={`text-xs font-bold ${selectedTier === t.durationCode ? "text-lime-300" : "text-slate-400"}`}>{t.durationCode.replace("_", " ")}</div>
-                    <div className={`text-sm font-black mt-0.5 ${selectedTier === t.durationCode ? "text-white" : "text-slate-300"}`}>
-                      {vnd(t.price)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* Active price display */}
-              {(() => {
-                return (
-                  <div className="flex items-end gap-2 mb-6">
-                    <span className="text-4xl font-black" style={{ color: "#a3e635" }}>{activeDuration ? vnd(activeDuration.price) : "Liên hệ"}</span>
-                    <span className="text-sm mb-1.5" style={{ color: "#64748b" }}>/ {activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</span>
+                
+                <h2 className="text-3xl font-black text-white mb-2">Thành Viên VIP</h2>
+                <p className="text-sm mb-8" style={{ color: "#94a3b8" }}>Bạn đang tận hưởng toàn bộ đặc quyền cao cấp của MealYummy.</p>
+                
+                <div className="w-full rounded-2xl p-5 mb-8" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-semibold" style={{ color: "#cbd5e1" }}>Thời hạn còn lại</span>
+                    <span className="text-2xl font-black" style={{ color: "#a3e635" }}>{remainingDays} ngày</span>
                   </div>
-                );
-              })()}
+                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.1)" }}>
+                    <div className="h-full rounded-full" style={{ width: "100%", background: "linear-gradient(90deg,#a3e635,#4ade80)" }}></div>
+                  </div>
+                  <div className="text-xs text-right mt-2" style={{ color: "#64748b" }}>
+                    Hết hạn vào: {new Date(subscription.endDate).toLocaleDateString("vi-VN")}
+                  </div>
+                </div>
 
-              {/* Features */}
-              <ul className="space-y-3 flex-1 mb-6">
-                {premiumBundle.features?.length ? premiumBundle.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                      <Check className="w-4 h-4" />
-                    </div>
-                    <span className="text-sm" style={{ color: "#cbd5e1" }}>{f}</span>
-                  </li>
-                )) : MEMBER_FEATURES.map((f, i) => (
-                  <li key={i} className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                      {f.icon}
-                    </div>
-                    <span className="text-sm" style={{ color: "#cbd5e1" }}>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTAs */}
-              <div className="space-y-2 mt-auto">
-                <button 
-                  disabled={isProcessing}
-                  onClick={() => handlePayment("VNPAY")}
-                  className="w-full h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={{
-                    background: "rgba(255, 255, 255, 0.95)",
-                    color: "#005BAA", // VNPay blue
-                    boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
-                  }}>
-                  <CreditCard className="w-4 h-4" /> Thanh toán qua VNPay
-                </button>
-
-                <button 
-                  disabled={isProcessing}
-                  onClick={() => handlePayment("MOMO")}
-                  className="w-full h-11 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={{
-                    background: "#A50064", // MoMo pink
-                    color: "white",
-                    boxShadow: "0 4px 16px rgba(165,0,100,0.3)",
-                  }}>
-                  <Wallet className="w-4 h-4" /> Thanh toán qua MoMo
+                <button onClick={() => navigate('/')}
+                  className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                  style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}>
+                  <Sparkles className="w-4 h-4" /> Bắt đầu sử dụng ngay
                 </button>
               </div>
-              <p className="text-[11px] text-center mt-3" style={{ color: "#475569" }}>Thanh toán an toàn, không tự động gia hạn</p>
-            </div>
+            ) : premiumBundle && (
+              // HIỂN THỊ KHI CHƯA MUA GÓI
+              <div className="relative rounded-2xl p-6 flex flex-col h-full"
+                style={{
+                  background: "#161b22",
+                  border: "1px solid rgba(163,230,53,0.3)",
+                  boxShadow: "0 0 40px rgba(163,230,53,0.12)",
+                }}>
+                {/* Popular badge */}
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <div className="px-4 py-1.5 rounded-full text-xs font-black flex items-center gap-1.5 text-gray-900 shadow-lg whitespace-nowrap"
+                    style={{ background: "#a3e635" }}>
+                    <Star className="w-3.5 h-3.5 fill-current" /> Được chọn nhiều nhất
+                  </div>
+                </div>
+
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-6 mt-3">
+                  <div className="w-10 h-10 flex items-center justify-center text-2xl relative">
+                    🥉
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black text-white leading-none mb-1">Membership</h2>
+                    <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: "#a3e635" }}>Gymer Pro</p>
+                  </div>
+                </div>
+
+                {/* Tier selector */}
+                <div className="flex gap-3 mb-6">
+                  {premiumBundle.durations?.map((t, idx) => {
+                    const isSelected = selectedTier === t.durationCode;
+                    let topBadge = null;
+                    if (idx === 1) topBadge = "Tiết kiệm nhất";
+                    if (idx === 2) topBadge = "Siêu ưu đãi";
+
+                    let displayName = t.durationCode;
+                    if (t.durationCode === "1_MONTH") displayName = "1 Tháng";
+                    else if (t.durationCode === "3_MONTHS") displayName = "3 Tháng";
+                    else if (t.durationCode === "6_MONTHS") displayName = "6 Tháng";
+                    else if (t.durationCode === "1_YEAR") displayName = "1 Năm";
+
+                    return (
+                      <button
+                        key={t.durationCode}
+                        onClick={() => setSelectedTier(t.durationCode)}
+                        className="flex-1 relative rounded-xl p-3 text-center transition-all border"
+                        style={{
+                          background: isSelected ? "rgba(163,230,53,0.05)" : "transparent",
+                          borderColor: isSelected ? "#a3e635" : "rgba(255,255,255,0.1)",
+                        }}
+                      >
+                        {topBadge && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[9px] font-bold whitespace-nowrap text-gray-900"
+                            style={{ background: "#a3e635" }}>
+                            {topBadge}
+                          </div>
+                        )}
+                        <div className={`text-xs font-bold mb-1 ${isSelected ? "text-lime-300" : "text-white"}`}>{displayName}</div>
+                        <div className="text-[13px] font-black text-white mb-1">{vnd(t.price)}</div>
+                        
+                        {t.originalPrice && (
+                           <div className="text-[9px]" style={{ color: isSelected ? "#a3e635" : "#94a3b8" }}>
+                              Tiết kiệm {vnd(t.originalPrice - t.price)}
+                           </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active price display */}
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-4xl font-black text-lime-300">{activeDuration ? vnd(activeDuration.price) : "Liên hệ"}</span>
+                  <span className="text-sm font-medium mb-1.5" style={{ color: "#64748b" }}>
+                    / {activeDuration?.durationCode === '1_MONTH' ? '1 tháng' : 
+                       activeDuration?.durationCode === '3_MONTHS' ? '3 tháng' : 
+                       activeDuration?.durationCode === '6_MONTHS' ? '6 tháng' : 
+                       activeDuration?.durationCode === '1_YEAR' ? '1 năm' : 
+                       activeDuration?.durationCode}
+                  </span>
+                </div>
+                <p className="text-xs mb-6" style={{ color: "#64748b" }}>Gia hạn hàng tháng</p>
+
+                {/* Features */}
+                <ul className="space-y-4 flex-1 mb-8">
+                  {premiumBundle.features?.length ? premiumBundle.features.map((f, i) => (
+                    <li key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </div>
+                      <span className="text-[13px] text-slate-300">{f}</span>
+                    </li>
+                  )) : MEMBER_FEATURES.map((f, i) => (
+                    <li key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
+                        <Check className="w-3 h-3" strokeWidth={3} />
+                      </div>
+                      <span className="text-[13px] text-slate-300">{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTAs */}
+                <div className="mt-auto pt-2">
+                  <button 
+                    disabled={isProcessing}
+                    onClick={() => setShowPaymentModal(true)}
+                    className="w-full h-12 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all hover:opacity-90 text-gray-900"
+                    style={{
+                      background: "linear-gradient(90deg, #bef264, #a3e635, #4ade80)",
+                    }}>
+                    <Sparkles className="w-4 h-4" /> Đăng ký Membership →
+                  </button>
+                  <p className="text-[11px] text-center mt-4" style={{ color: "#475569" }}>
+                    Hoàn tiền 100% trong 7 ngày nếu không hài lòng
+                  </p>
+                </div>
+              </div>
             )}
           </div>
 
@@ -440,6 +563,52 @@ export function MembershipPage() {
         </section>
 
       </main>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl p-6 shadow-2xl" style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black text-white">Chọn thanh toán</h3>
+              <button onClick={() => setShowPaymentModal(false)} className="text-slate-400 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              <button 
+                disabled={isProcessing}
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  handlePayment("VNPAY");
+                }}
+                className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{
+                  background: "rgba(255, 255, 255, 0.95)",
+                  color: "#005BAA", // VNPay blue
+                  boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
+                }}>
+                <CreditCard className="w-5 h-5" /> Thanh toán qua VNPay
+              </button>
+
+              <button 
+                disabled={isProcessing}
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  handlePayment("MOMO");
+                }}
+                className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{
+                  background: "#A50064", // MoMo pink
+                  color: "white",
+                  boxShadow: "0 4px 16px rgba(165,0,100,0.3)",
+                }}>
+                <Wallet className="w-5 h-5" /> Thanh toán qua MoMo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

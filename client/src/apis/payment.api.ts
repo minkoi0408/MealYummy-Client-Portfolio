@@ -4,6 +4,6 @@ import type { BaseApiResponse } from '../types/auth.types'; // Reusing BaseApiRe
 import type { PaymentCreateRequest, PaymentCreateResponse } from '../types/payment.types';
 
 export const paymentApi = {
-  createPayment: (data: PaymentCreateRequest, token: string): Promise<AxiosResponse<BaseApiResponse<PaymentCreateResponse>>> =>
-    callAPI('POST', '/payments/create', data, null, { Authorization: `Bearer ${token}` }),
+  createPayment: (data: PaymentCreateRequest): Promise<AxiosResponse<BaseApiResponse<PaymentCreateResponse>>> =>
+    callAPI('POST', '/payments/create', data, null, {}),
 };
