@@ -172,22 +172,6 @@ export function MealDetailPage() {
                         ))}
                     </div>
 
-                    {/* Fitness tip banner */}
-                    <div className="rounded-2xl p-5 flex items-start gap-4"
-                        style={{ background: "rgba(163,230,53,0.04)", border: "1px solid rgba(163,230,53,0.15)" }}>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                            style={{ background: "rgba(163,230,53,0.1)" }}>
-                            <Dumbbell className="w-5 h-5 text-lime-400" />
-                        </div>
-                        <div>
-                            <p className="text-base font-semibold text-lime-400 mb-1">Gợi ý cho người tập gym</p>
-                            <p className="text-sm leading-relaxed" style={{ color: "rgba(241,245,249,0.5)" }}>
-                                Món này cung cấp <strong className="text-white">{nutrition.protein}g protein</strong> — tương đương
-                                ~{Math.round(nutrition.protein / 0.3)}g thịt nạc. Phù hợp cho bữa ăn{" "}
-                                {caloriesNum < 350 ? "trước tập (pre-workout) để tránh nặng bụng." : caloriesNum > 500 ? "sau tập (post-workout) để phục hồi cơ bắp." : "chính trong ngày tập luyện."}
-                            </p>
-                        </div>
-                    </div>
                 </section>
 
                 {/* ── Nguyên liệu ── */}

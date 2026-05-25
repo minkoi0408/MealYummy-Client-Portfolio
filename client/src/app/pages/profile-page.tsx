@@ -1,6 +1,6 @@
 
 
-import {Check,Settings,Lock,Bell,Shield,LogOut,Edit2,Mail,Calendar,Trophy,Rocket,User,Crown,Star,Sparkles,ArrowRight,TrendingUp,} from "lucide-react";
+import { Check, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Trophy, Rocket, User, Crown, Star, Sparkles, ArrowRight, TrendingUp, } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from "html-to-image";
@@ -202,62 +202,62 @@ function PricingCards() {
 
       {/* Membership card */}
       {premiumBundle ? (
-      <div className="relative rounded-2xl p-5 flex flex-col"
-        style={{ background: "rgba(163,230,53,0.05)", border: "2px solid rgba(163,230,53,0.3)", boxShadow: "0 0 28px rgba(163,230,53,0.1)" }}>
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <div className="px-3 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 text-gray-900"
-            style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)" }}>
-            <Star className="w-2.5 h-2.5 fill-current" /> Phổ biến
+        <div className="relative rounded-2xl p-5 flex flex-col"
+          style={{ background: "rgba(163,230,53,0.05)", border: "2px solid rgba(163,230,53,0.3)", boxShadow: "0 0 28px rgba(163,230,53,0.1)" }}>
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+            <div className="px-3 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 text-gray-900"
+              style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)" }}>
+              <Star className="w-2.5 h-2.5 fill-current" /> Phổ biến
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 mb-3 mt-1">
-          <span className="text-3xl">🥇</span>
-          <div>
-            <div className="font-black text-white text-lg">{premiumBundle.name}</div>
-            <div className="text-[10px] uppercase tracking-widest" style={{ color: "#a3e635" }}>Gymer Pro</div>
+          <div className="flex items-center gap-2 mb-3 mt-1">
+            <span className="text-3xl">🥇</span>
+            <div>
+              <div className="font-black text-white text-lg">{premiumBundle.name}</div>
+              <div className="text-[10px] uppercase tracking-widest" style={{ color: "#a3e635" }}>Gymer Pro</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-base font-black" style={{ color: "#a3e635" }}>{activeDuration ? formatPrice(activeDuration.price) : "Liên hệ"}</div>
+              <div className="text-[10px]" style={{ color: "#64748b" }}>{activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</div>
+            </div>
           </div>
-          <div className="ml-auto text-right">
-            <div className="text-base font-black" style={{ color: "#a3e635" }}>{activeDuration ? formatPrice(activeDuration.price) : "Liên hệ"}</div>
-            <div className="text-[10px]" style={{ color: "#64748b" }}>{activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</div>
+          {/* Tier pills */}
+          <div className="flex gap-1.5 mb-3">
+            {premiumBundle.durations?.map((t) => (
+              <button key={t.durationCode} onClick={() => setTier(t.durationCode)}
+                className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                style={{
+                  background: tier === t.durationCode ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${tier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
+                  color: tier === t.durationCode ? "#a3e635" : "#64748b",
+                }}>
+                {t.durationCode.replace("_", " ")}
+                {t.originalPrice && <div className="text-[8px]" style={{ color: "#a3e635" }}>Tiết kiệm {formatPrice(t.originalPrice - t.price)}</div>}
+              </button>
+            ))}
           </div>
+          <ul className="space-y-2 flex-1 mb-4">
+            {premiumBundle.features?.length ? premiumBundle.features.map((p) => (
+              <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(163,230,53,0.2)" }}>
+                  <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
+                </div>{p}
+              </li>
+            )) : MEM_PERKS.map((p) => (
+              <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(163,230,53,0.2)" }}>
+                  <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
+                </div>{p}
+              </li>
+            ))}
+          </ul>
+          <Link to="/membership" className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
+            style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
+            Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        {/* Tier pills */}
-        <div className="flex gap-1.5 mb-3">
-          {premiumBundle.durations?.map((t) => (
-            <button key={t.durationCode} onClick={() => setTier(t.durationCode)}
-              className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-              style={{
-                background: tier === t.durationCode ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${tier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
-                color: tier === t.durationCode ? "#a3e635" : "#64748b",
-              }}>
-              {t.durationCode.replace("_", " ")}
-              {t.originalPrice && <div className="text-[8px]" style={{ color: "#a3e635" }}>Tiết kiệm {formatPrice(t.originalPrice - t.price)}</div>}
-            </button>
-          ))}
-        </div>
-        <ul className="space-y-2 flex-1 mb-4">
-          {premiumBundle.features?.length ? premiumBundle.features.map((p) => (
-            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
-              <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(163,230,53,0.2)" }}>
-                <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
-              </div>{p}
-            </li>
-          )) : MEM_PERKS.map((p) => (
-            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
-              <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(163,230,53,0.2)" }}>
-                <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
-              </div>{p}
-            </li>
-          ))}
-        </ul>
-        <Link to="/membership" className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
-          style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
-          Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
       ) : null}
     </div>
   );
@@ -552,7 +552,7 @@ export function ProfilePage() {
 
   const handleLogout = async () => {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    
+
     if (token) {
       try {
         const { authApi } = await import("../../apis/auth.api");
@@ -698,18 +698,6 @@ export function ProfilePage() {
                       <div className="text-[10px]" style={{ color: "#64748b" }}>{s.label}</div>
                     </div>
                   ))}
-                </div>
-
-                {/* Contact info */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
-                    <Mail className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                    <span className="truncate">{profile.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
-                    <Calendar className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                    <span>Tham gia: 15/02/2026</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1157,27 +1145,6 @@ export function ProfilePage() {
             {/* Free vs Membership cards */}
             <PricingCards />
 
-            {/* Guarantee */}
-            <div className="rounded-2xl p-5" style={{ background: "rgba(163,230,53,0.04)", border: "1px solid rgba(163,230,53,0.15)" }}>
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-                  style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
-                  <Trophy className="w-5 h-5 text-gray-900" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white mb-1">Đảm bảo hoàn tiền trong 7 ngày</h3>
-                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>Không hài lòng? Chúng tôi hoàn lại 100% chi phí, không cần lý do.</p>
-                  <div className="flex flex-wrap gap-2">
-                    {["Thanh toán an toàn", "Hủy bất kỳ lúc nào", "Không ràng buộc"].map((b) => (
-                      <span key={b} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                        <Check className="w-3 h-3" /> {b}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>

@@ -101,7 +101,7 @@ export function MembershipPage() {
   const { user, login } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
-  
+
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -144,7 +144,7 @@ export function MembershipPage() {
             setTimeout(() => {
               subscriptionApi.getCurrentSubscription()
                 .then(r => { if (r.data?.data) setSubscription(r.data.data); })
-                .catch(() => {});
+                .catch(() => { });
             }, 500);
           }
         }).catch(err => console.error("Auto refresh token thất bại:", err));
@@ -201,7 +201,7 @@ export function MembershipPage() {
         durationCode: selectedTier,
         paymentMethod: method
       });
-      
+
       if (res.data?.data?.paymentUrl) {
         toast.success("Chuyển hướng...", { id: toastId });
         window.location.href = res.data.data.paymentUrl;
@@ -317,15 +317,15 @@ export function MembershipPage() {
                   boxShadow: "0 10px 40px rgba(163,230,53,0.15)",
                 }}>
                 <div className="absolute top-0 left-0 w-full h-1" style={{ background: "linear-gradient(90deg,#a3e635,#4ade80)" }}></div>
-                
+
                 <div className="w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-2xl"
                   style={{ background: "rgba(163,230,53,0.1)", border: "2px solid rgba(163,230,53,0.4)" }}>
                   <Crown className="w-10 h-10" style={{ color: "#a3e635" }} />
                 </div>
-                
+
                 <h2 className="text-3xl font-black text-white mb-2">Thành Viên VIP</h2>
                 <p className="text-sm mb-8" style={{ color: "#94a3b8" }}>Bạn đang tận hưởng toàn bộ đặc quyền cao cấp của MealYummy.</p>
-                
+
                 <div className="w-full rounded-2xl p-5 mb-8" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-sm font-semibold" style={{ color: "#cbd5e1" }}>Thời hạn còn lại</span>
@@ -404,11 +404,11 @@ export function MembershipPage() {
                         )}
                         <div className={`text-xs font-bold mb-1 ${isSelected ? "text-lime-300" : "text-white"}`}>{displayName}</div>
                         <div className="text-[13px] font-black text-white mb-1">{vnd(t.price)}</div>
-                        
+
                         {t.originalPrice && (
-                           <div className="text-[9px]" style={{ color: isSelected ? "#a3e635" : "#94a3b8" }}>
-                              Tiết kiệm {vnd(t.originalPrice - t.price)}
-                           </div>
+                          <div className="text-[9px]" style={{ color: isSelected ? "#a3e635" : "#94a3b8" }}>
+                            Tiết kiệm {vnd(t.originalPrice - t.price)}
+                          </div>
                         )}
                       </button>
                     );
@@ -419,11 +419,11 @@ export function MembershipPage() {
                 <div className="flex items-end gap-2 mb-2">
                   <span className="text-4xl font-black text-lime-300">{activeDuration ? vnd(activeDuration.price) : "Liên hệ"}</span>
                   <span className="text-sm font-medium mb-1.5" style={{ color: "#64748b" }}>
-                    / {activeDuration?.durationCode === '1_MONTH' ? '1 tháng' : 
-                       activeDuration?.durationCode === '3_MONTHS' ? '3 tháng' : 
-                       activeDuration?.durationCode === '6_MONTHS' ? '6 tháng' : 
-                       activeDuration?.durationCode === '1_YEAR' ? '1 năm' : 
-                       activeDuration?.durationCode}
+                    / {activeDuration?.durationCode === '1_MONTH' ? '1 tháng' :
+                      activeDuration?.durationCode === '3_MONTHS' ? '3 tháng' :
+                        activeDuration?.durationCode === '6_MONTHS' ? '6 tháng' :
+                          activeDuration?.durationCode === '1_YEAR' ? '1 năm' :
+                            activeDuration?.durationCode}
                   </span>
                 </div>
                 <p className="text-xs mb-6" style={{ color: "#64748b" }}>Gia hạn hàng tháng</p>
@@ -451,7 +451,7 @@ export function MembershipPage() {
 
                 {/* CTAs */}
                 <div className="mt-auto pt-2">
-                  <button 
+                  <button
                     disabled={isProcessing}
                     onClick={() => setShowPaymentModal(true)}
                     className="w-full h-12 rounded-xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all hover:opacity-90 text-gray-900"
@@ -466,42 +466,6 @@ export function MembershipPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Feature comparison table */}
-          <div className="mt-6 rounded-2xl overflow-hidden"
-            style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
-            <div className="grid grid-cols-3 text-xs font-bold uppercase tracking-widest px-5 py-3"
-              style={{ color: "#64748b", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="col-span-1">Tính năng</div>
-              <div className="text-center">Free</div>
-              <div className="text-center" style={{ color: "#a3e635" }}>Membership</div>
-            </div>
-            {[
-              { label: "AI gợi ý món ăn", free: true, member: true },
-              { label: "Thư viện 500+ món Fitness", free: true, member: true },
-              { label: "Xếp hạng & yêu thích", free: true, member: true },
-              { label: "Tính chỉ số BMI", free: false, member: true },
-              { label: "Thực đơn cá nhân hoá", free: false, member: true },
-              { label: "Tính dinh dưỡng tự động", free: false, member: true },
-              { label: "Danh sách nguyên liệu AI", free: false, member: true },
-              { label: "Mua sắm thực phẩm online", free: false, member: true },
-            ].map((row, i) => (
-              <div key={i} className={`grid grid-cols-3 px-5 py-3 text-sm ${i % 2 === 0 ? "" : ""}`}
-                style={{ borderBottom: i < 7 ? "1px solid rgba(255,255,255,0.04)" : "none" }}>
-                <div style={{ color: "#94a3b8" }}>{row.label}</div>
-                <div className="flex justify-center">
-                  {row.free
-                    ? <Check className="w-4 h-4" style={{ color: "#94a3b8" }} />
-                    : <X className="w-4 h-4" style={{ color: "#334155" }} />}
-                </div>
-                <div className="flex justify-center">
-                  {row.member
-                    ? <Check className="w-4 h-4" style={{ color: "#a3e635" }} />
-                    : <X className="w-4 h-4" style={{ color: "#334155" }} />}
-                </div>
-              </div>
-            ))}
           </div>
         </section>
 
@@ -523,31 +487,6 @@ export function MembershipPage() {
                 <p className="text-xs leading-relaxed" style={{ color: "#64748b" }}>{h.desc}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* ── Guarantee ────────────────────────────────────────────────── */}
-        <section>
-          <div className="rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6"
-            style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.15)" }}>
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl"
-              style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", boxShadow: "0 0 24px rgba(163,230,53,0.3)" }}>
-              <Trophy className="w-8 h-8 text-gray-900" />
-            </div>
-            <div className="flex-1 text-center sm:text-left">
-              <h3 className="text-xl font-black text-white mb-1">Đảm bảo hoàn tiền trong 7 ngày</h3>
-              <p className="text-sm mb-4" style={{ color: "#64748b" }}>
-                Không hài lòng? Chúng tôi hoàn lại 100% chi phí, không cần lý do.
-              </p>
-              <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                {["Thanh toán an toàn 🔒", "Hủy bất kỳ lúc nào", "Không ràng buộc hợp đồng"].map((b) => (
-                  <span key={b} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold"
-                    style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
-                    <Check className="w-3 h-3" /> {b}
-                  </span>
-                ))}
-              </div>
-            </div>
           </div>
         </section>
 
@@ -574,9 +513,9 @@ export function MembershipPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-3">
-              <button 
+              <button
                 disabled={isProcessing}
                 onClick={() => {
                   setShowPaymentModal(false);
@@ -591,7 +530,7 @@ export function MembershipPage() {
                 <CreditCard className="w-5 h-5" /> Thanh toán qua VNPay
               </button>
 
-              <button 
+              <button
                 disabled={isProcessing}
                 onClick={() => {
                   setShowPaymentModal(false);

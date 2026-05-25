@@ -83,25 +83,25 @@ function useTiltCard(strength = 10) {
 // ─── Chat Message Formatter ──────────────────────────────────────────────────
 function formatChatMessage(text: string) {
   let html = text;
-  
+
   // 1. Convert markdown images to tokens
   html = html.replace(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, '###IMG:$1|$2###');
-  
+
   // 2. Convert markdown links that point to images (Cloudinary/Unsplash) to tokens
   html = html.replace(/\[(.*?)\]\(((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s)]+)\)/g, '###IMG:$1|$2###');
-  
+
   // 3. Convert plain Cloudinary or Unsplash URLs to tokens
   html = html.replace(/((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s<)]+)/g, '###IMG:Meal Image|$1###');
-  
+
   // 4. Restore tokens to img HTML
   html = html.replace(/###IMG:(.*?)\|(https?:\/\/[^\s]+)###/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>');
-  
+
   // 5. Bold text
   html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
-  
+
   // 6. Line breaks
   html = html.replace(/\n/g, '<br/>');
-  
+
   return html;
 }
 
@@ -116,7 +116,7 @@ export function MainAppPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(4);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  
+
   useEffect(() => {
     // DB là nguồn sự thật duy nhất - load từ DB khi khởi động
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
@@ -124,13 +124,13 @@ export function MainAppPage() {
       fetch("http://localhost:8082/api/v1/ai/knowledge/chat/history", {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.data && Array.isArray(data.data)) {
-          setChatHistory(data.data);
-        }
-      })
-      .catch(console.error);
+        .then(res => res.json())
+        .then(data => {
+          if (data.data && Array.isArray(data.data)) {
+            setChatHistory(data.data);
+          }
+        })
+        .catch(console.error);
     } else {
       // Guest: dùng localStorage
       const saved = localStorage.getItem("ai_chat_history");
@@ -191,7 +191,7 @@ export function MainAppPage() {
 
   async function handleSubmit() {
     if (!prompt.trim() && activeTags.size === 0) return;
-    
+
     // 1. Lọc món ăn từ dữ liệu local
     setResults(computeResults());
     setSubmitted(true);
@@ -204,7 +204,7 @@ export function MainAppPage() {
       const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: question }];
       setChatHistory(newHistory);
       setIsAiLoading(true);
-      
+
       try {
         const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
         const headers: HeadersInit = { 'Content-Type': 'application/json' };
@@ -250,12 +250,12 @@ export function MainAppPage() {
     const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: q }];
     setChatHistory(newHistory);
     setIsAiLoading(true);
-    
+
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
-    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, { 
+    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ question: q, history: chatHistory })
@@ -318,7 +318,7 @@ export function MainAppPage() {
           {/* ── AI Search Input ────────────────────────────────────────────── */}
           <div className="mb-4">
             <div
-              className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all"
+              className="flex items-center gap-3 rounded-2xl px-4 py-2 transition-all"
               style={{
                 background: "rgba(26,31,46,0.9)",
                 border: isTyping
@@ -331,7 +331,7 @@ export function MainAppPage() {
             >
               {/* Icon */}
               <div
-                className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
+                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(163,230,53,0.15)" }}
               >
                 <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
@@ -346,14 +346,14 @@ export function MainAppPage() {
                 onBlur={() => setIsTyping(false)}
                 placeholder="Ví dụ: Món giàu protein ít béo, dưới 30 phút..."
                 rows={1}
-                className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed min-h-[28px] max-h-[120px] py-0.5"
+                className="flex-1 bg-transparent resize-none outline-none text-sm leading-normal py-2 max-h-[120px]"
                 style={{ color: "#f1f5f9" }}
               />
 
               {prompt && (
                 <button
                   onClick={() => setPrompt("")}
-                  className="flex-shrink-0 mb-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
                   style={{ background: "rgba(255,255,255,0.08)" }}
                 >
                   <X className="w-3.5 h-3.5 text-slate-400" />
@@ -363,7 +363,7 @@ export function MainAppPage() {
               <button
                 onClick={handleSubmit}
                 disabled={!prompt.trim() && activeTags.size === 0}
-                className="flex-shrink-0 mb-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
               >
                 <ArrowUp className="w-4 h-4 text-gray-900" />
@@ -601,11 +601,11 @@ export function MainAppPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className={`text-xs sm:text-sm font-bold mb-1.5 flex items-center gap-2 ${msg.role === 'model' ? 'text-lime-400' : 'text-slate-300'}`}>
-                            {msg.role === 'model' ? 'Bác Sĩ MealYummy' : 'Bạn đã hỏi:'}
+                            {msg.role === 'model' ? 'MealYummy' : 'Bạn đã hỏi:'}
                           </h3>
-                          <div 
+                          <div
                             className="text-sm leading-relaxed text-slate-200"
-                            dangerouslySetInnerHTML={{ 
+                            dangerouslySetInnerHTML={{
                               __html: formatChatMessage(msg.content)
                             }}
                           />
@@ -613,7 +613,7 @@ export function MainAppPage() {
                       </div>
                     </motion.div>
                   ))}
-                  
+
                   {isAiLoading && (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
@@ -631,7 +631,7 @@ export function MainAppPage() {
                         </div>
                         <div className="flex-1">
                           <h3 className="text-xs sm:text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
-                            Bác Sĩ MealYummy
+                            MealYummy
                             <span className="flex gap-1 ml-1">
                               <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
                               <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
