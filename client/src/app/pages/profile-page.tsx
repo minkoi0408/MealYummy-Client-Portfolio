@@ -143,9 +143,33 @@ const PROFILE_TIERS = [
 const FREE_PERKS = ["AI gợi ý món ăn theo khẩu vị", "Thư viện 500+ món Fitness", "Xếp hạng & yêu thích"];
 const MEM_PERKS = ["Tính chỉ số BMI & sức khoẻ", "Thực đơn cá nhân hoá từng ngày", "Dinh dưỡng tự động", "Danh sách nguyên liệu AI", "Mua sắm thực phẩm online"];
 
+import { bundleApi } from "../../apis/bundle.api";
+import type { Bundle } from "../../types/bundle.types";
+
 function PricingCards() {
-  const [tier, setTier] = useState("monthly");
-  const active = PROFILE_TIERS.find((t) => t.id === tier)!;
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [tier, setTier] = useState<string>("");
+
+  useEffect(() => {
+    bundleApi.getAllActiveBundles()
+      .then(res => {
+        if (res.data?.data) {
+          setBundles(res.data.data);
+          const premium = res.data.data.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+          if (premium && premium.durations && premium.durations.length > 0) {
+            setTier(premium.durations[0].durationCode);
+          }
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const freeBundle = bundles.find(b => b.name.toLowerCase().includes("free") || (b.durations && b.durations.length > 0 && b.durations[0].price === 0));
+  const premiumBundle = bundles.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+  const activeDuration = premiumBundle?.durations?.find(d => d.durationCode === tier) || premiumBundle?.durations?.[0];
+
+  const formatPrice = (n: number) => n.toLocaleString("vi-VN") + "đ";
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Free card */}
@@ -154,13 +178,17 @@ function PricingCards() {
         <div className="flex items-center gap-2 mb-4">
           <span className="text-3xl">🥉</span>
           <div>
-            <div className="font-black text-white text-lg">Free</div>
+            <div className="font-black text-white text-lg">{freeBundle?.name || "Free"}</div>
             <div className="text-[10px] uppercase tracking-widest" style={{ color: "#64748b" }}>Người trải nghiệm</div>
           </div>
           <div className="ml-auto text-sm font-black" style={{ color: "#94a3b8" }}>0đ</div>
         </div>
         <ul className="space-y-2 flex-1 mb-4">
-          {FREE_PERKS.map((p) => (
+          {freeBundle?.features?.length ? freeBundle.features.map((p) => (
+            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#94a3b8" }}>
+              <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#64748b" }} />{p}
+            </li>
+          )) : FREE_PERKS.map((p) => (
             <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#94a3b8" }}>
               <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#64748b" }} />{p}
             </li>
@@ -173,6 +201,7 @@ function PricingCards() {
       </div>
 
       {/* Membership card */}
+      {premiumBundle ? (
       <div className="relative rounded-2xl p-5 flex flex-col"
         style={{ background: "rgba(163,230,53,0.05)", border: "2px solid rgba(163,230,53,0.3)", boxShadow: "0 0 28px rgba(163,230,53,0.1)" }}>
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -184,31 +213,38 @@ function PricingCards() {
         <div className="flex items-center gap-2 mb-3 mt-1">
           <span className="text-3xl">🥇</span>
           <div>
-            <div className="font-black text-white text-lg">Membership</div>
+            <div className="font-black text-white text-lg">{premiumBundle.name}</div>
             <div className="text-[10px] uppercase tracking-widest" style={{ color: "#a3e635" }}>Gymer Pro</div>
           </div>
           <div className="ml-auto text-right">
-            <div className="text-base font-black" style={{ color: "#a3e635" }}>{active.price}</div>
-            <div className="text-[10px]" style={{ color: "#64748b" }}>{active.label.toLowerCase()}</div>
+            <div className="text-base font-black" style={{ color: "#a3e635" }}>{activeDuration ? formatPrice(activeDuration.price) : "Liên hệ"}</div>
+            <div className="text-[10px]" style={{ color: "#64748b" }}>{activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</div>
           </div>
         </div>
         {/* Tier pills */}
         <div className="flex gap-1.5 mb-3">
-          {PROFILE_TIERS.map((t) => (
-            <button key={t.id} onClick={() => setTier(t.id)}
+          {premiumBundle.durations?.map((t) => (
+            <button key={t.durationCode} onClick={() => setTier(t.durationCode)}
               className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
               style={{
-                background: tier === t.id ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${tier === t.id ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
-                color: tier === t.id ? "#a3e635" : "#64748b",
+                background: tier === t.durationCode ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
+                border: `1px solid ${tier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
+                color: tier === t.durationCode ? "#a3e635" : "#64748b",
               }}>
-              {t.label}
-              {t.saving && <div className="text-[8px]" style={{ color: "#a3e635" }}>{t.saving}</div>}
+              {t.durationCode.replace("_", " ")}
+              {t.originalPrice && <div className="text-[8px]" style={{ color: "#a3e635" }}>Tiết kiệm {formatPrice(t.originalPrice - t.price)}</div>}
             </button>
           ))}
         </div>
         <ul className="space-y-2 flex-1 mb-4">
-          {MEM_PERKS.map((p) => (
+          {premiumBundle.features?.length ? premiumBundle.features.map((p) => (
+            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
+              <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ background: "rgba(163,230,53,0.2)" }}>
+                <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
+              </div>{p}
+            </li>
+          )) : MEM_PERKS.map((p) => (
             <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
               <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(163,230,53,0.2)" }}>
@@ -222,8 +258,10 @@ function PricingCards() {
           Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
+      ) : null}
     </div>
   );
+
 }
 
 
