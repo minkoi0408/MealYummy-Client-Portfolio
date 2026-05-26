@@ -1,6 +1,6 @@
 
 
-import { Check, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Trophy, Rocket, User, Crown, Star, Sparkles, ArrowRight, TrendingUp, } from "lucide-react";
+import { Check, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Trophy, Rocket, User, Crown, Star, Sparkles, ArrowRight, TrendingUp, Flame, Clock } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from "html-to-image";
@@ -18,6 +18,19 @@ import {
 import { Switch } from "../components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/auth-context";
+import { useMealPlan } from "../contexts/meal-plan-context";
+
+function parseDateLabel(dateStr: string) {
+  const today = new Date().toISOString().split("T")[0];
+  if (dateStr === today) return "Hôm nay";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" });
+}
+
+function parseCalories(cal: string): number {
+  const m = cal?.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 0;
+}
 
 type UserMetrics = {
   weight: number;
@@ -291,6 +304,15 @@ export function ProfilePage() {
   const [isExporting, setIsExporting] = useState(false);
   const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
   const { logout, role, user } = useAuth();
+  const { mealPlan } = useMealPlan();
+
+  const byDate: Record<string, typeof mealPlan> = {};
+  mealPlan.forEach((item) => {
+    if (!byDate[item.date]) byDate[item.date] = [];
+    byDate[item.date].push(item);
+  });
+  const dates = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1)).slice(0, 7);
+  const totalMeals = mealPlan.length;
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -747,391 +769,54 @@ export function ProfilePage() {
           {/* ── RIGHT: Nutrition Profile + Pricing Plans ─────────────── */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* Nutrition profile */}
-            <div
-              className="rounded-2xl p-5"
-              style={{
-                background: "rgba(26,31,46,0.9)",
-                border: "1px solid rgba(163,230,53,0.25)",
-              }}
-            >
-              <div className="flex items-center justify-between mb-3">
+            {/* Meal History */}
+            <div className="rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <div
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest"
-                    style={{
-                      background: "rgba(163,230,53,0.08)",
-                      border: "1px solid rgba(163,230,53,0.2)",
-                      color: "#a3e635",
-                    }}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Hồ sơ dinh dưỡng
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest" style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
+                    <Calendar className="w-3.5 h-3.5" /> Lịch sử bữa ăn
                   </div>
-                  <h2 className="text-base sm:text-lg font-black text-white">
-                    Mục tiêu ăn uống của bạn
-                  </h2>
+                  <h2 className="text-base sm:text-lg font-black text-white">Bạn đã ăn gì gần đây?</h2>
+                  <p className="text-sm" style={{ color: "#64748b" }}>Tổng cộng {totalMeals} bữa đã lưu.</p>
                 </div>
               </div>
 
-              {/* Weight / height / age */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {([
-                  { key: "weight" as const, label: "Cân nặng", unit: "kg", min: 30, max: 200 },
-                  { key: "height" as const, label: "Chiều cao", unit: "cm", min: 100, max: 250 },
-                  { key: "age" as const, label: "Tuổi", unit: "tuổi", min: 10, max: 99 },
-                ]).map(({ key, label, unit, min, max }) => (
-                  <div key={key}>
-                    <p
-                      className="text-xs font-semibold mb-1.5"
-                      style={{ color: "#94a3b8" }}
-                    >
-                      {label}
-                    </p>
-                    <div
-                      className="flex items-center rounded-xl overflow-hidden"
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
-                        }
-                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                        style={{ color: "#64748b" }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                        }}
-                      >
-                        −
-                      </button>
-                      <div className="flex-1 text-center">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={(metrics as any)[key]}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            updateMetrics({ [key]: val === "" ? "" : Number(val) });
-                          }}
-                          onBlur={(e) => {
-                            let val = Number(e.target.value) || min;
-                            if (val < min) val = min;
-                            if (val > max) val = max;
-                            updateMetrics({ [key]: val });
-                          }}
-                          className="w-full bg-transparent text-center text-base font-black text-white outline-none"
-                        />
-                        <p className="text-[10px]" style={{ color: "#475569" }}>
-                          {unit}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
-                        }
-                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                        style={{ color: "#64748b" }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Gender + goal row */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <p
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: "#94a3b8" }}
-                  >
-                    Giới tính
-                  </p>
-                  <div className="flex gap-2">
-                    {(["male", "female"] as const).map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => updateMetrics({ gender: g })}
-                        className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                        style={
-                          metrics.gender === g
-                            ? {
-                              background:
-                                "linear-gradient(135deg, #a3e635, #4ade80)",
-                              color: "#0f1117",
-                            }
-                            : {
-                              background: "rgba(255,255,255,0.06)",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                              color: "#64748b",
-                            }
-                        }
-                      >
-                        {g === "male" ? "👨 Nam" : "👩 Nữ"}
-                      </button>
-                    ))}
-                  </div>
+              {dates.length === 0 ? (
+                <div className="rounded-xl p-5 text-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)" }}>
+                  <p className="text-sm mb-3" style={{ color: "#94a3b8" }}>Chưa có dữ liệu bữa ăn. Hãy thêm món trong trang Thực đơn.</p>
+                  <Link to="/roadmap">
+                    <button className="h-9 px-4 rounded-xl text-xs font-bold transition-all hover:scale-105" style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635" }}>
+                      Tới Lộ trình / Thực đơn
+                    </button>
+                  </Link>
                 </div>
-
-                <div>
-                  <p
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: "#94a3b8" }}
-                  >
-                    Mục tiêu
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {([
-                      { value: "cut", label: "Giảm mỡ", color: "#f87171" },
-                      { value: "maintain", label: "Duy trì", color: "#a3e635" },
-                      { value: "bulk", label: "Tăng cơ", color: "#fb923c" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => updateMetrics({ goal: opt.value })}
-                        className="py-2 rounded-xl text-[11px] font-semibold transition-all"
-                        style={
-                          metrics.goal === opt.value
-                            ? {
-                              background: `${opt.color}20`,
-                              color: opt.color,
-                              border: `1px solid ${opt.color}50`,
-                            }
-                            : {
-                              background: "rgba(255,255,255,0.04)",
-                              color: "#64748b",
-                              border: "1px solid rgba(255,255,255,0.08)",
-                            }
-                        }
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Activity Level row */}
-              <div className="mb-4">
-                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>
-                  Mức độ vận động
-                </p>
-                <div className="relative">
-                  <select
-                    value={metrics.activity}
-                    onChange={(e) => updateMetrics({ activity: e.target.value as any })}
-                    className="w-full appearance-none rounded-xl px-4 py-2.5 text-[13px] font-semibold outline-none transition-all cursor-pointer"
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
-                    }}
-                  >
-                    <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, ít tập luyện)</option>
-                    <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập thể dục 1-3 ngày/tuần)</option>
-                    <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập thể dục 3-5 ngày/tuần)</option>
-                    <option value="active" style={{ background: "#0f1117" }}>Vận động nhiều (Tập thể dục 6-7 ngày/tuần)</option>
-                    <option value="very_active" style={{ background: "#0f1117" }}>Rất nhiều (VĐV, lao động tay chân)</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Advanced metrics for cut/bulk */}
-              {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-                <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in zoom-in duration-300">
-                  {([
-                    { key: "bodyFat" as const, label: "% Lượng mỡ (BDF-Ước tính)", unit: "%", min: 3, max: 100 },
-                    { key: "muscleMass" as const, label: "Lượng cơ bắp (Ước tính)", unit: "kg", min: 10, max: 120 },
-                  ]).map(({ key, label, unit, min, max }) => (
-                    <div key={key}>
-                      <p
-                        className="text-xs font-semibold mb-1.5"
-                        style={{ color: "#94a3b8" }}
-                      >
-                        {label}
-                      </p>
-                      <div
-                        className="flex items-center rounded-xl overflow-hidden"
-                        style={{
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
-                          }
-                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                          style={{ color: "#64748b" }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                          }}
-                        >
-                          −
-                        </button>
-                        <div className="flex-1 text-center">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={(metrics as any)[key]}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9]/g, "");
-                              updateMetrics({ [key]: val === "" ? "" : Number(val) });
-                            }}
-                            onBlur={(e) => {
-                              let val = Number(e.target.value) || min;
-                              if (val < min) val = min;
-                              if (val > max) val = max;
-                              updateMetrics({ [key]: val });
-                            }}
-                            className="w-full bg-transparent text-center text-base font-black text-white outline-none"
-                          />
-                          <p className="text-[10px]" style={{ color: "#475569" }}>
-                            {unit}
-                          </p>
+              ) : (
+                <div className="space-y-4">
+                  {dates.map((date) => {
+                    const meals = byDate[date];
+                    const totalCal = meals.reduce((sum, m) => sum + parseCalories(m.recipe.calories), 0);
+                    return (
+                      <div key={date} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs font-semibold uppercase" style={{ color: "#64748b" }}>{parseDateLabel(date)}</p>
+                          <p className="text-xs font-bold" style={{ color: "#a3e635" }}>{meals.length} bữa · {totalCal} kcal</p>
                         </div>
-                        <button
-                          onClick={() =>
-                            updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
-                          }
-                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                          style={{ color: "#64748b" }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                          }}
-                        >
-                          +
-                        </button>
+                        <div className="space-y-1.5">
+                          {meals.map((m) => (
+                            <Link key={m.id} to={`/meal/${m.recipe.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-white truncate">{m.recipe.name}</p>
+                                <div className="flex items-center gap-3 text-[11px] mt-0.5" style={{ color: "#64748b" }}>
+                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {m.recipe.cookTime}</span>
+                                  <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-orange-400" /> {m.recipe.calories}</span>
+                                </div>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Summary */}
-              <div
-                className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3"
-                style={{
-                  background: "rgba(163,230,53,0.06)",
-                  border: "1px solid rgba(163,230,53,0.15)",
-                }}
-              >
-                {[
-                  { label: "BMR", value: targets.bmr, unit: "kcal", color: "#94a3b8" },
-                  { label: "TDEE", value: targets.tdee, unit: "kcal", color: "#fb923c" },
-                  {
-                    label: "Mục tiêu",
-                    value: targets.calories,
-                    unit: "kcal",
-                    color: "#a3e635",
-                  },
-                  {
-                    label: "Protein",
-                    value: targets.protein,
-                    unit: "g",
-                    color: "#4ade80",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <p
-                      className="text-xs mb-0.5"
-                      style={{ color: "#475569" }}
-                    >
-                      {s.label}
-                    </p>
-                    <p
-                      className="text-lg font-black"
-                      style={{ color: s.color }}
-                    >
-                      {s.value.toLocaleString()}
-                      <span
-                        className="text-xs font-normal ml-0.5"
-                        style={{ color: "#475569" }}
-                      >
-                        {s.unit}
-                      </span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-5 flex justify-end gap-3">
-                {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={isExporting}
-                    className="h-10 px-5 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc" }}
-                  >
-                    {isExporting ? "Đang xuất..." : "📄 Xuất InBody (PDF)"}
-                  </button>
-                )}
-                <button
-                  onClick={handleSaveMetrics}
-                  disabled={isSavingMetrics}
-                  className="h-10 px-6 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                  style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}
-                >
-                  {isSavingMetrics ? "Đang lưu..." : "Lưu thay đổi"}
-                </button>
-              </div>
-
-              {/* Metrics History Chart */}
-              {metricsHistory.length > 0 && (
-                <div className="mt-8 pt-6" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
-                  <div className="flex items-center gap-2 mb-6">
-                    <TrendingUp className="w-4 h-4 text-lime-400" />
-                    <h3 className="text-sm font-black text-white">Lịch sử thành phần cấu tạo cơ thể</h3>
-                  </div>
-                  <div id="history-chart" className="h-[280px] w-full bg-[#0f1117] p-2 rounded-xl">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis
-                          dataKey="updatedAt"
-                          tickFormatter={(timeStr) => timeStr ? new Date(timeStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''}
-                          stroke="#475569"
-                          fontSize={11}
-                          tickMargin={12}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => `${v}kg`} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                          labelFormatter={(l) => new Date(l).toLocaleDateString('vi-VN')}
-                        />
-                        <Line yAxisId="left" type="monotone" name="Trọng lượng (kg)" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                        <Line yAxisId="left" type="monotone" name="Cơ bắp (kg)" dataKey="muscleMass" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                        <Line yAxisId="right" type="monotone" name="Mỡ (%)" dataKey="bodyFat" stroke="#f87171" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
