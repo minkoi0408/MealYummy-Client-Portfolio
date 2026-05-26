@@ -154,10 +154,15 @@ function PricingCards() {
     bundleApi.getAllActiveBundles()
       .then(res => {
         if (res.data?.data) {
-          setBundles(res.data.data);
-          const premium = res.data.data.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
-          if (premium && premium.durations && premium.durations.length > 0) {
-            setTier(premium.durations[0].durationCode);
+          const dataPayload = res.data.data as any;
+          const bundleList = Array.isArray(dataPayload) ? dataPayload : (dataPayload.content || []);
+          
+          if (Array.isArray(bundleList)) {
+            setBundles(bundleList);
+            const premium = bundleList.find((b: any) => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+            if (premium && premium.durations && premium.durations.length > 0) {
+              setTier(premium.durations[0].durationCode);
+            }
           }
         }
       })

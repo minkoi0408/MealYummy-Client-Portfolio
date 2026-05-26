@@ -11,9 +11,9 @@ const baseUrl: string = import.meta.env.VITE_API_URL;
 export {
   axiosInstance,
   callAPI,
-//   callAPIWithFormData,
-//   uploadFileAPI,
-//   callAPIForExcel,
+  //   callAPIWithFormData,
+  //   uploadFileAPI,
+  //   callAPIForExcel,
 };
 
 
@@ -63,7 +63,7 @@ axiosInstance.interceptors.response.use(
       // Không retry cho các endpoint auth (tránh vòng lặp vô tận)
       if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
         localStorage.clear(); sessionStorage.clear();
-        window.location.href = '/auth/sign-in';
+        window.location.href = '/login';
         return Promise.reject(error);
       }
 
@@ -84,7 +84,7 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
         localStorage.removeItem("accessToken"); localStorage.removeItem("refreshToken"); localStorage.removeItem("user");
         sessionStorage.removeItem("accessToken"); sessionStorage.removeItem("refreshToken"); sessionStorage.removeItem("user");
-        window.location.href = '/auth/sign-in';
+        window.location.href = '/login';
         return Promise.reject(error);
       }
 
@@ -110,7 +110,7 @@ axiosInstance.interceptors.response.use(
         processQueue(refreshError, null);
         localStorage.removeItem("accessToken"); localStorage.removeItem("refreshToken"); localStorage.removeItem("user");
         sessionStorage.removeItem("accessToken"); sessionStorage.removeItem("refreshToken"); sessionStorage.removeItem("user");
-        window.location.href = '/auth/sign-in';
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

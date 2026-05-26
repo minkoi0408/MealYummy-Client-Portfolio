@@ -15,7 +15,7 @@ export interface PaymentHistory {
 
 export const paymentApi = {
   createPayment: (data: any): Promise<AxiosResponse<BaseApiResponse<any>>> => {
-    return callAPI('POST', '/payments', data);
+    return callAPI('POST', '/payments/create', data);
   },
 
   getAll: (page: number = 0, size: number = 10): Promise<AxiosResponse<BaseApiResponse<Page<PaymentHistory>>>> => {

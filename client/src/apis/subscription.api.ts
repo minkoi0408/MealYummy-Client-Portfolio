@@ -17,6 +17,10 @@ export const subscriptionApi = {
     return callAPI('GET', '/subscriptions/plan');
   },
 
+  getCurrentSubscription: (): Promise<AxiosResponse<BaseApiResponse<UserSubscription>>> => {
+    return callAPI('GET', '/subscriptions/me');
+  },
+
   getAll: (page: number = 0, size: number = 10): Promise<AxiosResponse<BaseApiResponse<Page<UserSubscription>>>> => {
     return callAPI('GET', '/user-subscriptions', null, { page, size });
   },
