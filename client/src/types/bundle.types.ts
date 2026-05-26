@@ -10,6 +10,8 @@ export interface Bundle {
   name: string;
   description: string;
   features: string[];
-  isActive: boolean;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
   durations: BundleDuration[];
 }

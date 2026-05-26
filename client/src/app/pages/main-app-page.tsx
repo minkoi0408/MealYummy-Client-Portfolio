@@ -823,7 +823,7 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
           </div>
 
           {/* CTA */}
-          <Link to={`/meal/${recipe.id}`}>
+          <Link to={`/recipe/${recipe.id}`}>
             <motion.button
               whileHover={{
                 background: "rgba(163,230,53,0.18)",
