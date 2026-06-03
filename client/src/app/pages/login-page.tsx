@@ -22,7 +22,7 @@ const LOGIN_OTP_SIDE_IMG = "https://lh3.googleusercontent.com/aida-public/AB6AXu
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "register" | "otp" | "loading" | "forgot">("login");
+  const [mode, setMode] = useState<"login" | "register" | "otp" | "forgot">("login");
   const [emailForOtp, setEmailForOtp] = useState("");
   const [otpContext, setOtpContext] = useState<"register" | "login">("register");
   const [rememberMeContext, setRememberMeContext] = useState(false);
@@ -170,7 +170,6 @@ export function LoginPage() {
                 >
                   {mode === "otp" && <OtpForm email={emailForOtp} context={otpContext} rememberMe={rememberMeContext} initialMessage={mfaMessage} hasTotp={hasTotpContext} onSuccess={() => {
                     if (otpContext === "login") {
-                      setMode("loading");
                       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
                       let role = "";
                       if (token) {
@@ -179,13 +178,10 @@ export function LoginPage() {
                           role = decoded.role || decoded.Role || "";
                         } catch (e) {}
                       }
-                      if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
-                        navigate("/dashboard", { replace: true });
-                      } else {
-                        setTimeout(() => {
-                          navigate(from === "/login" ? "/home" : from, { replace: true });
-                        }, 2500);
-                      }
+                      const destination = (role === "ROLE_ADMIN" || role === "ROLE_MANAGER")
+                        ? "/admin"
+                        : (from === "/login" ? "/home" : from);
+                      navigate("/loading", { replace: true, state: { destination } });
                     } else {
                       setMode("login");
                     }
@@ -247,42 +243,7 @@ export function LoginPage() {
         </section>
       </main>
 
-      {/* ── FULL SCREEN LOADING OVERLAY ──────────────────────────── */}
-      {mode === "loading" && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-stitch-background animate-in fade-in duration-500">
-          <div className="relative w-24 h-24 mb-6 rounded-2xl flex items-center justify-center shadow-[0_0_50px_rgba(163,230,53,0.3)] bg-[#0f1117] border border-white/5 overflow-hidden animate-in zoom-in duration-500 delay-150">
-            <div className="absolute inset-0 bg-gradient-to-t from-stitch-primary-container/20 to-transparent"></div>
-            <img src="/logo.svg" alt="MealYummy" className="w-16 h-16 object-contain drop-shadow-[0_0_15px_rgba(163,230,53,0.8)] z-10" />
-          </div>
 
-          <h2 className="text-3xl font-black italic tracking-tighter bg-gradient-to-r from-stitch-primary to-stitch-secondary bg-clip-text text-transparent mb-8 drop-shadow-[0_0_15px_rgba(163,230,53,0.4)]">
-            MealYummy
-          </h2>
-
-          <div className="w-full max-w-[240px] space-y-3">
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden relative">
-              <motion.div
-                className="absolute top-0 left-0 h-full bg-gradient-to-r from-stitch-primary-container to-stitch-secondary rounded-full"
-                initial={{ width: "0%" }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 2.2, ease: "easeInOut" }}
-              />
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-stitch-outline">Đang tải dữ liệu dinh dưỡng...</p>
-              <p className="text-[8px] text-stitch-outline/60 mt-1 uppercase tracking-[0.2em]">100% Chính xác</p>
-            </div>
-          </div>
-
-          <div className="absolute bottom-8 flex items-center gap-3 px-4 py-2.5 rounded-xl border border-white/5 bg-white/5">
-            <span className="material-symbols-outlined text-stitch-primary-container text-sm">bolt</span>
-            <div className="text-left">
-              <p className="text-[9px] font-black uppercase text-stitch-primary-container">Precision Mode</p>
-              <p className="text-[7px] text-stitch-outline">Optimizing macro pathways<br />for your performance profile.</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
