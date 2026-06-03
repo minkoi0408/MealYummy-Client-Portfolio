@@ -103,11 +103,10 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
 
       toast.success("Đăng nhập bằng Google thành công!");
       
-      if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
-        navigate("/dashboard", { replace: true });
-      } else {
-        navigate(location.state?.from?.pathname || "/home", { replace: true });
-      }
+      const destination = (role === "ROLE_ADMIN" || role === "ROLE_MANAGER")
+        ? "/admin"
+        : (location.state?.from?.pathname || "/home");
+      navigate("/loading", { replace: true, state: { destination } });
     } catch (error: any) {
       toast.error("Đăng nhập bằng Google thất bại.");
     } finally {
@@ -143,7 +142,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
       if (onSuccess) {
         onSuccess(formData.email, rememberMe, message, hasTotp);
       } else {
-        navigate("/home");
+        navigate("/loading", { replace: true, state: { destination: "/home" } });
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";

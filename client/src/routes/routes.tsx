@@ -23,6 +23,7 @@ import { NotFoundPage } from "../app/pages/not-found-page";
 import { MembershipPage } from "../app/pages/membership-page";
 import { FavoritePage } from "../app/pages/favorite-page";
 import { RoadmapPage } from "../app/pages/roadmap-page";
+import { LoadingSkeletonPage } from "../app/pages/loading-skeleton-page";
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +33,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     Component: LoginPage,
+  },
+  {
+    path: "/loading",
+    Component: LoadingSkeletonPage,
   },
   {
     path: "/home",
