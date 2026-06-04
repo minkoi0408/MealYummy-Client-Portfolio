@@ -16,6 +16,10 @@ export const dataApi = {
     return callAPI('GET', '/data/export/ingredients');
   },
 
+  exportMeals: (): Promise<AxiosResponse<BaseApiResponse<string>>> => {
+    return callAPI('GET', '/data/export/meals');
+  },
+
   // Import APIs
   importCategories: (file: File): Promise<AxiosResponse<BaseApiResponse<string>>> => {
     const formData = new FormData();
@@ -37,6 +41,14 @@ export const dataApi = {
     const formData = new FormData();
     formData.append('file', file);
     return callAPI('POST', '/data/import/upload/ingredients', formData, null, {
+      'Content-Type': 'multipart/form-data',
+    });
+  },
+
+  importMeals: (file: File): Promise<AxiosResponse<BaseApiResponse<string>>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return callAPI('POST', '/data/import/upload/meals', formData, null, {
       'Content-Type': 'multipart/form-data',
     });
   },

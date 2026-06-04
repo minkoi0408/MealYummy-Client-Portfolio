@@ -5,17 +5,17 @@ import {
   RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check, Bot
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
-import { mockRecipes } from "../data/mock-recipes";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
 import { motion, useMotionValue, useSpring, useTransform, useInView } from "motion/react";
 
 import { Select, ConfigProvider, theme } from "antd";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { categoryApi, type Category } from "../../apis/category.api";
 import { tagApi, type Tag } from "../../apis/tag.api";
 import { ingredientApi, type Ingredient } from "../../apis/ingredient.api";
+import { mealApi } from "../../apis/meal.api";
 
 // ─── 3D card tilt hook ────────────────────────────────────────────────────────
 function useTiltCard(strength = 10) {
@@ -92,11 +92,34 @@ export function MainAppPage() {
 
   const [filterOpen, setFilterOpen] = useState(false);
 
+  const { 
+    data: infiniteMealsData, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useInfiniteQuery({
+    queryKey: ['defaultMealsInfinite'],
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await mealApi.getAll(pageParam, 4);
+      return res.data.data;
+    },
+    getNextPageParam: (lastPage) => {
+      const number = lastPage.page !== undefined ? lastPage.page.number : lastPage.number;
+      const totalPages = lastPage.page !== undefined ? lastPage.page.totalPages : lastPage.totalPages;
+      if (number !== undefined && totalPages !== undefined && number < totalPages - 1) {
+        return number + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 0
+  });
+
+  const defaultMeals = infiniteMealsData ? infiniteMealsData.pages.flatMap(p => p.content.map(mapMealResponseToRecipe)) : [];
+
   const [submitted, setSubmitted] = useState(false);
-  const [results, setResults] = useState(mockRecipes);
+  const [results, setResults] = useState<any[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(4);
   const { addFavorite, removeFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -160,7 +183,7 @@ export function MainAppPage() {
     setSelectedTags([]);
     setExcludedIngredients([]);
     setSubmitted(false);
-    setResults(mockRecipes);
+    setResults([]);
   }
 
   const activeCnt = selectedCategories.length + selectedTags.length + excludedIngredients.length + (prompt.trim() ? 1 : 0);
@@ -420,11 +443,11 @@ export function MainAppPage() {
                 </div>
                 <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
                   style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }}>
-                  {Math.min(visibleCount, mockRecipes.length)} món
+                  {defaultMeals.length} món
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {mockRecipes.slice(0, visibleCount).map((r) => (
+                {defaultMeals.map((r: any) => (
                   <RecipeCard
                     key={r.id}
                     recipe={r}
@@ -436,21 +459,22 @@ export function MainAppPage() {
                   />
                 ))}
               </div>
-              {visibleCount < mockRecipes.length && (
+              {hasNextPage && (
                 <div className="flex justify-center mt-6">
                   <button
-                    onClick={() => setVisibleCount((c) => c + 4)}
-                    className="h-11 px-8 rounded-2xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="h-11 px-8 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                     style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
+                    onMouseEnter={(e) => { if (!isFetchingNextPage) (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)"; }}
+                    onMouseLeave={(e) => { if (!isFetchingNextPage) (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
                   >
-                    Xem thêm {Math.min(4, mockRecipes.length - visibleCount)} món ↓
+                    {isFetchingNextPage ? 'Đang tải...' : 'Xem thêm 4 món ↓'}
                   </button>
                 </div>
               )}
-              {visibleCount >= mockRecipes.length && mockRecipes.length > 16 && (
-                <p className="text-center text-xs mt-4" style={{ color: "#475569" }}>— Đã hiển thị tất cả {mockRecipes.length} món —</p>
+              {!hasNextPage && defaultMeals.length > 0 && (
+                <p className="text-center text-xs mt-4" style={{ color: "#475569" }}>— Đã hiển thị tất cả {defaultMeals.length} món —</p>
               )}
             </>
           )}

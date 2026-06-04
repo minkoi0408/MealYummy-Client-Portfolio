@@ -48,8 +48,16 @@ export const mealApi = {
     return callAPI('GET', '/meals', null, { page, size });
   },
 
+  getById: (id: string): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
+    return callAPI('GET', `/meals/${id}`);
+  },
+
   create: (data: MealRequestDTO): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
     return callAPI('POST', '/meals', data);
+  },
+
+  createBulk: (data: MealRequestDTO[]): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO[]>>> => {
+    return callAPI('POST', '/meals/bulk', data);
   },
 
   update: (id: string, data: MealRequestDTO): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {

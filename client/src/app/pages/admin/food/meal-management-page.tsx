@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Input, Space, Tag, Modal, Form, Select, InputNumber, message, Upload, Image, Popconfirm, Row, Col } from "antd";
-import { Plus, Search, Edit2, Trash2, ShieldAlert, Upload as UploadIcon, MinusCircle } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, ShieldAlert, Upload as UploadIcon, MinusCircle, FileJson, Download } from "lucide-react";
 import { mealApi, type MealResponseDTO, type MealRequestDTO } from "../../../../apis/meal.api";
 import { categoryApi, type Category } from "../../../../apis/category.api";
 import { tagApi, type Tag as TagType } from "../../../../apis/tag.api";
 import { ingredientApi, type Ingredient } from "../../../../apis/ingredient.api";
+import { dataApi } from "../../../../apis/data.api";
 
 export function MealManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,28 @@ export function MealManagementPage() {
   
   const [form] = Form.useForm();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleExport = async () => {
+    try {
+      await dataApi.exportMeals();
+      message.success("Xuất dữ liệu thành công! File đã được lưu trên máy chủ (resources/json).");
+    } catch (err) {
+      message.error("Lỗi khi xuất dữ liệu.");
+    }
+  };
+
+  const customUploadRequest = async (options: any) => {
+    const { file, onSuccess, onError } = options;
+    try {
+      await dataApi.importMeals(file as File);
+      message.success("Import dữ liệu thành công!");
+      fetchData(currentPage, pageSize);
+      onSuccess?.("ok");
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi khi import dữ liệu.");
+      onError?.(err);
+    }
+  };
 
   const fetchData = async (page: number, size: number) => {
     setLoading(true);
@@ -255,18 +278,35 @@ export function MealManagementPage() {
           <h2 className="text-xl font-bold text-gray-800">Món ăn</h2>
           <p className="text-sm text-gray-500 mt-1">Quản lý danh sách món ăn, giá và thành phần nguyên liệu.</p>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus className="w-4 h-4" />}
-          className="bg-[#10B981] hover:bg-[#059669] h-10 px-6 rounded-lg font-medium shadow-md shadow-[#10B981]/20"
-          onClick={() => {
-            setEditingId(null);
-            form.resetFields();
-            setIsModalOpen(true);
-          }}
-        >
-          Thêm món ăn
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            icon={<Download className="w-4 h-4" />}
+            className="h-10 px-4 rounded-lg font-medium border-gray-200 text-gray-700 hover:text-blue-600 hover:border-blue-400"
+            onClick={handleExport}
+          >
+            Export JSON
+          </Button>
+          <Upload customRequest={customUploadRequest} showUploadList={false} accept=".json">
+            <Button
+              icon={<UploadIcon className="w-4 h-4" />}
+              className="h-10 px-4 rounded-lg font-medium border-gray-200 text-gray-700 hover:text-orange-600 hover:border-orange-400"
+            >
+              Import JSON
+            </Button>
+          </Upload>
+          <Button
+            type="primary"
+            icon={<Plus className="w-4 h-4" />}
+            className="bg-[#10B981] hover:bg-[#059669] h-10 px-6 rounded-lg font-medium shadow-md shadow-[#10B981]/20 ml-2"
+            onClick={() => {
+              setEditingId(null);
+              form.resetFields();
+              setIsModalOpen(true);
+            }}
+          >
+            Thêm món ăn
+          </Button>
+        </div>
       </div>
 
       <div className="flex mb-6">
