@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, Space, Tag, Modal, Form, message } from "antd";
-import { Plus, Search, Edit2, Trash2, ShieldAlert } from "lucide-react";
+import { Table, Button, Input, Space, Tag, Modal, Form, message, Upload, Select, Popconfirm } from "antd";
+import { Plus, Search, Edit2, Trash2, ShieldAlert, Download, Upload as UploadIcon } from "lucide-react";
 import { ingredientApi, type Ingredient } from "../../../../apis/ingredient.api";
+import { dataApi } from "../../../../apis/data.api";
 
 export function IngredientManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<{name: string, active: boolean}>({name: "", active: true});
+  const [bulkIngredients, setBulkIngredients] = useState<{ name: string }[]>([{ name: '' }]);
   const [data, setData] = useState<Ingredient[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,16 +39,77 @@ export function IngredientManagementPage() {
     fetchIngredients(currentPage, pageSize);
   }, [currentPage, pageSize]);
 
+  const handleExport = async () => {
+    try {
+      await dataApi.exportIngredients();
+      message.success("Xuất dữ liệu thành công! File đã được lưu trên máy chủ (resources/json).");
+    } catch (err) {
+      message.error("Lỗi khi xuất dữ liệu.");
+    }
+  };
+
+  const customUploadRequest = async (options: any) => {
+    const { file, onSuccess, onError } = options;
+    try {
+      await dataApi.importIngredients(file as File);
+      message.success("Import dữ liệu thành công!");
+      fetchIngredients(currentPage, pageSize); // reload data
+      onSuccess?.("ok");
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi khi import dữ liệu.");
+      onError?.(err);
+    }
+  };
+
+  const handleBulkSave = async () => {
+    try {
+      const validData = bulkIngredients.filter(c => c.name.trim() !== '');
+      if (validData.length === 0) {
+        message.error("Vui lòng nhập ít nhất 1 nguyên liệu hợp lệ.");
+        return;
+      }
+      await ingredientApi.createBulk(validData as any);
+      message.success("Lưu dữ liệu thành công!");
+      setIsModalOpen(false);
+      setBulkIngredients([{ name: '' }]);
+      fetchIngredients(currentPage, pageSize);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi khi lưu dữ liệu.");
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editingId) return;
+    try {
+      if (!editData.name.trim()) {
+        message.error("Vui lòng nhập tên nguyên liệu.");
+        return;
+      }
+      await ingredientApi.update(editingId, { 
+        name: editData.name, 
+        active: editData.active
+      });
+      message.success("Cập nhật nguyên liệu thành công!");
+      setIsEditModalOpen(false);
+      fetchIngredients(currentPage, pageSize);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi khi cập nhật.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await ingredientApi.delete(id);
+      message.success("Xóa nguyên liệu thành công!");
+      fetchIngredients(currentPage, pageSize);
+    } catch (err: any) {
+      message.error(err.response?.data?.message || "Lỗi khi xóa.");
+    }
+  };
+
   const columns = [
-    { title: 'Tên nguyên liệu', dataIndex: 'name', key: 'name', width: '20%' },
-    { title: 'Mô tả', dataIndex: 'description', key: 'description' },
-    { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: '15%' },
-    {
-      title: 'Lượng Calo',
-      dataIndex: 'calories',
-      key: 'calories',
-      render: (val: number, record: any) => <span className="font-medium text-orange-500">{val || 0} kcal / {record.unit || '-'}</span>
-    },
+    { title: 'Tên nguyên liệu', dataIndex: 'name', key: 'name', width: '30%' },
+    { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: '20%' },
     {
       title: 'Trạng thái',
       dataIndex: 'active',
@@ -59,10 +125,31 @@ export function IngredientManagementPage() {
       title: 'Thao tác',
       key: 'action',
       width: '15%',
-      render: () => (
+      render: (_, record: Ingredient) => (
         <Space size="middle">
-          <Button type="text" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" icon={<Edit2 className="w-4 h-4" />} />
-          <Button type="text" danger className="hover:bg-red-50" icon={<Trash2 className="w-4 h-4" />} />
+          <Button 
+            type="text" 
+            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" 
+            icon={<Edit2 className="w-4 h-4" />} 
+            onClick={() => {
+               setEditingId(record.id);
+               setEditData({ 
+                 name: record.name, 
+                 active: record.active ?? true
+               });
+               setIsEditModalOpen(true);
+            }}
+          />
+          <Popconfirm
+            title="Xóa nguyên liệu này?"
+            description="Bạn có chắc chắn muốn xóa nguyên liệu này không? Hành động này không thể hoàn tác."
+            onConfirm={() => handleDelete(record.id)}
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+          >
+            <Button type="text" danger className="hover:bg-red-50" icon={<Trash2 className="w-4 h-4" />} />
+          </Popconfirm>
         </Space>
       ),
     },
@@ -89,14 +176,31 @@ export function IngredientManagementPage() {
           <h2 className="text-xl font-bold text-gray-800">Nguyên liệu</h2>
           <p className="text-sm text-gray-500 mt-1">Quản lý kho nguyên liệu và thành phần dinh dưỡng.</p>
         </div>
-        <Button
-          type="primary"
-          icon={<Plus className="w-4 h-4" />}
-          className="bg-[#10B981] hover:bg-[#059669] h-10 px-6 rounded-lg font-medium shadow-md shadow-[#10B981]/20"
-          onClick={() => setIsModalOpen(true)}
-        >
-          Thêm nguyên liệu
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            icon={<Download className="w-4 h-4" />}
+            className="h-10 px-4 rounded-lg font-medium border-gray-200 text-gray-700 hover:text-blue-600 hover:border-blue-400"
+            onClick={handleExport}
+          >
+            Export JSON
+          </Button>
+          <Upload customRequest={customUploadRequest} showUploadList={false} accept=".json">
+            <Button
+              icon={<UploadIcon className="w-4 h-4" />}
+              className="h-10 px-4 rounded-lg font-medium border-gray-200 text-gray-700 hover:text-orange-600 hover:border-orange-400"
+            >
+              Import JSON
+            </Button>
+          </Upload>
+          <Button
+            type="primary"
+            icon={<Plus className="w-4 h-4" />}
+            className="bg-[#10B981] hover:bg-[#059669] h-10 px-6 rounded-lg font-medium shadow-md shadow-[#10B981]/20 ml-2"
+            onClick={() => setIsModalOpen(true)}
+          >
+            Thêm nguyên liệu
+          </Button>
+        </div>
       </div>
 
       <div className="flex mb-6">
@@ -127,25 +231,86 @@ export function IngredientManagementPage() {
       <Modal
         title="Thêm nguyên liệu mới"
         open={isModalOpen}
-        onOk={() => setIsModalOpen(false)}
-        onCancel={() => setIsModalOpen(false)}
+        onOk={handleBulkSave}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setBulkIngredients([{ name: '' }]);
+        }}
         okButtonProps={{ className: "bg-[#10B981] hover:bg-[#059669]" }}
-        okText="Lưu"
+        okText="Lưu dữ liệu"
+        cancelText="Hủy"
+        width={500}
+      >
+        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto p-1">
+          {bulkIngredients.map((item, index) => (
+            <div key={index} className="flex gap-4 items-end border p-4 rounded-lg bg-gray-50">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên nguyên liệu <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="VD: Thịt gà"
+                  value={item.name}
+                  onChange={(e) => {
+                    const newArr = [...bulkIngredients];
+                    newArr[index].name = e.target.value;
+                    setBulkIngredients(newArr);
+                  }}
+                />
+              </div>
+              {bulkIngredients.length > 1 && (
+                <Button
+                  danger
+                  icon={<Trash2 className="w-4 h-4" />}
+                  onClick={() => {
+                    const newArr = bulkIngredients.filter((_, i) => i !== index);
+                    setBulkIngredients(newArr);
+                  }}
+                />
+              )}
+            </div>
+          ))}
+          <Button
+            type="dashed"
+            className="w-full h-10 border-blue-400 text-blue-500 hover:text-blue-600 hover:border-blue-500 bg-blue-50 hover:bg-blue-100 mt-4"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => setBulkIngredients([...bulkIngredients, { name: '' }])}
+          >
+            Thêm ô nhập
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        title="Chỉnh sửa nguyên liệu"
+        open={isEditModalOpen}
+        onOk={handleEditSave}
+        onCancel={() => setIsEditModalOpen(false)}
+        okButtonProps={{ className: "bg-[#10B981] hover:bg-[#059669]" }}
+        okText="Lưu thay đổi"
         cancelText="Hủy"
       >
-        <Form layout="vertical" className="mt-4">
-          <Form.Item label="Tên nguyên liệu" required>
-            <Input placeholder="VD: Thịt bò" size="large" className="rounded-lg" />
-          </Form.Item>
-          <div className="flex gap-4">
-            <Form.Item label="Lượng Calo (kcal)" required className="flex-1">
-              <Input type="number" placeholder="0" size="large" className="rounded-lg" />
-            </Form.Item>
-            <Form.Item label="Đơn vị tính" required className="flex-1">
-              <Input placeholder="VD: 100g, 1 quả..." size="large" className="rounded-lg" />
-            </Form.Item>
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tên nguyên liệu <span className="text-red-500">*</span></label>
+            <Input 
+              placeholder="VD: Thịt gà" 
+              value={editData.name}
+              onChange={(e) => setEditData({...editData, name: e.target.value})}
+            />
           </div>
-        </Form>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái hoạt động</label>
+            <Select 
+              className="w-full"
+              value={editData.active}
+              onChange={(val) => setEditData({...editData, active: val})}
+              options={[
+                { label: 'Hoạt động', value: true },
+                { label: 'Đã ẩn', value: false }
+              ]}
+            />
+          </div>
+        </div>
       </Modal>
     </div>
   );
