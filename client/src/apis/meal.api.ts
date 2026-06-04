@@ -36,5 +36,13 @@ export const mealApi = {
 
   delete: (id: string): Promise<AxiosResponse<BaseApiResponse<void>>> => {
     return callAPI('DELETE', `/meals/${id}`);
+  },
+
+  uploadImage: (id: string, file: File): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return callAPI('POST', `/meals/${id}/images`, formData, null, {
+      'Content-Type': 'multipart/form-data',
+    });
   }
 };

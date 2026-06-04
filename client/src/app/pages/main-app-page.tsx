@@ -216,7 +216,10 @@ export function MainAppPage() {
           body: JSON.stringify({ question: question, history: chatHistory })
         });
         const data = await response.json();
-        if (data.data) {
+        if (data.data && Array.isArray(data.data)) {
+          setResults(data.data);
+          setChatHistory([...newHistory, { role: "model", content: `Đã tìm thấy ${data.data.length} món ăn phù hợp với yêu cầu của bạn.` }]);
+        } else if (data.data) {
           setChatHistory([...newHistory, { role: "model", content: data.data }]);
         } else {
           setChatHistory([...newHistory, { role: "model", content: "Không nhận được phản hồi từ AI." }]);
@@ -261,7 +264,14 @@ export function MainAppPage() {
       body: JSON.stringify({ question: q, history: chatHistory })
     })
       .then(res => res.json())
-      .then(data => setChatHistory([...newHistory, { role: "model", content: data.data || "Không có phản hồi" }]))
+      .then(data => {
+        if (data.data && Array.isArray(data.data)) {
+          setResults(data.data);
+          setChatHistory([...newHistory, { role: "model", content: `Đã tìm thấy ${data.data.length} món ăn phù hợp với yêu cầu của bạn.` }]);
+        } else {
+          setChatHistory([...newHistory, { role: "model", content: data.data || "Không có phản hồi" }]);
+        }
+      })
       .catch(() => setChatHistory([...newHistory, { role: "model", content: "Lỗi kết nối AI" }]))
       .finally(() => setIsAiLoading(false));
   }
