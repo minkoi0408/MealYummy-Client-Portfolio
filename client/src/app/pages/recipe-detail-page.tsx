@@ -24,6 +24,7 @@ function mapMealResponseToRecipe(meal: any): any {
     categories: meal.categories || [],
     tags: meal.tags || [],
     ingredients: meal.ingredients || [],
+    nutrition: meal.nutrition || null,
   };
 }
 
@@ -201,6 +202,37 @@ export function RecipeDetailPage() {
           </button>
         </div>
 
+        {/* ── Thông tin Dinh dưỡng ── */}
+        <section className="mb-8">
+          <h2 className="text-xl font-black text-white mb-5 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base"
+                  style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7" }}>🔥</span>
+              Thông tin dinh dưỡng
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <div className="rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(168,85,247,0.3)", boxShadow: "0 4px 20px rgba(168,85,247,0.05)" }}>
+                  <span className="text-sm font-medium text-gray-400 mb-1">Calories</span>
+                  <span className="text-xl font-black text-purple-400">{recipe.nutrition?.calories ?? 0} <span className="text-xs font-normal">kcal</span></span>
+              </div>
+              <div className="rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(56,189,248,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(56,189,248,0.3)", boxShadow: "0 4px 20px rgba(56,189,248,0.05)" }}>
+                  <span className="text-sm font-medium text-gray-400 mb-1">Protein</span>
+                  <span className="text-xl font-black text-sky-400">{recipe.nutrition?.protein ?? 0} <span className="text-xs font-normal">g</span></span>
+              </div>
+              <div className="rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(250,204,21,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(250,204,21,0.3)", boxShadow: "0 4px 20px rgba(250,204,21,0.05)" }}>
+                  <span className="text-sm font-medium text-gray-400 mb-1">Carbs</span>
+                  <span className="text-xl font-black text-yellow-400">{recipe.nutrition?.carbs ?? 0} <span className="text-xs font-normal">g</span></span>
+              </div>
+              <div className="rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(248,113,113,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(248,113,113,0.3)", boxShadow: "0 4px 20px rgba(248,113,113,0.05)" }}>
+                  <span className="text-sm font-medium text-gray-400 mb-1">Fat</span>
+                  <span className="text-xl font-black text-red-400">{recipe.nutrition?.fat ?? 0} <span className="text-xs font-normal">g</span></span>
+              </div>
+              <div className="col-span-2 sm:col-span-1 rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(163,230,53,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(163,230,53,0.3)", boxShadow: "0 4px 20px rgba(163,230,53,0.05)" }}>
+                  <span className="text-sm font-medium text-gray-400 mb-1">Fiber</span>
+                  <span className="text-xl font-black text-lime-400">{recipe.nutrition?.fiber ?? 0} <span className="text-xs font-normal">g</span></span>
+              </div>
+          </div>
+        </section>
+
         {/* ── Thông tin Món ăn ── */}
         <section className="mb-8">
             <h2 className="text-xl font-black text-white mb-5 flex items-center gap-2">
@@ -211,7 +243,7 @@ export function RecipeDetailPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Categories */}
-                <div className="rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, rgba(251,146,60,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(251,146,60,0.2)", boxShadow: "0 4px 24px rgba(251,146,60,0.05)" }}>
                     <div className="flex items-center gap-2 mb-4">
                         <Flame className="w-5 h-5 text-orange-400" />
                         <h3 className="font-bold text-white">Danh mục</h3>
@@ -231,7 +263,7 @@ export function RecipeDetailPage() {
                 </div>
 
                 {/* Tags */}
-                <div className="rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="rounded-2xl p-5" style={{ background: "linear-gradient(135deg, rgba(34,211,238,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(34,211,238,0.2)", boxShadow: "0 4px 24px rgba(34,211,238,0.05)" }}>
                     <div className="flex items-center gap-2 mb-4">
                         <Zap className="w-5 h-5 text-cyan-400" />
                         <h3 className="font-bold text-white">Thẻ (Tags)</h3>
@@ -263,8 +295,8 @@ export function RecipeDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {recipe.ingredients && recipe.ingredients.length > 0 ? (
                     recipe.ingredients.map((ing: any, i: number) => (
-                        <div key={ing.ingredientId || i} className="flex flex-col items-center justify-center text-center p-5 rounded-2xl transition-all hover:scale-[1.02]"
-                            style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(163,230,53,0.2)" }}>
+                        <div key={ing.ingredientId || i} className="flex flex-col items-center justify-center text-center p-5 rounded-2xl transition-all hover:scale-[1.05]"
+                            style={{ background: "linear-gradient(135deg, rgba(163,230,53,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(163,230,53,0.3)", boxShadow: "0 4px 20px rgba(163,230,53,0.05)" }}>
                             <span className="font-bold text-white text-base mb-1">{ing.name || 'Nguyên liệu'}</span>
                             <span className="text-sm font-medium" style={{ color: "#a3e635" }}>{ing.value} {ing.unitDesc || ing.unit}</span>
                         </div>

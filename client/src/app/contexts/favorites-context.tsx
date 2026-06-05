@@ -14,11 +14,13 @@ const FavoritesContext = createContext<FavoritesContextType | undefined>(undefin
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
+  const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+
   const { data: favoriteIds = [] } = useQuery({
     queryKey: ["favoriteIds"],
     queryFn: favoriteApi.getFavoriteMealIds,
     staleTime: 5 * 60 * 1000,
-    // Only fetch if token exists (simple check: let axios handle 401)
+    enabled: !!token,
   });
 
   const toggleMutation = useMutation({

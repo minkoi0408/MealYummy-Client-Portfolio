@@ -13,6 +13,14 @@ export interface MealImageDTO {
   isThumbnail: boolean;
 }
 
+export interface NutritionDTO {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+}
+
 export interface MealIngredientDTO {
   ingredientId: string;
   name?: string;
@@ -28,6 +36,7 @@ export interface MealRequestDTO {
   categoryIds: string[];
   tagIds: string[];
   ingredients: MealIngredientDTO[];
+  nutrition: NutritionDTO;
 }
 
 export interface MealResponseDTO {
@@ -39,6 +48,7 @@ export interface MealResponseDTO {
   categories?: { id: string; name: string }[];
   tags?: { id: string; name: string }[];
   ingredients?: MealIngredientDTO[];
+  nutrition?: NutritionDTO;
   active?: boolean;
   createdAt?: string;
 }

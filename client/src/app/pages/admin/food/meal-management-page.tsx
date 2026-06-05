@@ -107,7 +107,14 @@ export function MealManagementPage() {
           ingredientId: ing.ingredientId,
           value: ing.value,
           unit: ing.unit || "G"
-        }))
+        })),
+        nutrition: {
+          calories: values.calories || 0,
+          protein: values.protein || 0,
+          carbs: values.carbs || 0,
+          fat: values.fat || 0,
+          fiber: values.fiber || 0
+        }
       };
 
       if (payload.ingredients.length === 0) {
@@ -171,7 +178,12 @@ export function MealManagementPage() {
         ingredientId: i.ingredientId,
         value: i.value,
         unit: i.unit
-      })) || []
+      })) || [],
+      calories: record.nutrition?.calories,
+      protein: record.nutrition?.protein,
+      carbs: record.nutrition?.carbs,
+      fat: record.nutrition?.fat,
+      fiber: record.nutrition?.fiber
     });
     setIsModalOpen(true);
   };
@@ -197,6 +209,20 @@ export function MealManagementPage() {
         if (!price) return '-';
         if (price.minPrice === price.maxPrice) return <span className="font-medium text-[#10B981]">{price.minPrice?.toLocaleString()} ₫</span>;
         return <span className="font-medium text-[#10B981]">{price.minPrice?.toLocaleString()} - {price.maxPrice?.toLocaleString()} ₫</span>;
+      }
+    },
+    {
+      title: 'Dinh dưỡng',
+      key: 'nutrition',
+      width: '15%',
+      render: (_, record: MealResponseDTO) => {
+        if (!record.nutrition) return <span className="text-gray-400">-</span>;
+        return (
+          <div className="flex flex-col gap-1 text-xs">
+            <span className="font-semibold text-orange-600">{record.nutrition.calories} kcal</span>
+            <span className="text-gray-500">P: {record.nutrition.protein}g | C: {record.nutrition.carbs}g | F: {record.nutrition.fat}g</span>
+          </div>
+        );
       }
     },
     {
@@ -427,15 +453,40 @@ export function MealManagementPage() {
             </div>
           </div>
 
-          {/* Group 3: Ingredients */}
+          {/* Group 3: Nutrition */}
+          <div className="bg-purple-50/50 p-5 rounded-2xl border border-purple-100 mb-6 shadow-sm">
+            <h3 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
+              <span className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-black shadow-inner">3</span>
+              Thông tin dinh dưỡng
+            </h3>
+            <div className="grid grid-cols-5 gap-x-4">
+              <Form.Item label={<span className="font-medium text-gray-700">Calories</span>} name="calories" rules={[{ required: true, message: 'Nhập kcal' }]}>
+                <InputNumber placeholder="kcal" className="w-full rounded-xl" min={0} size="large" />
+              </Form.Item>
+              <Form.Item label={<span className="font-medium text-gray-700">Protein</span>} name="protein" rules={[{ required: true, message: 'Nhập g' }]}>
+                <InputNumber placeholder="g" className="w-full rounded-xl" min={0} size="large" />
+              </Form.Item>
+              <Form.Item label={<span className="font-medium text-gray-700">Carbs</span>} name="carbs" rules={[{ required: true, message: 'Nhập g' }]}>
+                <InputNumber placeholder="g" className="w-full rounded-xl" min={0} size="large" />
+              </Form.Item>
+              <Form.Item label={<span className="font-medium text-gray-700">Fat</span>} name="fat" rules={[{ required: true, message: 'Nhập g' }]}>
+                <InputNumber placeholder="g" className="w-full rounded-xl" min={0} size="large" />
+              </Form.Item>
+              <Form.Item label={<span className="font-medium text-gray-700">Fiber</span>} name="fiber" rules={[{ required: true, message: 'Nhập g' }]}>
+                <InputNumber placeholder="g" className="w-full rounded-xl" min={0} size="large" />
+              </Form.Item>
+            </div>
+          </div>
+
+          {/* Group 4: Ingredients */}
           <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-black shadow-inner">3</span>
+                <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-black shadow-inner">4</span>
                 Công thức / Nguyên liệu <span className="text-red-500 text-sm">*</span>
               </h3>
             </div>
-            <p className="text-sm text-gray-500 mb-5 ml-11">Thêm chính xác các nguyên liệu cấu thành để hệ thống tự động tính toán dinh dưỡng (Calories, Protein...).</p>
+            <p className="text-sm text-gray-500 mb-5 ml-11">Thêm chính xác các nguyên liệu cấu thành.</p>
             
             <div className="ml-2">
               <Form.List name="ingredients">
