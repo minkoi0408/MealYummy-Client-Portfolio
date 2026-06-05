@@ -26,7 +26,6 @@ export interface Page<T> {
 export interface Category {
   id: string;
   name: string;
-  description?: string;
   parentId?: string;
   parentName?: string;
   image?: string;
@@ -41,6 +40,14 @@ export const categoryApi = {
   
   create: (data: Partial<Category>): Promise<AxiosResponse<BaseApiResponse<Category>>> => {
     return callAPI('POST', '/categories', data);
+  },
+
+  createBulk: (data: Partial<Category>[]): Promise<AxiosResponse<BaseApiResponse<Category[]>>> => {
+    return callAPI('POST', '/categories/bulk', data);
+  },
+
+  createNestedBulk: (data: Partial<Category>[]): Promise<AxiosResponse<BaseApiResponse<Category[]>>> => {
+    return callAPI('POST', '/categories/nested-bulk', data);
   },
 
   update: (id: string, data: Partial<Category>): Promise<AxiosResponse<BaseApiResponse<Category>>> => {

@@ -1,68 +1,66 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-
-export interface Recipe {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  prepTime: string;
-  cookTime: string;
-  servings: string;
-  difficulty: string;
-  calories: string;
-  cuisine: string;
-  ingredients: string[];
-  instructions: string[];
-  tips?: string;
-}
+import { createContext, useContext, ReactNode } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { favoriteApi } from "../../apis/favorite.api";
+import { toast } from "sonner";
 
 interface FavoritesContextType {
-  favorites: Recipe[];
-  addFavorite: (recipe: Recipe) => void;
-  removeFavorite: (id: string) => void;
+  favoriteIds: string[];
+  toggleFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
 
-// Demo recipes to initialize favorites
-const initialDemoRecipes: Recipe[] = [
-
-];
-
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favorites, setFavorites] = useState<Recipe[]>(() => {
-    const saved = localStorage.getItem("mealyummy-favorites");
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    // Initialize with demo recipes if no saved data
-    return initialDemoRecipes;
+  const queryClient = useQueryClient();
+
+  const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+
+  const { data: favoriteIds = [] } = useQuery({
+    queryKey: ["favoriteIds"],
+    queryFn: favoriteApi.getFavoriteMealIds,
+    staleTime: 5 * 60 * 1000,
+    enabled: !!token,
   });
 
-  useEffect(() => {
-    localStorage.setItem("mealyummy-favorites", JSON.stringify(favorites));
-  }, [favorites]);
-
-  const addFavorite = (recipe: Recipe) => {
-    setFavorites((prev) => {
-      if (prev.find((r) => r.id === recipe.id)) {
-        return prev;
+  const toggleMutation = useMutation({
+    mutationFn: favoriteApi.toggleFavorite,
+    onMutate: async (mealId) => {
+      await queryClient.cancelQueries({ queryKey: ["favoriteIds"] });
+      const previousIds = queryClient.getQueryData<string[]>(["favoriteIds"]);
+      
+      if (previousIds) {
+        const newIds = previousIds.includes(mealId) 
+          ? previousIds.filter(id => id !== mealId)
+          : [...previousIds, mealId];
+        queryClient.setQueryData(["favoriteIds"], newIds);
       }
-      return [...prev, recipe];
-    });
-  };
+      return { previousIds };
+    },
+    onError: (err, mealId, context) => {
+      if (context?.previousIds) {
+        queryClient.setQueryData(["favoriteIds"], context.previousIds);
+      }
+      toast.error("Không thể cập nhật danh sách yêu thích");
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      queryClient.invalidateQueries({ queryKey: ["favoriteMeals"] });
+    }
+  });
 
-  const removeFavorite = (id: string) => {
-    setFavorites((prev) => prev.filter((recipe) => recipe.id !== id));
-  };
+  const isFavorite = (id: string) => favoriteIds.includes(id);
 
-  const isFavorite = (id: string) => {
-    return favorites.some((recipe) => recipe.id === id);
+  const handleToggle = (id: string) => {
+    toggleMutation.mutate(id);
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite, isFavorite }}>
+    <FavoritesContext.Provider value={{ 
+      favoriteIds, 
+      toggleFavorite: handleToggle, 
+      isFavorite 
+    }}>
       {children}
     </FavoritesContext.Provider>
   );

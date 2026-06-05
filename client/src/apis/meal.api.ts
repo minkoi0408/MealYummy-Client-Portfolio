@@ -3,16 +3,52 @@ import type { AxiosResponse } from 'axios';
 import type { BaseApiResponse } from '../types/auth.types';
 import type { Page } from './category.api';
 
+export interface PriceDTO {
+  minPrice: number;
+  maxPrice: number;
+}
+
+export interface MealImageDTO {
+  url: string;
+  isThumbnail: boolean;
+}
+
+export interface NutritionDTO {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+}
+
+export interface MealIngredientDTO {
+  ingredientId: string;
+  name?: string;
+  value: number;
+  unit: string;
+  unitDesc?: string;
+}
+
+export interface MealRequestDTO {
+  name: string;
+  description: string;
+  price: PriceDTO;
+  categoryIds: string[];
+  tagIds: string[];
+  ingredients: MealIngredientDTO[];
+  nutrition: NutritionDTO;
+}
+
 export interface MealResponseDTO {
   id: string;
   name: string;
   description?: string;
-  price: {
-    amount: number;
-    currency: string;
-  };
-  categoryIds?: string[];
-  tagIds?: string[];
+  price: PriceDTO;
+  images?: MealImageDTO[];
+  categories?: { id: string; name: string }[];
+  tags?: { id: string; name: string }[];
+  ingredients?: MealIngredientDTO[];
+  nutrition?: NutritionDTO;
   active?: boolean;
   createdAt?: string;
 }
@@ -22,11 +58,19 @@ export const mealApi = {
     return callAPI('GET', '/meals', null, { page, size });
   },
 
-  create: (data: any): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
+  getById: (id: string): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
+    return callAPI('GET', `/meals/${id}`);
+  },
+
+  create: (data: MealRequestDTO): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
     return callAPI('POST', '/meals', data);
   },
 
-  update: (id: string, data: any): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
+  createBulk: (data: MealRequestDTO[]): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO[]>>> => {
+    return callAPI('POST', '/meals/bulk', data);
+  },
+
+  update: (id: string, data: MealRequestDTO): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
     return callAPI('PUT', `/meals/${id}`, data);
   },
 
