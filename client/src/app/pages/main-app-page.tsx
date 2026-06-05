@@ -92,11 +92,11 @@ export function MainAppPage() {
 
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const { 
-    data: infiniteMealsData, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage 
+  const {
+    data: infiniteMealsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
   } = useInfiniteQuery({
     queryKey: ['defaultMealsInfinite'],
     queryFn: async ({ pageParam = 0 }) => {
@@ -120,7 +120,7 @@ export function MainAppPage() {
   const [results, setResults] = useState<any[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -151,7 +151,7 @@ export function MainAppPage() {
       const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           question: question,
           categoryIds: selectedCategories,
           tagIds: selectedTags,
@@ -211,8 +211,8 @@ export function MainAppPage() {
               AI Gợi Ý Món Ăn
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 leading-tight">
-              Hôm nay ăn gì cho{" "}
-              <span className="text-lime-400">đúng mục tiêu?</span>
+              Không biết ăn gì ?{" "}
+              <span className="text-lime-400">tìm kiếm món ngay</span>
             </h1>
             <p className="text-slate-400 text-sm">
               Nhập mô tả hoặc chọn tag để AI gợi ý món phù hợp với thể trạng của bạn
@@ -426,10 +426,7 @@ export function MainAppPage() {
                       key={r.id}
                       recipe={r}
                       isFav={isFavorite(r.id)}
-                      onToggleFav={() => {
-                        if (isFavorite(r.id)) { removeFavorite(r.id); toast.success("Đã bỏ khỏi yêu thích"); }
-                        else { addFavorite(r); toast.success("Đã thêm vào yêu thích!"); }
-                      }}
+                      onToggleFav={() => toggleFavorite(r.id)}
                     />
                   ))}
                 </div>
@@ -452,10 +449,7 @@ export function MainAppPage() {
                     key={r.id}
                     recipe={r}
                     isFav={isFavorite(r.id)}
-                    onToggleFav={() => {
-                      if (isFavorite(r.id)) { removeFavorite(r.id); toast.success("Đã bỏ khỏi yêu thích"); }
-                      else { addFavorite(r); toast.success("Đã thêm vào yêu thích!"); }
-                    }}
+                    onToggleFav={() => toggleFavorite(r.id)}
                   />
                 ))}
               </div>

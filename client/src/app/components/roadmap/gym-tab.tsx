@@ -1,7 +1,8 @@
 import { Link } from "react-router";
 import { useMealPlan } from "../../contexts/meal-plan-context";
 import { Dumbbell, Flame, Zap, Droplet, Leaf, ArrowRight, Target } from "lucide-react";
-import { useFavorites } from "../../contexts/favorites-context";
+import { useQuery } from "@tanstack/react-query";
+import { favoriteApi } from "../../../apis/favorite.api";
 import { mockRecipes } from "../../data/mock-recipes";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -148,7 +149,11 @@ function pickClosestRecipe(recipes: any[], targetCalories: number, usedIds: Set<
 
 export function GymTab() {
   const { mealPlan, addToMealPlan } = useMealPlan();
-  const { favorites } = useFavorites();
+  const { data: favoriteMealsData } = useQuery({
+    queryKey: ["favoriteMeals"],
+    queryFn: () => favoriteApi.getFavoriteMeals(0, 50)
+  });
+  const favorites = favoriteMealsData?.content || [];
   const metrics = loadMetrics();
   const targets = calcTargets(metrics);
   const today = new Date().toISOString().split("T")[0];

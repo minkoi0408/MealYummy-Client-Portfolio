@@ -36,7 +36,7 @@ const EARTH_TEXTURES = [
 export function MealDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+    const { toggleFavorite, favoriteIds } = useFavorites();
     const { addToMealPlan } = useMealPlan();
 
     const [showLocationOverlay, setShowLocationOverlay] = useState(false);
@@ -70,12 +70,7 @@ export function MealDetailPage() {
 
     const caloriesNum = parseInt(recipe.calories) || 400;
     const nutrition = estimateNutrition(caloriesNum);
-    const fav = isFavorite(recipe.id);
-
-    const handleFav = () => {
-        if (fav) { removeFavorite(recipe.id); toast.success("Đã bỏ yêu thích"); }
-        else { addFavorite(recipe); toast.success("Đã thêm vào yêu thích 💚"); }
-    };
+    const isFav = favoriteIds.includes(recipe.id);
 
     const handleAddMeal = () => {
         const today = new Date().toISOString().split("T")[0];
@@ -186,13 +181,15 @@ export function MealDetailPage() {
                             style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: "0 0 24px rgba(163,230,53,0.25)" }}>
                             <ShoppingCart className="w-5 h-5" /> Thêm vào thực đơn
                         </button>
-                        <button onClick={handleFav}
-                            className="h-12 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all"
-                            style={fav
-                                ? { background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }
-                                : { background: "rgba(255,255,255,0.05)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)" }}>
-                            <Heart className={`w-5 h-5 ${fav ? "fill-lime-400 text-lime-400" : ""}`} />
-                            {fav ? "Đã yêu thích" : "Yêu thích"}
+                        <button
+                            onClick={() => { toggleFavorite(recipe.id); toast.success(isFav ? "Đã bỏ yêu thích" : "Đã thêm yêu thích"); }}
+                            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all border"
+                            style={isFav
+                                ? { background: "rgba(163,230,53,0.1)", color: "#a3e635", borderColor: "rgba(163,230,53,0.3)" }
+                                : { background: "rgba(255,255,255,0.05)", color: "white", borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <Heart className={`w-5 h-5 ${isFav ? "fill-lime-400 text-lime-400" : ""}`} />
+                            {isFav ? "Đã yêu thích" : "Yêu thích"}
                         </button>
                         <button onClick={handleFindRestaurant}
                             className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"

@@ -30,7 +30,7 @@ function mapMealResponseToRecipe(meal: any): any {
 export function RecipeDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const { toggleFavorite, isFavorite } = useFavorites();
 
   const [showLocationOverlay, setShowLocationOverlay] = useState(false);
   const [locationMessage, setLocationMessage] = useState("Đang xác định vị trí của bạn...");
