@@ -291,33 +291,46 @@ export function DurationDialog({
   );
 }
 
-export function RoadmapDisplay({ roadmap, onDelete }: { roadmap: DietRoadmapDTO; onDelete: () => void }) {
+export function RoadmapDisplay({ roadmap, onDelete, onSync, isSyncing }: { roadmap: DietRoadmapDTO; onDelete: () => void; onSync?: () => void; isSyncing?: boolean }) {
   const bmiColor = BMI_COLORS[roadmap.bmiCategory] || "#a3e635";
   const durationLabel = DURATION_OPTIONS.find(d => d.value === roadmap.durationLabel)?.label || roadmap.durationLabel;
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       <div className="rounded-2xl p-4" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(163,230,53,0.2)" }}>
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full" style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.25)" }}>
+        <div className="flex items-start justify-between mb-3 gap-4">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full whitespace-nowrap" style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.25)" }}>
                 ✨ Lộ Trình Cá Nhân Hóa · {durationLabel}
               </span>
-              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
+              <span className="text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full whitespace-nowrap"
                 style={{ background: `${bmiColor}15`, color: bmiColor, border: `1px solid ${bmiColor}30` }}>
                 BMI {roadmap.bmi} · {roadmap.bmiLabel}
               </span>
             </div>
-            <h3 className="text-white font-black text-base">{roadmap.overallGoal}</h3>
+            <h3 className="text-white font-black text-base leading-snug">{roadmap.overallGoal}</h3>
           </div>
-          <button
-            onClick={onDelete}
-            className="p-2 rounded-xl transition-all hover:bg-red-500/10 text-slate-500 hover:text-red-400"
-            title="Xóa lộ trình"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0 mt-1">
+            {onSync && (
+              <button
+                onClick={onSync}
+                disabled={isSyncing}
+                className="flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117", boxShadow: "0 4px 12px rgba(163,230,53,0.3)" }}
+                title="Đồng bộ vào thực đơn"
+              >
+                {isSyncing ? "Đang đồng bộ..." : "⚡ Đồng bộ toàn bộ Lộ trình"}
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="p-2 rounded-xl transition-all hover:bg-red-500/10 text-slate-500 hover:text-red-400"
+              title="Xóa lộ trình"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
         </div>
         <p className="text-slate-400 text-xs leading-relaxed">{roadmap.summary}</p>
         <p className="text-slate-600 text-[10px] mt-2">

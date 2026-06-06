@@ -1,8 +1,8 @@
 import { Link } from "react-router";
 import { useState } from "react";
 import {
-  Plus, X, ChefHat, Clock, Flame, Search, ShoppingCart,
-  ArrowRight, Dumbbell, Droplet, Zap, Leaf, Target, ChevronDown,
+  Plus, X, ChefHat, Clock, Flame, Search, ShoppingCart, CalendarDays,
+  ArrowRight, Dumbbell, Droplet, Zap, Leaf, Target, ChevronDown, CheckCircle2, Circle
 } from "lucide-react";
 import { useMealPlan } from "../../contexts/meal-plan-context";
 import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
@@ -38,14 +38,18 @@ function estimateMacros(calories: number) {
 
 // ─── Date helpers ──────────────────────────────────────────────────────────────
 
-function getThreeDays() {
-  return [0, 1, 2].map((offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d; });
+function formatDate(date: Date) {
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().split("T")[0];
 }
-function formatDate(date: Date) { return date.toISOString().split("T")[0]; }
-function dayLabel(offset: number) {
-  if (offset === 0) return "Hôm nay";
-  if (offset === 1) return "Ngày mai";
-  return "Ngày kia";
+
+function getCalendarDays(centerDate: Date) {
+  return Array.from({ length: 15 }, (_, i) => {
+    const d = new Date(centerDate);
+    d.setDate(d.getDate() + (i - 7));
+    return d;
+  });
 }
 
 // ─── Schedule (times) ──────────────────────────────────────────────────────────
@@ -150,9 +154,13 @@ type NutritionTargets = { calories: number; protein: number; carbs: number; fat:
 function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; mealPlan: any[]; targets: NutritionTargets }) {
   const { isBright } = useBrightness();
   const dayMeals = mealPlan.filter((m) => m.date === dateStr);
-  const totalCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe.calories), 0);
-  const totals = dayMeals.reduce((s, m) => {
-    const mac = estimateMacros(parseCalories(m.recipe.calories));
+  const eatenMeals = dayMeals.filter((m) => m.isEaten);
+
+  const totalPlannedCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe?.calories || m.calories), 0);
+  const totalEatenCal = eatenMeals.reduce((s, m) => s + parseCalories(m.recipe?.calories || m.calories), 0);
+
+  const totals = eatenMeals.reduce((s, m) => {
+    const mac = estimateMacros(parseCalories(m.recipe?.calories || m.calories));
     return { protein: s.protein + mac.protein, carbs: s.carbs + mac.carbs, fat: s.fat + mac.fat, fiber: s.fiber + mac.fiber };
   }, { protein: 0, carbs: 0, fat: 0, fiber: 0 });
 
@@ -163,30 +171,62 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
     { label: "Chất xơ", value: totals.fiber, max: targets.fiber, unit: "g", color: "#34d399", icon: <Leaf className="w-3.5 h-3.5" /> },
   ];
 
-  const calPct = Math.round(Math.min(100, (totalCal / targets.calories) * 100));
+  const calPct = Math.round(Math.min(100, (totalEatenCal / targets.calories) * 100));
+
+  // Smart Warnings Logic
+  const todayStr = formatDate(new Date());
+  const isPastOrToday = dateStr <= todayStr;
+  const diff = totalEatenCal - targets.calories;
+  let statusColor = "#a3e635"; // Default Green (Đủ)
+  let statusGradient = "linear-gradient(90deg,#a3e635,#4ade80)";
+  let statusMessage = "Đang trống";
+
+  if (isPastOrToday) {
+    if (totalEatenCal === 0) {
+      statusMessage = "Chưa ghi nhận bữa ăn nào";
+      statusColor = "#94a3b8";
+      statusGradient = "linear-gradient(90deg,#94a3b8,#cbd5e1)";
+    } else if (diff > 150) {
+      statusMessage = `🚨 Cảnh báo: Ăn thừa ${Math.abs(diff)} kcal`;
+      statusColor = "#ef4444"; // Red
+      statusGradient = "linear-gradient(90deg,#f87171,#ef4444)";
+    } else if (diff < -150) {
+      statusMessage = `⚠️ Còn thiếu ${Math.abs(diff)} kcal`;
+      statusColor = "#fbbf24"; // Yellow
+      statusGradient = "linear-gradient(90deg,#fcd34d,#fbbf24)";
+    } else {
+      statusMessage = "✅ Tuyệt vời: Bạn ăn rất chuẩn xác!";
+      statusColor = "#22c55e"; // Green
+      statusGradient = "linear-gradient(90deg,#4ade80,#22c55e)";
+    }
+  } else {
+    statusMessage = "Bản nháp thực đơn (chưa ăn)";
+    statusColor = "#60a5fa";
+    statusGradient = "linear-gradient(90deg,#93c5fd,#60a5fa)";
+  }
 
   return (
     <div className="rounded-2xl p-5 mb-5" style={{ background: "var(--card)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.07)" }}>
       {/* Top: calo big + ring */}
       <div className="flex items-center gap-5 mb-5">
         <div className="relative flex-shrink-0">
-          <NutritionRing value={totalCal} max={targets.calories} color="#a3e635" size={80} />
+          <NutritionRing value={totalEatenCal} max={targets.calories} color={statusColor} size={80} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-xs font-black leading-none" style={{ color: "var(--foreground)" }}>{calPct}%</span>
           </div>
         </div>
         <div className="flex-1">
-          <p className="text-xs font-bold mb-1" style={{ color: "var(--muted-foreground)" }}>Tổng calo trong ngày</p>
+          <p className="text-xs font-bold mb-1" style={{ color: "var(--muted-foreground)" }}>Calo Đã Tiêu Thụ</p>
           <p className="text-4xl font-black leading-none" style={{ color: "var(--foreground)" }}>
-            {totalCal > 0 ? totalCal.toLocaleString() : "—"}
+            {totalEatenCal > 0 ? totalEatenCal.toLocaleString() : "0"}
             <span className="text-base font-bold ml-1" style={{ color: "var(--muted-foreground)" }}>/ {targets.calories.toLocaleString()} kcal</span>
           </p>
           <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: isBright ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)" }}>
             <div className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${calPct}%`, background: calPct >= 90 ? "linear-gradient(90deg,#fb923c,#f87171)" : "linear-gradient(90deg,#a3e635,#4ade80)" }} />
+              style={{ width: `${calPct}%`, background: statusGradient }} />
           </div>
-          <p className="text-xs mt-1 font-medium" style={{ color: isBright ? "rgba(15,20,35,0.5)" : "#475569" }}>
-            {totalCal === 0 ? "Chưa có bữa ăn nào" : calPct >= 100 ? "⚠️ Đã đạt mục tiêu calo" : `Còn thiếu ${targets.calories - totalCal} kcal`}
+          <p className="text-xs mt-1.5 font-bold" style={{ color: statusColor }}>
+            {statusMessage}
           </p>
         </div>
       </div>
@@ -223,7 +263,7 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
         <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
           <Target className="w-4 h-4 flex-shrink-0" style={{ color: isBright ? "#166534" : "#a3e635" }} />
           <p className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
-            {dayMeals.length} bữa · ~{Math.round(totalCal / Math.max(1, dayMeals.length))} kcal/bữa trung bình ·&nbsp;
+            Kế hoạch: {dayMeals.length} bữa ({totalPlannedCal} kcal) · Thực tế: {eatenMeals.length} bữa ·&nbsp;
             <span className="font-bold" style={{ color: isBright ? "#166534" : "#a3e635" }}>{totals.protein}g protein</span>
           </p>
         </div>
@@ -235,10 +275,10 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export function MealPlanTab() {
-  const { mealPlan, addToMealPlan, removeFromMealPlan } = useMealPlan();
+  const { mealPlan, addToMealPlan, removeFromMealPlan, toggleMealStatus, syncMealPlanForDate, clearMealPlanForDate } = useMealPlan();
   const { favorites } = useFavorites();
   const { isBright } = useBrightness();
-  const [activeDay, setActiveDay] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pendingSlot, setPendingSlot] = useState<{ date: string; mealType: "breakfast" | "lunch" | "dinner" | "snack" } | null>(null);
   const [search, setSearch] = useState("");
@@ -261,7 +301,7 @@ export function MealPlanTab() {
     });
   }
 
-  const days = getThreeDays();
+  const calendarDays = getCalendarDays(selectedDate);
   const allRecipes = [...favorites, ...mockRecipes.filter((r) => !favorites.find((f) => f.id === r.id))];
   const filtered = allRecipes.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
 
@@ -278,25 +318,34 @@ export function MealPlanTab() {
     setDialogOpen(false);
   }
 
-  const activeDateStr = formatDate(days[activeDay]);
-  const totalMealCount = mealPlan.length;
+  const activeDateStr = formatDate(selectedDate);
 
   return (
     <div className="animate-in fade-in duration-500">
       <main className="max-w-4xl mx-auto py-6">
         {/* ── Header ── */}
-        <div className="pt-10 mb-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
-            style={{ background: isBright ? "rgba(163,230,53,0.15)" : "rgba(163,230,53,0.08)", border: isBright ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(163,230,53,0.2)", color: isBright ? "#166534" : "#a3e635" }}>
-            <ChefHat className="w-3.5 h-3.5" /> Thực Đơn
+        <div className="pt-10 mb-6 flex justify-between items-end">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 text-xs font-bold uppercase tracking-widest"
+              style={{ background: isBright ? "rgba(163,230,53,0.15)" : "rgba(163,230,53,0.08)", border: isBright ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(163,230,53,0.2)", color: isBright ? "#166534" : "#a3e635" }}>
+              <ChefHat className="w-3.5 h-3.5" /> Thực Đơn
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight">Nhật ký Lộ Trình</h1>
+            <p className="text-sm font-medium mt-1.5" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Theo dõi hành trình cá nhân hóa của bạn mỗi ngày
+            </p>
           </div>
-          <h1 className="text-2xl font-black mb-1" style={{ color: "var(--foreground)" }}>Kế hoạch 3 ngày</h1>
-          <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Lên lịch bữa ăn và theo dõi dinh dưỡng mỗi ngày</p>
+          <div className="relative">
+            <div className="absolute inset-0 bg-lime-400 blur-xl opacity-20 rounded-full animate-pulse"></div>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center relative shadow-xl border"
+              style={{ background: isBright ? "white" : "rgba(30, 41, 59, 0.7)", borderColor: isBright ? "rgba(163,230,53,0.3)" : "rgba(163,230,53,0.2)" }}>
+              <CalendarDays className="w-6 h-6" style={{ color: isBright ? "#16a34a" : "#a3e635" }} />
+            </div>
+          </div>
         </div>
 
         {/* ── Body Metrics Panel ── */}
         <div className="mb-5 rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(163,230,53,0.2)" }}>
-          {/* Toggle header */}
           <button
             onClick={() => setMetricsOpen(!metricsOpen)}
             className="w-full flex items-center justify-between px-5 py-4 transition-all"
@@ -320,7 +369,6 @@ export function MealPlanTab() {
 
           {metricsOpen && (
             <div className="px-5 pb-5 pt-1" style={{ background: "rgba(26,31,46,0.95)" }}>
-              {/* Gender */}
               <div className="mb-4">
                 <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Giới tính</p>
                 <div className="flex gap-2">
@@ -336,7 +384,6 @@ export function MealPlanTab() {
                 </div>
               </div>
 
-              {/* Weight / Height / Age row */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {([
                   { key: "weight" as const, label: "Cân nặng", unit: "kg", min: 30, max: 200 },
@@ -365,7 +412,6 @@ export function MealPlanTab() {
                 ))}
               </div>
 
-              {/* Activity */}
               <div className="mb-4">
                 <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mức độ hoạt động</p>
                 <div className="grid grid-cols-1 gap-1.5">
@@ -387,7 +433,6 @@ export function MealPlanTab() {
                 </div>
               </div>
 
-              {/* Goal */}
               <div className="mb-5">
                 <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mục tiêu</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -407,7 +452,6 @@ export function MealPlanTab() {
                 </div>
               </div>
 
-              {/* Result summary */}
               <div className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3"
                 style={{ background: "rgba(163,230,53,0.06)", border: "1px solid rgba(163,230,53,0.15)" }}>
                 {[
@@ -426,114 +470,82 @@ export function MealPlanTab() {
           )}
         </div>
 
-        {/* ── Shopping CTA ── */}
-        {totalMealCount > 0 && (
-          <div className="mb-5 flex items-center justify-between gap-4 rounded-2xl px-5 py-3.5"
-            style={{ 
-              background: isBright ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.08)", 
-              border: isBright ? "1px solid rgba(139,92,246,0.35)" : "1px solid rgba(139,92,246,0.2)" 
-            }}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)" }}>
-                <ShoppingCart className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-sm font-bold" style={{ color: isBright ? "#5b21b6" : "#c4b5fd" }}>Đã có {totalMealCount} bữa trong thực đơn</p>
-                <p className="text-xs font-medium" style={{ color: isBright ? "rgba(91,33,182,0.7)" : "rgba(196,181,253,0.6)" }}>Danh sách đi chợ đã được cập nhật tự động</p>
-              </div>
-            </div>
-            <Link to="/shopping" className="flex-shrink-0">
-              <button className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl text-white transition-all hover:scale-105"
-                style={{ background: "linear-gradient(135deg, #8b5cf6, #6d28d9)", boxShadow: `0 4px 12px ${isBright ? "rgba(139,92,246,0.4)" : "rgba(139,92,246,0.25)"}` }}>
-                Xem danh sách đi chợ <ArrowRight className="w-3.5 h-3.5" />
+        {/* ── Calendar Strip ── */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-white">Lịch ăn & Nhật ký</h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  toast.loading("Đang tạo thực đơn...", { id: "sync-day" });
+                  syncMealPlanForDate(activeDateStr)
+                    .then(() => toast.success("Đã tạo thực đơn ngày này", { id: "sync-day" }))
+                    .catch((e) => toast.error(e.message || "Lỗi tạo thực đơn", { id: "sync-day" }));
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-white/10"
+                style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }}
+              >
+                ✨ Tạo ngày này
               </button>
-            </Link>
+              <button
+                onClick={() => {
+                  if (window.confirm("Bạn có chắc muốn xóa thực đơn ngày này?")) {
+                    clearMealPlanForDate(activeDateStr)
+                      .then(() => toast.success("Đã xóa thực đơn"))
+                      .catch((e) => toast.error("Lỗi xóa thực đơn"));
+                  }
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-white/10"
+                style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
+              >
+                🗑 Xóa ngày
+              </button>
+              <button
+                onClick={() => setSelectedDate(new Date())}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors hover:bg-white/10"
+                style={{ background: "rgba(255,255,255,0.06)", color: "white" }}
+              >
+                Hôm nay
+              </button>
+              <input
+                type="date"
+                value={formatDate(selectedDate)}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedDate(new Date(e.target.value));
+                }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg outline-none cursor-pointer"
+                style={{ background: "rgba(255,255,255,0.06)", color: "white", border: "1px solid rgba(255,255,255,0.1)" }}
+              />
+            </div>
           </div>
-        )}
-
-        {/* ── Day tabs ── */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
-          {days.map((day, i) => {
-            const dateStr = formatDate(day);
-            const dayMeals = mealPlan.filter((m) => m.date === dateStr);
-            const totalCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe.calories), 0);
-            const isActive = activeDay === i;
-            return (
-              <button key={i} onClick={() => setActiveDay(i)}
-                className="rounded-2xl p-4 text-left transition-all"
-                style={isActive
-                  ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: `0 4px 20px ${isBright ? "rgba(163,230,53,0.4)" : "rgba(163,230,53,0.25)"}` }
-                  : { background: "var(--card)", border: isBright ? "1px solid rgba(0,0,0,0.1)" : "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="text-xs font-bold mb-0.5" style={{ color: isActive ? "rgba(15,17,23,0.7)" : "var(--muted-foreground)" }}>
-                  {dayLabel(i)}
-                </p>
-                <p className="text-base font-black leading-tight" style={{ color: isActive ? "#0f1117" : "var(--foreground)" }}>
-                  {day.toLocaleDateString("vi-VN", { weekday: "short" })}, {day.getDate()}/{day.getMonth() + 1}
-                </p>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-bold" style={{ color: isActive ? "rgba(15,17,23,0.6)" : "var(--muted-foreground)" }}>
-                    <ChefHat className="w-3 h-3" /> {dayMeals.length} bữa
+          <div className="flex gap-2 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: "none" }}>
+            {calendarDays.map((day, i) => {
+              const dateStr = formatDate(day);
+              const dayMeals = mealPlan.filter((m) => m.date === dateStr);
+              const isSelected = dateStr === formatDate(selectedDate);
+              const isToday = dateStr === formatDate(new Date());
+              return (
+                <button key={i} onClick={() => setSelectedDate(day)}
+                  className={`flex-shrink-0 snap-center flex flex-col items-center justify-center w-16 h-20 rounded-2xl transition-all ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
+                  style={isSelected
+                    ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: "0 4px 12px rgba(163,230,53,0.3)" }
+                    : { background: isToday ? "rgba(163,230,53,0.1)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <p className="text-[10px] font-bold uppercase mb-1" style={{ color: isSelected ? "rgba(15,17,23,0.6)" : isToday ? "#a3e635" : "#64748b" }}>
+                    {day.toLocaleDateString("vi-VN", { weekday: "short" })}
+                  </p>
+                  <p className="text-lg font-black leading-none" style={{ color: isSelected ? "#0f1117" : "white" }}>
+                    {day.getDate()}
+                  </p>
+                  <div className="flex gap-0.5 mt-1.5">
+                    {dayMeals.length > 0 ? (
+                      <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-black/50" : "bg-lime-400"}`} />
+                    ) : (
+                      <div className="w-1.5 h-1.5 rounded-full bg-transparent" />
+                    )}
                   </div>
-                  {totalCal > 0 && (
-                    <div className="flex items-center gap-1.5 text-xs font-black" style={{ color: isActive ? "rgba(15,17,23,0.55)" : isBright ? "#166534" : "#a3e635" }}>
-                      <Flame className="w-3 h-3" /> {totalCal} kcal
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Schedule (next days) ── */}
-        <div className="mb-5 rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#64748b" }}>
-                Thời khóa biểu (áp dụng cho mọi ngày)
-              </p>
-              <p className="text-sm font-bold text-white mt-1">
-                Chuẩn bị nguyên liệu theo lịch ăn
-              </p>
-              <p className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-                Chỉnh giờ ở đây để Gym Mode và Thực đơn khớp nhau.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            {days.map((d, idx) => (
-              <div key={idx} className="rounded-2xl p-4" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
-                <p className="text-xs font-semibold" style={{ color: "#a3e635" }}>{dayLabel(idx)}</p>
-                <p className="text-sm font-bold text-white">
-                  {d.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}
-                </p>
-
-                <div className="mt-3 space-y-2">
-                  {([
-                    { key: "breakfast" as const, label: "Bữa sáng", emoji: "🌅" },
-                    { key: "snack" as const, label: "Bữa phụ", emoji: "🍌" },
-                    { key: "lunch" as const, label: "Bữa trưa", emoji: "☀️" },
-                    { key: "dinner" as const, label: "Bữa tối", emoji: "🌙" },
-                  ]).map((s) => (
-                    <div key={s.key} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-base">{s.emoji}</span>
-                        <span className="text-xs font-semibold truncate" style={{ color: "#cbd5e1" }}>{s.label}</span>
-                      </div>
-                      <input
-                        type="time"
-                        value={scheduleTimes[s.key]}
-                        onChange={(e) => updateScheduleTime(s.key, e.target.value)}
-                        className="h-9 px-3 rounded-xl text-xs font-semibold outline-none"
-                        style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.10)", color: "#f1f5f9" }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -543,7 +555,7 @@ export function MealPlanTab() {
         {/* ── Meal Slots ── */}
         <div className="space-y-4">
           {MEAL_SLOTS.map((slot) => {
-            const meals = getMeals(activeDateStr, slot.value);
+            const meals = getMeals(activeDateStr, slot.value).filter(m => parseCalories(m.recipe.calories) > 0);
             const slotCal = meals.reduce((s, m) => s + parseCalories(m.recipe.calories), 0);
             return (
               <div key={slot.value} className="rounded-2xl overflow-hidden"
@@ -602,27 +614,40 @@ export function MealPlanTab() {
                         const mac = estimateMacros(cal);
                         return (
                           <div key={meal.id}
-                            className="group relative rounded-xl transition-all"
+                            className={`group relative rounded-xl transition-all ${meal.isEaten ? 'opacity-60' : ''}`}
                             style={{ background: "rgba(15,17,23,0.55)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                            <Link to={`/meal/${meal.recipe.id}`} className="flex gap-3 p-3">
-                              <ImageWithFallback src={meal.recipe.image} alt={meal.recipe.name}
-                                className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm leading-tight text-white mb-1 line-clamp-1">{meal.recipe.name}</p>
-                                <div className="flex items-center gap-2 text-xs mb-1.5" style={{ color: "#64748b" }}>
-                                  <span className="flex items-center gap-0.5"><Clock className="w-3 h-3 text-lime-400" />{meal.recipe.cookTime}</span>
-                                  <span className="flex items-center gap-0.5"><Flame className="w-3 h-3 text-orange-400" />{meal.recipe.calories}</span>
+                            <div className="flex gap-3 p-3 w-full">
+                              <button
+                                onClick={() => toggleMealStatus(meal.id)}
+                                className="mt-1 flex-shrink-0 focus:outline-none transition-transform hover:scale-110">
+                                {meal.isEaten ? (
+                                  <CheckCircle2 className="w-6 h-6 text-lime-400" />
+                                ) : (
+                                  <Circle className="w-6 h-6 text-slate-500 hover:text-lime-400 transition-colors" />
+                                )}
+                              </button>
+                              <Link to={`/meal/${meal.recipe.id}`} className="flex-1 min-w-0 flex gap-3">
+                                <ImageWithFallback src={meal.recipe.image} alt={meal.recipe.name}
+                                  className={`w-16 h-16 rounded-lg object-cover flex-shrink-0 ${meal.isEaten ? 'grayscale' : ''}`} />
+                                <div className="flex-1 min-w-0">
+                                  <p className={`font-semibold text-sm leading-tight text-white mb-1 line-clamp-1 ${meal.isEaten ? 'line-through text-slate-400' : ''}`}>{meal.recipe.name}</p>
+                                  <div className="flex items-center gap-2 text-xs mb-1.5" style={{ color: "#64748b" }}>
+                                    <span className="flex items-center gap-0.5"><Clock className="w-3 h-3 text-lime-400" />{meal.recipe.cookTime}</span>
+                                    {cal > 0 && <span className="flex items-center gap-0.5"><Flame className="w-3 h-3 text-orange-400" />{meal.recipe.calories} kcal</span>}
+                                  </div>
+                                  {/* Mini macros */}
+                                  {cal > 0 && (
+                                    <div className={`flex items-center gap-1.5 text-[10px] ${meal.isEaten ? 'opacity-50' : ''}`}>
+                                      <span style={{ color: "#a3e635" }}>P: {mac.protein}g</span>
+                                      <span style={{ color: "#475569" }}>·</span>
+                                      <span style={{ color: "#fb923c" }}>C: {mac.carbs}g</span>
+                                      <span style={{ color: "#475569" }}>·</span>
+                                      <span style={{ color: "#c4b5fd" }}>F: {mac.fat}g</span>
+                                    </div>
+                                  )}
                                 </div>
-                                {/* Mini macros */}
-                                <div className="flex items-center gap-1.5 text-[10px]">
-                                  <span style={{ color: "#a3e635" }}>P: {mac.protein}g</span>
-                                  <span style={{ color: "#475569" }}>·</span>
-                                  <span style={{ color: "#fb923c" }}>C: {mac.carbs}g</span>
-                                  <span style={{ color: "#475569" }}>·</span>
-                                  <span style={{ color: "#c4b5fd" }}>F: {mac.fat}g</span>
-                                </div>
-                              </div>
-                            </Link>
+                              </Link>
+                            </div>
                             <button
                               onClick={() => { removeFromMealPlan(meal.id); toast.success("Đã xóa khỏi thực đơn"); }}
                               className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-all">
@@ -662,7 +687,7 @@ export function MealPlanTab() {
               {pendingSlot && (
                 <span className="ml-1 text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }}>
-                  {MEAL_SLOTS.find((s) => s.value === pendingSlot.mealType)?.label} · {days[activeDay].toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}
+                  {MEAL_SLOTS.find((s) => s.value === pendingSlot.mealType)?.label} · {selectedDate.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" })}
                 </span>
               )}
             </DialogTitle>
@@ -740,7 +765,7 @@ function RecipePickCard({ recipe, onPick, isFav }: { recipe: any; onPick: (r: an
         </div>
         <div className="flex items-center gap-3 text-xs mb-1.5" style={{ color: "#64748b" }}>
           <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-lime-400" />{recipe.cookTime}</span>
-          <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-orange-400" />{recipe.calories}</span>
+          {cal > 0 && <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-orange-400" />{recipe.calories} kcal</span>}
           <span className="px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{recipe.cuisine}</span>
         </div>
         {cal > 0 && (

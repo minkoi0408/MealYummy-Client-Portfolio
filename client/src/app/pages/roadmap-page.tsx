@@ -52,7 +52,7 @@ export function RoadmapPage() {
           {activeTab === "gym" && <GymTab />}
           {activeTab === "meal" && <MealPlanTab />}
           {activeTab === "nutrition" && <NutritionTab onGoToJourney={() => setActiveTab("journey")} />}
-          {activeTab === "journey" && <JourneyTab onGoToNutrition={() => setActiveTab("nutrition")} />}
+          {activeTab === "journey" && <JourneyTab onGoToNutrition={() => setActiveTab("nutrition")} onGoToMealPlan={() => setActiveTab("meal")} />}
         </div>
       </main>
     </div>

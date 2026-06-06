@@ -50,38 +50,6 @@ export function RecipeDetailPage() {
 
   const recipe = mockRecipes.find((r) => r.id === id);
 
-  if (!recipe) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0f1117" }}>
-        <div className="text-center">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background: "rgba(163,230,53,0.08)" }}>
-            <ChefHat className="w-10 h-10 text-lime-400" />
-          </div>
-          <h1 className="text-2xl font-black text-white mb-3">Không tìm thấy món ăn</h1>
-          <Link to="/app">
-            <button className="h-11 px-6 rounded-xl font-bold text-gray-900 transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
-              Quay lại
-            </button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  const handleToggleFavorite = () => {
-    if (isFavorite(recipe.id)) removeFavorite(recipe.id);
-    else addFavorite(recipe);
-  };
-
-  const handleAddMeal = () => {
-    if (!recipe) return;
-    const today = new Date().toISOString().split("T")[0];
-    addToMealPlan(recipe, today, "lunch");
-    toast.success("Đã thêm vào thực đơn hôm nay 📅");
-  };
-
   const handleFindRestaurant = useCallback(() => {
     if (!recipe) return;
     setShowLocationOverlay(true);
@@ -142,6 +110,38 @@ export function RecipeDetailPage() {
         }
     });
   }, [navigate, recipe]);
+
+  if (!recipe) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0f1117" }}>
+        <div className="text-center">
+          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: "rgba(163,230,53,0.08)" }}>
+            <ChefHat className="w-10 h-10 text-lime-400" />
+          </div>
+          <h1 className="text-2xl font-black text-white mb-3">Không tìm thấy món ăn</h1>
+          <Link to="/app">
+            <button className="h-11 px-6 rounded-xl font-bold text-gray-900 transition-all hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
+              Quay lại
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleToggleFavorite = () => {
+    if (isFavorite(recipe.id)) removeFavorite(recipe.id);
+    else addFavorite(recipe);
+  };
+
+  const handleAddMeal = () => {
+    if (!recipe) return;
+    const today = new Date().toISOString().split("T")[0];
+    addToMealPlan(recipe, today, "lunch");
+    toast.success("Đã thêm vào thực đơn hôm nay 📅");
+  };
 
   const fav = isFavorite(recipe.id);
 

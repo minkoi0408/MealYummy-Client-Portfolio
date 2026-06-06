@@ -4,14 +4,14 @@ import {
   Plus, X, ChefHat, Clock, Flame, Search, ShoppingCart,
   ArrowRight, Dumbbell, Droplet, Zap, Leaf, Target, ChevronDown,
 } from "lucide-react";
-import { AppHeader } from "../components/app-header";
-import { useMealPlan } from "../contexts/meal-plan-context";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { useFavorites } from "../contexts/favorites-context";
-import { mockRecipes } from "../data/mock-recipes";
+import { AppHeader } from "../../components/app-header";
+import { useMealPlan } from "../../contexts/meal-plan-context";
+import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
+import { useFavorites } from "../../contexts/favorites-context";
+import { mockRecipes } from "../../data/mock-recipes";
 import { toast } from "sonner";
-import { useBrightness } from "../contexts/brightness-context";
+import { useBrightness } from "../../contexts/brightness-context";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 

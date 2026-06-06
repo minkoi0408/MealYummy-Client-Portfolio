@@ -39,95 +39,6 @@ export function NearbyRestaurantsPage() {
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [activeAbortController, setActiveAbortController] = useState<AbortController | null>(null); // Spinner cho danh sách chợ/quán
 
-  useEffect(() => { 
-    requestLocation(); 
-  }, []);
-
-  // Pro Search Logic: Debounced effect with AbortController
-  useEffect(() => {
-    if (inputValue.length <= 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      setIsSuggesting(true); // Chỉ spinner gợi ý, KHÔNG ảnh hưởng spinner danh sách
-      fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(inputValue)}&limit=6&lat=10.7769&lon=106.7009`, {
-        signal: abortController.signal
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.features) {
-            setSuggestions(data.features.map((f: any) => ({
-              display_name: [f.properties.name, f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
-              name: f.properties.name || f.properties.street || "Địa điểm chưa rõ",
-              lat: f.geometry.coordinates[1],
-              lon: f.geometry.coordinates[0]
-            })));
-          }
-          setIsSuggesting(false);
-        })
-        .catch(err => {
-          if (err.name !== 'AbortError') setIsSuggesting(false);
-        });
-    }, 400); // Giảm độ trễ xuống 400ms cho cảm giác nhanh hơn
-
-    return () => {
-      clearTimeout(timeoutId);
-      abortController.abort();
-    };
-  }, [inputValue]);
-
-  // Update input text ONLY when location is found via GPS (not manual input)
-  // We use a ref or a flag to prevent loops, but useEffect with specific dependency works.
-
-
-  function requestLocation() {
-    setLocationState({ status: "loading" });
-    
-    // Tọa độ mặc định (Quận 1, TP.HCM) để bản đồ luôn có cái để hiện
-    const defaultLat = 10.7769;
-    const defaultLng = 106.7009;
-
-    if (!navigator.geolocation) {
-      setLocationState({ 
-        status: "error", 
-        message: "Trình duyệt không hỗ trợ định vị. Đang hiện vị trí mặc định.",
-        lat: defaultLat,
-        lng: defaultLng
-      });
-      loadMockData(); 
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { 
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setLocationState({ 
-          status: "success", 
-          lat: lat, 
-          lng: lng, 
-          city: "Vị trí của bạn"
-        }); 
-        loadMockData(lat, lng); 
-      },
-      (error) => { 
-        console.error("Geolocation error:", error);
-        setLocationState({ 
-          status: "error", 
-          message: "Không thể lấy vị trí. Đang hiện bản đồ khu vực trung tâm.", 
-          lat: defaultLat, 
-          lng: defaultLng,
-          city: "Trung tâm TP.HCM"
-        }); 
-        loadMockData(defaultLat, defaultLng); 
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
-  }
-
   function loadMockData(lat?: number, lng?: number) { 
     if (activeAbortController) activeAbortController.abort();
     const abortController = new AbortController();
@@ -213,6 +124,93 @@ export function NearbyRestaurantsPage() {
         }
       });
   }
+
+  function requestLocation() {
+    setLocationState({ status: "loading" });
+    
+    // Tọa độ mặc định (Quận 1, TP.HCM) để bản đồ luôn có cái để hiện
+    const defaultLat = 10.7769;
+    const defaultLng = 106.7009;
+
+    if (!navigator.geolocation) {
+      setLocationState({ 
+        status: "error", 
+        message: "Trình duyệt không hỗ trợ định vị. Đang hiện vị trí mặc định.",
+        lat: defaultLat,
+        lng: defaultLng
+      });
+      loadMockData(); 
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { 
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLocationState({ 
+          status: "success", 
+          lat: lat, 
+          lng: lng, 
+          city: "Vị trí của bạn"
+        }); 
+        loadMockData(lat, lng); 
+      },
+      (error) => { 
+        console.error("Geolocation error:", error);
+        setLocationState({ 
+          status: "error", 
+          message: "Không thể lấy vị trí. Đang hiện bản đồ khu vực trung tâm.", 
+          lat: defaultLat, 
+          lng: defaultLng,
+          city: "Trung tâm TP.HCM"
+        }); 
+        loadMockData(defaultLat, defaultLng); 
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  }
+
+  useEffect(() => { 
+    requestLocation(); 
+  }, []);
+
+  // Pro Search Logic: Debounced effect with AbortController
+  useEffect(() => {
+    if (inputValue.length <= 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      setIsSuggesting(true); // Chỉ spinner gợi ý, KHÔNG ảnh hưởng spinner danh sách
+      fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(inputValue)}&limit=6&lat=10.7769&lon=106.7009`, {
+        signal: abortController.signal
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.features) {
+            setSuggestions(data.features.map((f: any) => ({
+              display_name: [f.properties.name, f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
+              name: f.properties.name || f.properties.street || "Địa điểm chưa rõ",
+              lat: f.geometry.coordinates[1],
+              lon: f.geometry.coordinates[0]
+            })));
+          }
+          setIsSuggesting(false);
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') setIsSuggesting(false);
+        });
+    }, 400); // Giảm độ trễ xuống 400ms cho cảm giác nhanh hơn
+
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [inputValue]);
+
+
 
   const sorted = [...restaurants].sort((a, b) => sortBy === "distance" ? a.distance - b.distance : b.rating - a.rating);
   const displayed = filterOpen ? sorted.filter((r) => r.openNow) : sorted;

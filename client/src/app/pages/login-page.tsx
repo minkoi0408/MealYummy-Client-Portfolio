@@ -41,7 +41,7 @@ export function LoginPage() {
       try {
         const decoded: any = jwtDecode(token);
         role = decoded.role || decoded.Role || "";
-      } catch (e) {}
+      } catch (e) { /* ignore */ }
 
       if (role === "ROLE_ADMIN" || role === "ROLE_MANAGER") {
         navigate("/dashboard", { replace: true });
@@ -176,7 +176,7 @@ export function LoginPage() {
                         try {
                           const decoded: any = jwtDecode(token);
                           role = decoded.role || decoded.Role || "";
-                        } catch (e) {}
+                        } catch (e) { /* ignore */ }
                       }
                       const destination = (role === "ROLE_ADMIN" || role === "ROLE_MANAGER")
                         ? "/admin"

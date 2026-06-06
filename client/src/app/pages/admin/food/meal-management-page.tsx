@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Input, Space, Tag, Modal, Form, Select, InputNumber, message } from "antd";
 import { Plus, Search, Edit2, Trash2, ShieldAlert } from "lucide-react";
-import { mealApi, type MealResponseDTO } from "../../../../apis/meal.api";
+import { mealApi } from "../../../../apis/meal.api";
+import type { Meal } from "../../../../types/meal.type";
 
 export function MealManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [data, setData] = useState<MealResponseDTO[]>([]);
+  const [data, setData] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);

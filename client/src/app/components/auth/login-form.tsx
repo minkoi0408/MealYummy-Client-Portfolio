@@ -6,6 +6,12 @@ import { authApi } from "../../../apis/auth.api";
 import type { LoginRequestDTO, GoogleTokenRequestDTO } from "../../../types/auth.types";
 import { useAuth } from "../../contexts/auth-context";
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email: string, rememberMe: boolean, message?: string, hasTotp?: boolean) => void, onForgotPassword?: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -55,7 +61,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
 
         window.google.accounts.id.renderButton(
           btnElement,
-          { theme: "outline", size: "large", width: "100%", shape: "circle" }
+          { theme: "outline", size: "large", width: "280", shape: "circle" }
         );
         return true;
       }
@@ -99,7 +105,9 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
       try {
         const decoded: any = jwtDecode(payload.accessToken);
         role = decoded.role || decoded.Role || "";
-      } catch (e) {}
+      } catch (e) {
+        // Ignore decoding errors
+      }
 
       toast.success("Đăng nhập bằng Google thành công!");
       

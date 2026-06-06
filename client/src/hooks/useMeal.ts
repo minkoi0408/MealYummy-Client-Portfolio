@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { mealAPI } from '../apis/meal.api';
+import { mealApi } from '../apis/meal.api';
 import { type Meal } from '../types/meal.type';
 
 interface MealState {
@@ -27,9 +27,9 @@ const useMeal = create<MealState>((set, get) => ({
         if (get().isLoaded || get().isLoading) return;
         set({ isLoading: true, error: null });
         try {
-            const response = await mealAPI.getAll();
+            const response = await mealApi.getAll();
             set({
-                meals: response.data?.data || [],
+                meals: response.data?.data?.content || [],
                 isLoading: false,
                 isLoaded: true
             });
@@ -42,7 +42,7 @@ const useMeal = create<MealState>((set, get) => ({
     searchMeals: async (name: string) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await mealAPI.search(name);
+            const response = await mealApi.search(name);
             const data: Meal[] = response.data?.data || [];
             set({ meals: data, isLoading: false });
             return data;
@@ -58,7 +58,7 @@ const useMeal = create<MealState>((set, get) => ({
         set({ isLoading: true, error: null });
         try {
             const responses = await Promise.all(
-                tagIds.map((tagId) => mealAPI.getByTag(tagId))
+                tagIds.map((tagId) => mealApi.getByTag(tagId))
             );
             const arrays: Meal[][] = responses.map((r: any) => r.data?.data || []);
             let merged = arrays[0] ?? [];
@@ -77,7 +77,7 @@ const useMeal = create<MealState>((set, get) => ({
     getMealById: async (id: string) => {
         set({ isLoading: true, error: null, selectedMeal: null });
         try {
-            const response = await mealAPI.getById(id);
+            const response = await mealApi.getById(id);
             set({ selectedMeal: response.data?.data || null, isLoading: false });
         } catch (err: any) {
             set({ error: err.message || 'Lỗi khi lấy chi tiết món ăn', isLoading: false });

@@ -106,7 +106,7 @@ export function usePerformanceOptimizer() {
   });
 
   const frameCount = useRef(0);
-  const lastTime = useRef(performance.now());
+  const lastTime = useRef(0);
   const performanceHistory = useRef<number[]>([]);
   
   // Network and battery hooks
@@ -124,9 +124,12 @@ export function usePerformanceOptimizer() {
   }, []);
 
   // FPS monitoring
-  const measureFPS = useCallback(() => {
+  const measureFPS = useCallback(function loop() {
     frameCount.current++;
     const currentTime = performance.now();
+    
+    // Khởi tạo lastTime nếu bằng 0
+    if (lastTime.current === 0) lastTime.current = currentTime;
     
     if (currentTime - lastTime.current >= 1000) {
       const fps = Math.round((frameCount.current * 1000) / (currentTime - lastTime.current));
@@ -142,7 +145,7 @@ export function usePerformanceOptimizer() {
       lastTime.current = currentTime;
     }
     
-    requestAnimationFrame(measureFPS);
+    requestAnimationFrame(loop);
   }, []);
 
   // Memory monitoring

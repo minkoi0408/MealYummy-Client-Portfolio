@@ -37,9 +37,9 @@ export interface Role {
 
 
 
-const getHeaders = () => {
+const getHeaders = (): Record<string, string> | undefined => {
   const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return token ? { Authorization: `Bearer ${token}` } : undefined;
 };
 
 export const roleApi = {

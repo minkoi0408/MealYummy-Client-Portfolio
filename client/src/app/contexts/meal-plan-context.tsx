@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { type Recipe } from "./favorites-context";
+import { useAuth } from "./auth-context";
 
 export interface MealPlanItem {
   id: string;
   recipe: Recipe;
   date: string;
   mealType: "breakfast" | "lunch" | "dinner" | "snack";
+  isEaten: boolean;
 }
 
 interface MealPlanContextType {
@@ -14,21 +16,30 @@ interface MealPlanContextType {
   removeFromMealPlan: (id: string) => void;
   getMealsByDate: (date: string) => MealPlanItem[];
   clearMealPlan: () => void;
+  clearMealPlanForDate: (date: string) => Promise<void>;
+  syncMealPlanForDate: (date: string) => Promise<void>;
+  refreshMealPlan: () => void;
+  toggleMealStatus: (id: string) => void;
 }
 
 const MealPlanContext = createContext<MealPlanContextType | undefined>(undefined);
 
 export function MealPlanProvider({ children }: { children: ReactNode }) {
   const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([]);
+  const { isAuthenticated } = useAuth();
 
-  useEffect(() => {
-    // Fetch meal plan from backend on load
+  const fetchMealPlan = () => {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (token) {
       fetch("http://localhost:8082/api/v1/meal-plan", {
         headers: { Authorization: `Bearer ${token}` }
       })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+           throw new Error("HTTP " + res.status);
+        }
+        return res.json();
+      })
       .then(data => {
         if (data && data.data) {
           setMealPlan(data.data);
@@ -36,7 +47,15 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       })
       .catch(err => console.error("Error fetching meal plan:", err));
     }
-  }, []);
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMealPlan();
+    } else {
+      setMealPlan([]);
+    }
+  }, [isAuthenticated]);
 
   const addToMealPlan = (recipe: Recipe, date?: string, mealType: MealPlanItem["mealType"] = "lunch") => {
     const today = new Date().toISOString().split("T")[0];
@@ -53,7 +72,10 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
       },
       body: JSON.stringify({ recipe, date: targetDate, mealType })
     })
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
     .then(data => {
       if (data && data.data) {
         setMealPlan((prev) => [data.data, ...prev]);
@@ -94,9 +116,71 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     .catch(err => console.error("Error clearing meal plan:", err));
   };
 
+  const clearMealPlanForDate = async (date: string) => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`http://localhost:8082/api/v1/meal-plan/date/${date}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      fetchMealPlan(); // Refresh after clearing
+    } catch (err) {
+      console.error("Error clearing meal plan for date:", err);
+      throw err;
+    }
+  };
+
+  const syncMealPlanForDate = async (date: string) => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    try {
+      const res = await fetch(`http://localhost:8082/api/v1/meal-plan/date/${date}/sync`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      fetchMealPlan(); // Refresh after syncing
+    } catch (err) {
+      console.error("Error syncing meal plan for date:", err);
+      throw err;
+    }
+  };
+
+  const toggleMealStatus = (id: string) => {
+    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+    if (!token) return;
+
+    // Optimistic update
+    setMealPlan(prev => prev.map(item => item.id === id ? { ...item, isEaten: !item.isEaten } : item));
+
+    fetch(`http://localhost:8082/api/v1/meal-plan/${id}/toggle`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      if (data && data.data) {
+        // Sync with server state
+        setMealPlan(prev => prev.map(item => item.id === id ? data.data : item));
+      }
+    })
+    .catch(err => {
+      console.error("Error toggling meal status:", err);
+      // Revert on error
+      setMealPlan(prev => prev.map(item => item.id === id ? { ...item, isEaten: !item.isEaten } : item));
+    });
+  };
+
   return (
     <MealPlanContext.Provider
-      value={{ mealPlan, addToMealPlan, removeFromMealPlan, getMealsByDate, clearMealPlan }}
+      value={{ mealPlan, addToMealPlan, removeFromMealPlan, getMealsByDate, clearMealPlan, clearMealPlanForDate, syncMealPlanForDate, refreshMealPlan: fetchMealPlan, toggleMealStatus }}
     >
       {children}
     </MealPlanContext.Provider>

@@ -27,22 +27,22 @@ const ACTIVITY_MULTIPLIERS = { sedentary: 1.2, light: 1.375, moderate: 1.55, act
 const GOAL_ADJUSTMENTS = { cut: -500, maintain: 0, bulk: +300 };
 
 const DISEASE_LIST = [
-  { code: 'DIABETES',          label: 'Tiểu đường',              icon: '🩸' },
-  { code: 'GOUT',              label: 'Gout (Gút)',              icon: '🦴' },
-  { code: 'HYPERTENSION',      label: 'Cao huyết áp',           icon: '❤️‍🔥' },
-  { code: 'DYSLIPIDEMIA',      label: 'Mỡ máu cao',             icon: '🫀' },
-  { code: 'CHRONIC_KIDNEY',    label: 'Thận mạn tính',          icon: '🫘' },
-  { code: 'FATTY_LIVER',       label: 'Gan nhiễm mỡ',           icon: '🍵' },
-  { code: 'KIDNEY_STONE',      label: 'Sỏi thận',               icon: '💎' },
-  { code: 'GERD',              label: 'Trào ngược dạ dày',      icon: '🔥' },
-  { code: 'IBS',               label: 'Ruột kích thích',        icon: '😣' },
-  { code: 'HEMORRHOID',        label: 'Táo bón mãn',            icon: '🩹' },
-  { code: 'ARTHRITIS',         label: 'Viêm khớp',              icon: '🦵' },
-  { code: 'THYROID',           label: 'Tuyến giáp',             icon: '🦋' },
-  { code: 'GYM_BULK',          label: 'Đang Tăng cơ',           icon: '💪' },
-  { code: 'GYM_CUT',           label: 'Đang Giảm mỡ',           icon: '🔥' },
-  { code: 'LACTOSE_INTOLERANT',label: 'Dị ứng Lactose',         icon: '🥛' },
-  { code: 'FEVER_INFECTION',   label: 'Đang sốt/ốm',            icon: '🤒' }
+  { code: 'DIABETES', label: 'Tiểu đường', icon: '🩸' },
+  { code: 'GOUT', label: 'Gout (Gút)', icon: '🦴' },
+  { code: 'HYPERTENSION', label: 'Cao huyết áp', icon: '❤️‍🔥' },
+  { code: 'DYSLIPIDEMIA', label: 'Mỡ máu cao', icon: '🫀' },
+  { code: 'CHRONIC_KIDNEY', label: 'Thận mạn tính', icon: '🫘' },
+  { code: 'FATTY_LIVER', label: 'Gan nhiễm mỡ', icon: '🍵' },
+  { code: 'KIDNEY_STONE', label: 'Sỏi thận', icon: '💎' },
+  { code: 'GERD', label: 'Trào ngược dạ dày', icon: '🔥' },
+  { code: 'IBS', label: 'Ruột kích thích', icon: '😣' },
+  { code: 'HEMORRHOID', label: 'Táo bón mãn', icon: '🩹' },
+  { code: 'ARTHRITIS', label: 'Viêm khớp', icon: '🦵' },
+  { code: 'THYROID', label: 'Tuyến giáp', icon: '🦋' },
+  { code: 'GYM_BULK', label: 'Đang Tăng cơ', icon: '💪' },
+  { code: 'GYM_CUT', label: 'Đang Giảm mỡ', icon: '🔥' },
+  { code: 'LACTOSE_INTOLERANT', label: 'Dị ứng Lactose', icon: '🥛' },
+  { code: 'FEVER_INFECTION', label: 'Đang sốt/ốm', icon: '🤒' }
 ];
 
 const API_BASE = "http://localhost:8082/api/v1";
@@ -91,7 +91,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     fetch(`${API_BASE}/users/metrics`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => { if (data?.data) setMetrics(prev => ({ ...prev, ...data.data })); })
-      .catch(() => {});
+      .catch(() => { });
 
     fetch(`${API_BASE}/users/metrics/history`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
@@ -104,7 +104,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
           if (sorted.length > 0) setHasSaved(true);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleExportPDF = async () => {
@@ -170,7 +170,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
               setMetricsHistory(sorted);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       } else {
         toast.error(data.message || "Lỗi khi lưu chỉ số", { id: toastId });
       }
@@ -311,8 +311,8 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
                   key={disease.code}
                   onClick={() => {
                     const currentDiseases = metrics.diseases || [];
-                    const newDiseases = isSelected 
-                      ? currentDiseases.filter(c => c !== disease.code) 
+                    const newDiseases = isSelected
+                      ? currentDiseases.filter(c => c !== disease.code)
                       : [...currentDiseases, disease.code];
                     updateMetrics({ diseases: newDiseases });
                   }}
@@ -387,7 +387,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
             <h3 className="text-sm font-black text-white">Lịch sử thành phần cấu tạo cơ thể</h3>
           </div>
           <div className="h-[280px] w-full bg-[#0f1117] p-2 rounded-xl">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="updatedAt" tickFormatter={(t) => t ? new Date(t).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''} stroke="#475569" fontSize={11} tickMargin={12} axisLine={false} tickLine={false} />

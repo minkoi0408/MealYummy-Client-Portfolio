@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Trash2, Route, ArrowRight } from "lucide-react";
+import { Sparkles, Route, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/auth-context";
+import { useMealPlan } from "../../contexts/meal-plan-context";
 import { motion, AnimatePresence } from "framer-motion";
 import { RoadmapDisplay, DurationDialog, type DurationLabel, type DietRoadmapDTO } from "./journey-components";
 
@@ -11,13 +12,15 @@ function getToken() {
   return localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken") || "";
 }
 
-export function JourneyTab({ onGoToNutrition }: { onGoToNutrition: () => void }) {
+export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutrition: () => void, onGoToMealPlan: () => void }) {
   const { user } = useAuth();
+  const { refreshMealPlan } = useMealPlan();
   const [hasSavedMetrics, setHasSavedMetrics] = useState<boolean | null>(null);
   const [roadmap, setRoadmap] = useState<DietRoadmapDTO | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDurationDialog, setShowDurationDialog] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     const token = getToken();
@@ -90,6 +93,37 @@ export function JourneyTab({ onGoToNutrition }: { onGoToNutrition: () => void })
     }
   };
 
+  const handleSyncRoadmap = async () => {
+    if (!roadmap) return;
+    const token = getToken();
+    if (!token) return;
+
+    let days = 30;
+    if (roadmap.durationLabel === "3_MONTHS") days = 90;
+    if (roadmap.durationLabel === "6_MONTHS") days = 180;
+    if (roadmap.durationLabel === "12_MONTHS") days = 365;
+
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`${API_BASE}/diet-roadmap/${roadmap.id}/sync-to-meal-plan?days=${days}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Đã đồng bộ toàn bộ lộ trình (${days} ngày) vào Lịch ăn!`);
+        refreshMealPlan();
+        onGoToMealPlan();
+      } else {
+        toast.error(data.message || "Lỗi khi đồng bộ lộ trình");
+      }
+    } catch {
+      toast.error("Lỗi kết nối server khi đồng bộ lộ trình");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="text-center py-10 text-slate-500 text-sm">Đang tải dữ liệu hành trình...</div>;
   }
@@ -131,7 +165,7 @@ export function JourneyTab({ onGoToNutrition }: { onGoToNutrition: () => void })
 
           {/* Roadmap Result */}
           {roadmap ? (
-            <RoadmapDisplay roadmap={roadmap} onDelete={handleDeleteRoadmap} />
+            <RoadmapDisplay roadmap={roadmap} onDelete={handleDeleteRoadmap} onSync={handleSyncRoadmap} isSyncing={isSyncing} />
           ) : (
             <div className="rounded-2xl p-10 text-center" style={{ background: "rgba(26,31,46,0.6)", border: "1px dashed rgba(163,230,53,0.2)" }}>
               <Sparkles className="w-10 h-10 text-lime-400 mx-auto mb-4 opacity-50" />
