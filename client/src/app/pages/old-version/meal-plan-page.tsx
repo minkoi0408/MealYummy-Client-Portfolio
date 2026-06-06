@@ -4,14 +4,15 @@ import {
   Plus, X, ChefHat, Clock, Flame, Search, ShoppingCart,
   ArrowRight, Dumbbell, Droplet, Zap, Leaf, Target, ChevronDown,
 } from "lucide-react";
-import { AppHeader } from "../../components/app-header";
-import { useMealPlan } from "../../contexts/meal-plan-context";
-import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
-import { useFavorites } from "../../contexts/favorites-context";
-import { mockRecipes } from "../../data/mock-recipes";
+import { AppHeader } from "../components/app-header";
+import { useMealPlan } from "../contexts/meal-plan-context";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { favoriteApi } from "../../../apis/favorite.api";
+import { mockRecipes } from "../data/mock-recipes";
 import { toast } from "sonner";
-import { useBrightness } from "../../contexts/brightness-context";
+import { useBrightness } from "../contexts/brightness-context";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -237,7 +238,11 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
 
 export function MealPlanPage() {
   const { mealPlan, addToMealPlan, removeFromMealPlan } = useMealPlan();
-  const { favorites } = useFavorites();
+  const { data: favoriteMealsData } = useQuery({
+    queryKey: ["favoriteMeals"],
+    queryFn: () => favoriteApi.getFavoriteMeals(0, 50)
+  });
+  const favorites = favoriteMealsData?.content || [];
   const { isBright } = useBrightness();
   const [activeDay, setActiveDay] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);

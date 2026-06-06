@@ -57,11 +57,19 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Các endpoint xác thực (đăng nhập, OTP) không được trigger logic refresh token
+    const isAuthEndpoint = originalRequest.url?.includes('/auth/login') ||
+                           originalRequest.url?.includes('/notification/otp-') ||
+                           originalRequest.url?.includes('/auth/register');
 
-    // Chỉ thử refresh khi 401 hoặc 403 và chưa thử lại
     if (error.response && (error.response.status === 401 || error.response.status === 403) && !originalRequest._retry) {
-      // Không retry cho các endpoint auth (tránh vòng lặp vô tận)
-      if (originalRequest.url?.includes('/auth/refresh') || originalRequest.url?.includes('/auth/login')) {
+      if (isAuthEndpoint) {
+        // Trả thẳng lỗi về component để hiển thị thông báo (toast), không redirect
+        return Promise.reject(error);
+      }
+
+      // Nếu refresh token fail -> logout và redirect
+      if (originalRequest.url?.includes('/auth/refresh')) {
         localStorage.clear(); sessionStorage.clear();
         window.location.href = '/login';
         return Promise.reject(error);

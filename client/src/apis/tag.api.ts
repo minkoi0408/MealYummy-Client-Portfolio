@@ -6,7 +6,6 @@ import type { Page } from './category.api';
 export interface Tag {
   id: string;
   name: string;
-  description?: string;
   active?: boolean;
   createdAt?: string;
 }
@@ -18,6 +17,10 @@ export const tagApi = {
 
   create: (data: Partial<Tag>): Promise<AxiosResponse<BaseApiResponse<Tag>>> => {
     return callAPI('POST', '/tags', data);
+  },
+
+  createBulk: (data: Partial<Tag>[]): Promise<AxiosResponse<BaseApiResponse<Tag[]>>> => {
+    return callAPI('POST', '/tags/bulk', data);
   },
 
   update: (id: string, data: Partial<Tag>): Promise<AxiosResponse<BaseApiResponse<Tag>>> => {

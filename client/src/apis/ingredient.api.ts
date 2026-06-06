@@ -6,7 +6,6 @@ import type { Page } from './category.api';
 export interface Ingredient {
   id: string;
   name: string;
-  description?: string;
   calories?: number;
   unit?: string;
   active?: boolean;
@@ -20,6 +19,10 @@ export const ingredientApi = {
 
   create: (data: Partial<Ingredient>): Promise<AxiosResponse<BaseApiResponse<Ingredient>>> => {
     return callAPI('POST', '/ingredients', data);
+  },
+
+  createBulk: (data: Partial<Ingredient>[]): Promise<AxiosResponse<BaseApiResponse<Ingredient[]>>> => {
+    return callAPI('POST', '/ingredients/bulk', data);
   },
 
   update: (id: string, data: Partial<Ingredient>): Promise<AxiosResponse<BaseApiResponse<Ingredient>>> => {

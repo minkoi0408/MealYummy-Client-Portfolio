@@ -1,12 +1,12 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Flame, Clock, Users, ChefHat, Leaf, Zap, Droplet, Dumbbell, ShoppingCart, Heart, MapPin, Loader2 } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
-import { ThreeGlobe } from "../../components/three-globe";
-import { AppHeader } from "../../components/app-header";
-import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
-import { mockRecipes } from "../../data/mock-recipes";
-import { useFavorites } from "../../contexts/favorites-context";
-import { useMealPlan } from "../../contexts/meal-plan-context";
+import { ThreeGlobe } from "../components/three-globe";
+import { AppHeader } from "../components/app-header";
+import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { mockRecipes } from "../data/mock-recipes";
+import { useFavorites } from "../contexts/favorites-context";
+import { useMealPlan } from "../contexts/meal-plan-context";
 import { toast } from "sonner";
 
 // Nutrition is mocked/derived from the recipe data for MVP
@@ -36,7 +36,7 @@ const EARTH_TEXTURES = [
 export function MealDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+    const { toggleFavorite, favoriteIds } = useFavorites();
     const { addToMealPlan } = useMealPlan();
 
     const [showLocationOverlay, setShowLocationOverlay] = useState(false);
@@ -55,6 +55,28 @@ export function MealDetailPage() {
     // We map s->season, b->bestseller, r->regional back to mock recipes by index
     const recipeIndex = id ? (parseInt(id.replace(/\D/g, "")) - 1) : -1;
     const recipe = mockRecipes[recipeIndex >= 0 ? recipeIndex % mockRecipes.length : 0];
+
+    if (!recipe) {
+        return (
+            <div className="min-h-screen">
+                <AppHeader />
+                <div className="flex flex-col items-center justify-center h-64 gap-3">
+                    <p className="text-white text-lg font-bold">Không tìm thấy món ăn</p>
+                    <Link to="/results" className="text-lime-400 text-sm underline">← Quay lại</Link>
+                </div>
+            </div>
+        );
+    }
+
+    const caloriesNum = parseInt(recipe.calories) || 400;
+    const nutrition = estimateNutrition(caloriesNum);
+    const isFav = favoriteIds.includes(recipe.id);
+
+    const handleAddMeal = () => {
+        const today = new Date().toISOString().split("T")[0];
+        addToMealPlan(recipe, today, "lunch");
+        toast.success("Đã thêm vào thực đơn hôm nay 📅");
+    };
 
     const handleFindRestaurant = useCallback(() => {
         if (!recipe) return;
@@ -117,33 +139,6 @@ export function MealDetailPage() {
         });
     }, [navigate, recipe]);
 
-    if (!recipe) {
-        return (
-            <div className="min-h-screen">
-                <AppHeader />
-                <div className="flex flex-col items-center justify-center h-64 gap-3">
-                    <p className="text-white text-lg font-bold">Không tìm thấy món ăn</p>
-                    <Link to="/results" className="text-lime-400 text-sm underline">← Quay lại</Link>
-                </div>
-            </div>
-        );
-    }
-
-    const caloriesNum = parseInt(recipe.calories) || 400;
-    const nutrition = estimateNutrition(caloriesNum);
-    const fav = isFavorite(recipe.id);
-
-    const handleFav = () => {
-        if (fav) { removeFavorite(recipe.id); toast.success("Đã bỏ yêu thích"); }
-        else { addFavorite(recipe); toast.success("Đã thêm vào yêu thích 💚"); }
-    };
-
-    const handleAddMeal = () => {
-        const today = new Date().toISOString().split("T")[0];
-        addToMealPlan(recipe, today, "lunch");
-        toast.success("Đã thêm vào thực đơn hôm nay 📅");
-    };
-
     const macros = [
         { label: "Protein", value: nutrition.protein, unit: "g", color: "#a3e635", bg: "rgba(163,230,53,0.08)", border: "rgba(163,230,53,0.2)", icon: <Dumbbell className="w-4 h-4" />, tip: NUTRITION_TIPS.protein },
         { label: "Carbs", value: nutrition.carbs, unit: "g", color: "#fb923c", bg: "rgba(251,146,60,0.08)", border: "rgba(251,146,60,0.2)", icon: <Zap className="w-4 h-4" />, tip: NUTRITION_TIPS.carbs },
@@ -186,13 +181,15 @@ export function MealDetailPage() {
                             style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: "0 0 24px rgba(163,230,53,0.25)" }}>
                             <ShoppingCart className="w-5 h-5" /> Thêm vào thực đơn
                         </button>
-                        <button onClick={handleFav}
-                            className="h-12 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all"
-                            style={fav
-                                ? { background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }
-                                : { background: "rgba(255,255,255,0.05)", color: "#94a3b8", border: "1px solid rgba(255,255,255,0.1)" }}>
-                            <Heart className={`w-5 h-5 ${fav ? "fill-lime-400 text-lime-400" : ""}`} />
-                            {fav ? "Đã yêu thích" : "Yêu thích"}
+                        <button
+                            onClick={() => { toggleFavorite(recipe.id); toast.success(isFav ? "Đã bỏ yêu thích" : "Đã thêm yêu thích"); }}
+                            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold transition-all border"
+                            style={isFav
+                                ? { background: "rgba(163,230,53,0.1)", color: "#a3e635", borderColor: "rgba(163,230,53,0.3)" }
+                                : { background: "rgba(255,255,255,0.05)", color: "white", borderColor: "rgba(255,255,255,0.1)" }}
+                        >
+                            <Heart className={`w-5 h-5 ${isFav ? "fill-lime-400 text-lime-400" : ""}`} />
+                            {isFav ? "Đã yêu thích" : "Yêu thích"}
                         </button>
                         <button onClick={handleFindRestaurant}
                             className="h-12 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
