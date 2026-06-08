@@ -507,7 +507,8 @@ export function ProfilePage() {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch("http://localhost:8082/api/v1/users/metrics", {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+    fetch(`${API_URL}/users/metrics`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -520,7 +521,7 @@ export function ProfilePage() {
       .catch(() => { });
 
     // Fetch history
-    fetch("http://localhost:8082/api/v1/users/metrics/history", {
+    fetch(`${API_URL}/users/metrics/history`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -543,7 +544,8 @@ export function ProfilePage() {
     setIsSavingMetrics(true);
     const toastId = toast.loading("Đang lưu chỉ số...");
     try {
-      const res = await fetch("http://localhost:8082/api/v1/users/metrics", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/users/metrics`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -556,7 +558,7 @@ export function ProfilePage() {
         toast.success(data.message || "Đã lưu chỉ số thành công", { id: toastId });
         saveMetrics(metrics);
         // Re-fetch history to update chart
-        fetch("http://localhost:8082/api/v1/users/metrics/history", {
+        fetch(`${API_URL}/users/metrics/history`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
           .then(r => r.json())
@@ -616,7 +618,8 @@ export function ProfilePage() {
 
     const toastId = toast.loading("Đang tải ảnh lên...");
     try {
-      const res = await fetch("http://localhost:8082/api/v1/users/avatar", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/users/avatar`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`

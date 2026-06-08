@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { type Recipe } from "./favorites-context";
 import { useAuth } from "./auth-context";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
 export interface MealPlanItem {
   id: string;
   recipe: Recipe;
@@ -31,7 +32,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
   const fetchMealPlan = () => {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (token) {
-      fetch("http://localhost:8082/api/v1/meal-plan", {
+      fetch(`${API_URL}/meal-plan`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
@@ -64,7 +65,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch("http://localhost:8082/api/v1/meal-plan", {
+    fetch(`${API_URL}/meal-plan`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
@@ -88,7 +89,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch(`http://localhost:8082/api/v1/meal-plan/${id}`, {
+    fetch(`${API_URL}/meal-plan/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -106,7 +107,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch(`http://localhost:8082/api/v1/meal-plan`, {
+    fetch(`${API_URL}/meal-plan`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -121,7 +122,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:8082/api/v1/meal-plan/date/${date}`, {
+      const res = await fetch(`${API_URL}/meal-plan/date/${date}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -138,7 +139,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:8082/api/v1/meal-plan/date/${date}/sync`, {
+      const res = await fetch(`${API_URL}/meal-plan/date/${date}/sync`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -157,7 +158,7 @@ export function MealPlanProvider({ children }: { children: ReactNode }) {
     // Optimistic update
     setMealPlan(prev => prev.map(item => item.id === id ? { ...item, isEaten: !item.isEaten } : item));
 
-    fetch(`http://localhost:8082/api/v1/meal-plan/${id}/toggle`, {
+    fetch(`${API_URL}/meal-plan/${id}/toggle`, {
       method: "PUT",
       headers: { Authorization: `Bearer ${token}` }
     })

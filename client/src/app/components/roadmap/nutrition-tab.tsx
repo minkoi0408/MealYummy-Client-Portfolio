@@ -45,7 +45,7 @@ const DISEASE_LIST = [
   { code: 'FEVER_INFECTION', label: 'Đang sốt/ốm', icon: '🤒' }
 ];
 
-const API_BASE = "http://localhost:8082/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
 
 function calcTDEE(m: UserMetrics) {
   const bmr = m.gender === "male"

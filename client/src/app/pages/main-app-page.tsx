@@ -148,7 +148,8 @@ export function MainAppPage() {
       const headers: HeadersInit = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const response = await fetch(`${API_URL}/ai/knowledge/chat`, {
         method: 'POST',
         headers,
         body: JSON.stringify({

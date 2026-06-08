@@ -6,7 +6,7 @@ import { useMealPlan } from "../../contexts/meal-plan-context";
 import { motion, AnimatePresence } from "framer-motion";
 import { RoadmapDisplay, DurationDialog, type DurationLabel, type DietRoadmapDTO } from "./journey-components";
 
-const API_BASE = "http://localhost:8082/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
 
 function getToken() {
   return localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken") || "";
