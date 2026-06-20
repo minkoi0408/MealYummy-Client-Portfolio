@@ -1,4 +1,4 @@
-export type PaymentMethod = "VNPAY" | "MOMO";
+export type PaymentMethod = "PAYOS";
 
 export interface PaymentCreateRequest {
   userId: string;
