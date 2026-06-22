@@ -1,4 +1,5 @@
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext } from "react";
+import type { ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { favoriteApi } from "../../apis/favorite.api";
 import { toast } from "sonner";

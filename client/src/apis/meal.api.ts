@@ -22,8 +22,7 @@ export interface NutritionDTO {
 }
 
 export interface MealIngredientDTO {
-  ingredientId: string;
-  name?: string;
+  name: string;
   value: number;
   unit: string;
   unitDesc?: string;
@@ -33,8 +32,8 @@ export interface MealRequestDTO {
   name: string;
   description: string;
   price: PriceDTO;
-  categoryIds: string[];
-  tagIds: string[];
+  categories: string[];
+  tags: string[];
   ingredients: MealIngredientDTO[];
   nutrition: NutritionDTO;
 }
@@ -42,13 +41,13 @@ export interface MealRequestDTO {
 export interface MealResponseDTO {
   id: string;
   name: string;
-  description?: string;
+  description: string;
   price: PriceDTO;
   images?: MealImageDTO[];
-  categories?: { id: string; name: string }[];
-  tags?: { id: string; name: string }[];
-  ingredients?: MealIngredientDTO[];
-  nutrition?: NutritionDTO;
+  categories: string[];
+  tags: string[];
+  ingredients: MealIngredientDTO[];
+  nutrition: NutritionDTO;
   active?: boolean;
   createdAt?: string;
 }
@@ -60,6 +59,14 @@ export const mealApi = {
 
   getById: (id: string): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {
     return callAPI('GET', `/meals/${id}`);
+  },
+
+  search: (name: string): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO[]>>> => {
+    return callAPI('GET', '/meals/search', null, { name });
+  },
+
+  getByTag: (tagId: string): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO[]>>> => {
+    return callAPI('GET', `/meals/tag/${tagId}`);
   },
 
   create: (data: MealRequestDTO): Promise<AxiosResponse<BaseApiResponse<MealResponseDTO>>> => {

@@ -44,9 +44,6 @@ export function AdminLayout() {
     {
       title: "Quản lý Món ăn",
       items: [
-        { path: "/admin/categories", label: "Danh mục", icon: Tags },
-        { path: "/admin/tags", label: "Thẻ (Tags)", icon: Utensils },
-        { path: "/admin/ingredients", label: "Nguyên liệu", icon: Apple },
         { path: "/admin/meals", label: "Món ăn", icon: Coffee },
       ]
     },

@@ -125,7 +125,7 @@ export function IngredientManagementPage() {
       title: 'Thao tác',
       key: 'action',
       width: '15%',
-      render: (_, record: Ingredient) => (
+      render: (_: any, record: Ingredient) => (
         <Space size="middle">
           <Button 
             type="text" 

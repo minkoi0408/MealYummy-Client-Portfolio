@@ -25,12 +25,13 @@ export function MealManagementPage() {
   const [form] = Form.useForm();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleExport = async () => {
+  const handleImportServerJson = async () => {
     try {
-      await dataApi.exportMeals();
-      message.success("Xuất dữ liệu thành công! File đã được lưu trên máy chủ (resources/json).");
+      await dataApi.importMealsFromJson();
+      message.success("Import dữ liệu JSON từ Server thành công!");
+      fetchData(currentPage, pageSize);
     } catch (err) {
-      message.error("Lỗi khi xuất dữ liệu.");
+      message.error("Lỗi khi import dữ liệu JSON từ Server.");
     }
   };
 
@@ -97,14 +98,10 @@ export function MealManagementPage() {
       const payload: MealRequestDTO = {
         name: values.name,
         description: values.description || "",
-        price: {
-          minPrice: values.minPrice || 0,
-          maxPrice: values.maxPrice || values.minPrice || 0
-        },
-        categoryIds: values.categories || [],
-        tagIds: values.tags || [],
+        categories: values.categories || [],
+        tags: values.tags || [],
         ingredients: (values.ingredients || []).map((ing: any) => ({
-          ingredientId: ing.ingredientId,
+          name: ing.name,
           value: ing.value,
           unit: ing.unit || "G"
         })),
@@ -170,12 +167,10 @@ export function MealManagementPage() {
     form.setFieldsValue({
       name: record.name,
       description: record.description,
-      minPrice: record.price?.minPrice,
-      maxPrice: record.price?.maxPrice,
-      categories: record.categories?.map(c => c.id) || [],
-      tags: record.tags?.map(t => t.id) || [],
+      categories: record.categories || [],
+      tags: record.tags || [],
       ingredients: record.ingredients?.map(i => ({
-        ingredientId: i.ingredientId,
+        name: i.name,
         value: i.value,
         unit: i.unit
       })) || [],
@@ -202,20 +197,10 @@ export function MealManagementPage() {
     { title: 'Tên món ăn', dataIndex: 'name', key: 'name', width: '20%', render: (text: string) => <span className="font-semibold text-gray-800">{text}</span> },
     { title: 'Ngày tạo', dataIndex: 'createdAt', key: 'createdAt', width: '15%' },
     {
-      title: 'Giá',
-      dataIndex: 'price',
-      key: 'price',
-      render: (price: { minPrice: number, maxPrice: number }) => {
-        if (!price) return '-';
-        if (price.minPrice === price.maxPrice) return <span className="font-medium text-[#10B981]">{price.minPrice?.toLocaleString()} ₫</span>;
-        return <span className="font-medium text-[#10B981]">{price.minPrice?.toLocaleString()} - {price.maxPrice?.toLocaleString()} ₫</span>;
-      }
-    },
-    {
       title: 'Dinh dưỡng',
       key: 'nutrition',
       width: '15%',
-      render: (_, record: MealResponseDTO) => {
+      render: (_: any, record: MealResponseDTO) => {
         if (!record.nutrition) return <span className="text-gray-400">-</span>;
         return (
           <div className="flex flex-col gap-1 text-xs">
@@ -231,7 +216,7 @@ export function MealManagementPage() {
       key: 'categories',
       render: (cats: any[]) => (
         <Space size={[0, 4]} wrap>
-          {cats?.map((cat, i) => <Tag color="blue" key={i}>{cat.name}</Tag>)}
+          {cats?.map((cat, i) => <Tag color="blue" key={i}>{cat}</Tag>)}
         </Space>
       )
     },
@@ -241,7 +226,7 @@ export function MealManagementPage() {
       key: 'tags',
       render: (tags: any[]) => (
         <Space size={[0, 4]} wrap>
-          {tags?.map((tag, i) => <Tag color="orange" key={i}>{tag.name}</Tag>)}
+          {tags?.map((tag, i) => <Tag color="orange" key={i}>{tag}</Tag>)}
         </Space>
       )
     },
@@ -260,7 +245,7 @@ export function MealManagementPage() {
       title: 'Thao tác',
       key: 'action',
       width: '10%',
-      render: (_, record: MealResponseDTO) => (
+      render: (_: any, record: MealResponseDTO) => (
         <Space size="middle">
           <Button 
             type="text" 
@@ -308,9 +293,9 @@ export function MealManagementPage() {
           <Button
             icon={<Download className="w-4 h-4" />}
             className="h-10 px-4 rounded-lg font-medium border-gray-200 text-gray-700 hover:text-blue-600 hover:border-blue-400"
-            onClick={handleExport}
+            onClick={handleImportServerJson}
           >
-            Export JSON
+            Import Server JSON
           </Button>
           <Upload customRequest={customUploadRequest} showUploadList={false} accept=".json">
             <Button
@@ -388,26 +373,6 @@ export function MealManagementPage() {
                 <Input placeholder="VD: Phở bò đặc biệt" size="large" className="rounded-xl border-gray-300 focus:border-blue-500 hover:border-blue-400" />
               </Form.Item>
 
-              <Form.Item label={<span className="font-medium text-gray-700">Giá thấp nhất (VNĐ)</span>} name="minPrice" rules={[{ required: true, message: 'Nhập giá min' }]}>
-                <InputNumber
-                  className="w-full rounded-xl border-gray-300 focus:border-blue-500 hover:border-blue-400"
-                  size="large"
-                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  placeholder="0"
-                  min={0}
-                />
-              </Form.Item>
-
-              <Form.Item label={<span className="font-medium text-gray-700">Giá cao nhất (VNĐ)</span>} name="maxPrice" rules={[{ required: true, message: 'Nhập giá max' }]}>
-                <InputNumber
-                  className="w-full rounded-xl border-gray-300 focus:border-blue-500 hover:border-blue-400"
-                  size="large"
-                  formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  placeholder="0"
-                  min={0}
-                />
-              </Form.Item>
-
               <Form.Item label={<span className="font-medium text-gray-700">Mô tả chi tiết</span>} name="description" className="col-span-2">
                 <Input.TextArea placeholder="Mô tả hương vị, cách chế biến, thành phần nổi bật..." rows={3} className="rounded-xl border-gray-300 focus:border-blue-500 hover:border-blue-400 p-3" />
               </Form.Item>
@@ -439,15 +404,15 @@ export function MealManagementPage() {
               Phân loại món ăn
             </h3>
             <div className="grid grid-cols-2 gap-x-6">
-              <Form.Item label={<span className="font-medium text-gray-700">Danh mục</span>} name="categories" rules={[{ required: true, message: 'Chọn ít nhất 1 danh mục' }]} className="col-span-2">
-                <Select mode="multiple" size="large" placeholder="Chọn danh mục phù hợp (VD: Ăn sáng, Healthy...)" className="rounded-xl [&_.ant-select-selector]:rounded-xl" showSearch optionFilterProp="children">
-                  {categories.map(c => <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>)}
+              <Form.Item label={<span className="font-medium text-gray-700">Danh mục</span>} name="categories" rules={[{ required: true, message: 'Nhập ít nhất 1 danh mục' }]} className="col-span-2">
+                <Select mode="tags" size="large" placeholder="Nhập danh mục phù hợp và nhấn Enter (VD: Ăn sáng, Healthy...)" className="rounded-xl [&_.ant-select-selector]:rounded-xl">
+                  {categories.map(c => <Select.Option key={c.name} value={c.name}>{c.name}</Select.Option>)}
                 </Select>
               </Form.Item>
 
               <Form.Item label={<span className="font-medium text-gray-700">Thẻ (Tags)</span>} name="tags" className="col-span-2 mb-0">
-                <Select mode="multiple" size="large" placeholder="Thêm thẻ (VD: Ít béo, Nhiều đạm...)" className="rounded-xl [&_.ant-select-selector]:rounded-xl" showSearch optionFilterProp="children">
-                  {tags.map(t => <Select.Option key={t.id} value={t.id}>{t.name}</Select.Option>)}
+                <Select mode="tags" size="large" placeholder="Nhập thẻ và nhấn Enter (VD: Ít béo, Nhiều đạm...)" className="rounded-xl [&_.ant-select-selector]:rounded-xl">
+                  {tags.map(t => <Select.Option key={t.name} value={t.name}>{t.name}</Select.Option>)}
                 </Select>
               </Form.Item>
             </div>
@@ -496,8 +461,8 @@ export function MealManagementPage() {
                       {fields.map(({ key, name, ...restField }) => (
                         <Row key={key} gutter={16} align="middle" className="bg-white p-3.5 rounded-xl border border-emerald-100 shadow-sm relative group transition-all hover:border-emerald-300 hover:shadow-md">
                           <Col span={10}>
-                            <Form.Item {...restField} name={[name, 'ingredientId']} rules={[{ required: true, message: 'Chọn nguyên liệu' }]} className="mb-0">
-                              <Select placeholder="🔍 Tìm nguyên liệu..." size="large" showSearch optionFilterProp="label" options={ingredients.map(i => ({label: i.name, value: i.id}))} className="w-full font-medium [&_.ant-select-selector]:rounded-lg" />
+                            <Form.Item {...restField} name={[name, 'name']} rules={[{ required: true, message: 'Nhập nguyên liệu' }]} className="mb-0">
+                              <Input placeholder="Nhập tên nguyên liệu..." size="large" className="w-full font-medium rounded-lg" />
                             </Form.Item>
                           </Col>
                           <Col span={6}>

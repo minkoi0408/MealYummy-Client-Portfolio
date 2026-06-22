@@ -54,9 +54,6 @@ export const router = createBrowserRouter([
         Component: AdminLayout,
         children: [
           { index: true, Component: DashboardHomePage },
-          { path: "categories", Component: CategoryManagementPage },
-          { path: "tags", Component: TagManagementPage },
-          { path: "ingredients", Component: IngredientManagementPage },
           { path: "meals", Component: MealManagementPage },
           { path: "bundles", Component: BundleManagementPage },
           { path: "payment-histories", Component: PaymentHistoryPage },

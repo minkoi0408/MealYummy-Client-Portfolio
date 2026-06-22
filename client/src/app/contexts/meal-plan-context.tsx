@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { type Recipe } from "./favorites-context";
+import { type Recipe } from "../data/mock-recipes";
 import { useAuth } from "./auth-context";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";

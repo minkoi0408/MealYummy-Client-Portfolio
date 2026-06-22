@@ -12,9 +12,6 @@ import { motion, useMotionValue, useSpring, useTransform, useInView } from "moti
 
 import { Select, ConfigProvider, theme } from "antd";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { categoryApi, type Category } from "../../apis/category.api";
-import { tagApi, type Tag } from "../../apis/tag.api";
-import { ingredientApi, type Ingredient } from "../../apis/ingredient.api";
 import { mealApi } from "../../apis/meal.api";
 
 // ─── 3D card tilt hook ────────────────────────────────────────────────────────
@@ -62,35 +59,6 @@ function mapMealResponseToRecipe(meal: any): any {
 
 export function MainAppPage() {
   const [prompt, setPrompt] = useState("");
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const res = await categoryApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const { data: tags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const res = await tagApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const { data: ingredients = [] } = useQuery({
-    queryKey: ['ingredients'],
-    queryFn: async () => {
-      const res = await ingredientApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
-
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const {
     data: infiniteMealsData,
@@ -132,7 +100,7 @@ export function MainAppPage() {
   }, [prompt]);
 
   async function handleSubmit() {
-    const isFilterActive = prompt.trim() || selectedCategories.length > 0 || selectedTags.length > 0 || excludedIngredients.length > 0;
+    const isFilterActive = prompt.trim() !== "";
     if (!isFilterActive) return;
 
     setSubmitted(true);
@@ -153,10 +121,7 @@ export function MainAppPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          question: question,
-          categoryIds: selectedCategories,
-          tagIds: selectedTags,
-          excludedIngredientIds: excludedIngredients
+          question: question
         })
       });
       const data = await response.json();
@@ -180,14 +145,10 @@ export function MainAppPage() {
 
   const handleReset = () => {
     setPrompt("");
-    setSelectedCategories([]);
-    setSelectedTags([]);
-    setExcludedIngredients([]);
     setSubmitted(false);
     setResults([]);
   }
 
-  const activeCnt = selectedCategories.length + selectedTags.length + excludedIngredients.length + (prompt.trim() ? 1 : 0);
 
   return (
     <div className="min-h-screen">
@@ -267,7 +228,7 @@ export function MainAppPage() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!prompt.trim() && selectedCategories.length === 0 && selectedTags.length === 0 && excludedIngredients.length === 0}
+                disabled={!prompt.trim()}
                 className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
               >
@@ -287,89 +248,12 @@ export function MainAppPage() {
             </p>
           </div>
 
-          {/* ── Advanced Filter Toggle ─────────────────────────────────────── */}
-          <div className="mb-4">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-              style={{
-                background: filterOpen ? "rgba(163,230,53,0.08)" : "rgba(26,31,46,0.6)",
-                border: filterOpen ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ color: filterOpen ? "#a3e635" : "#94a3b8" }}>
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="text-sm font-semibold">{filterOpen ? "Đóng bộ lọc nâng cao" : "Bộ lọc nâng cao (Danh mục, Thẻ, Nguyên liệu tránh)"}</span>
-              </div>
-              <ChevronDown className="w-4 h-4 transition-transform" style={{ color: filterOpen ? "#a3e635" : "#475569", transform: filterOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-            </button>
 
-            {/* Filter Panel Dropdown */}
-            {filterOpen && (
-              <div className="mt-2 p-4 sm:p-5 rounded-xl animate-in fade-in" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#a3e635', colorBgContainer: '#1a1f2e', colorBorder: 'rgba(255,255,255,0.1)' } }}>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Danh mục món ăn</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Chọn danh mục..."
-                        value={selectedCategories}
-                        onChange={setSelectedCategories}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={categories.map(c => ({ label: c.name, value: c.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Thẻ trạng thái</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Chọn thẻ..."
-                        value={selectedTags}
-                        onChange={setSelectedTags}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={tags.map(t => ({ label: t.name, value: t.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Tránh nguyên liệu</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Tránh nguyên liệu..."
-                        value={excludedIngredients}
-                        onChange={setExcludedIngredients}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={ingredients.map(i => ({ label: i.name, value: i.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                  </div>
-                </ConfigProvider>
-              </div>
-            )}
-          </div>
-
-          {activeCnt > 0 && (
-            <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
-              <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc {activeCnt} điều kiện</span>
-              <button
-                onClick={handleReset}
-                className="text-xs transition-colors"
-                style={{ color: "rgba(148,163,184,0.6)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(148,163,184,0.6)"; }}
-              >
-                Đặt lại
-              </button>
-            </div>
-          )}
 
           {/* ── CTA Button ────────────────────────────────────────────────── */}
           <button
             onClick={handleSubmit}
-            disabled={!prompt.trim() && selectedCategories.length === 0 && selectedTags.length === 0 && excludedIngredients.length === 0}
+            disabled={!prompt.trim()}
             className="w-full h-12 mb-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: "linear-gradient(135deg, #a3e635, #4ade80)",

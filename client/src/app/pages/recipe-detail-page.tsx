@@ -122,8 +122,7 @@ export function RecipeDetailPage() {
 
   const handleToggleFavorite = () => {
     if (!recipe) return;
-    if (isFavorite(recipe.id)) removeFavorite(recipe.id);
-    else addFavorite(recipe);
+    toggleFavorite(recipe.id);
   };
 
 
@@ -209,7 +208,7 @@ export function RecipeDetailPage() {
                   style={{ background: "rgba(168,85,247,0.15)", color: "#a855f7" }}>🔥</span>
               Thông tin dinh dưỡng
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(168,85,247,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(168,85,247,0.3)", boxShadow: "0 4px 20px rgba(168,85,247,0.05)" }}>
                   <span className="text-sm font-medium text-gray-400 mb-1">Calories</span>
                   <span className="text-xl font-black text-purple-400">{recipe.nutrition?.calories ?? 0} <span className="text-xs font-normal">kcal</span></span>
@@ -226,10 +225,7 @@ export function RecipeDetailPage() {
                   <span className="text-sm font-medium text-gray-400 mb-1">Fat</span>
                   <span className="text-xl font-black text-red-400">{recipe.nutrition?.fat ?? 0} <span className="text-xs font-normal">g</span></span>
               </div>
-              <div className="col-span-2 sm:col-span-1 rounded-2xl p-4 flex flex-col items-center justify-center text-center" style={{ background: "linear-gradient(135deg, rgba(163,230,53,0.1), rgba(26,31,46,0.9))", border: "1px solid rgba(163,230,53,0.3)", boxShadow: "0 4px 20px rgba(163,230,53,0.05)" }}>
-                  <span className="text-sm font-medium text-gray-400 mb-1">Fiber</span>
-                  <span className="text-xl font-black text-lime-400">{recipe.nutrition?.fiber ?? 0} <span className="text-xs font-normal">g</span></span>
-              </div>
+
           </div>
         </section>
 
@@ -250,10 +246,10 @@ export function RecipeDetailPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {recipe.categories && recipe.categories.length > 0 ? (
-                            recipe.categories.map((cat: any) => (
-                                <span key={cat.id} className="px-3 py-1.5 rounded-xl text-sm font-medium"
+                            recipe.categories.map((cat: string, index: number) => (
+                                <span key={index} className="px-3 py-1.5 rounded-xl text-sm font-medium"
                                     style={{ background: "rgba(251,146,60,0.1)", color: "#fb923c", border: "1px solid rgba(251,146,60,0.2)" }}>
-                                    {cat.name}
+                                    {cat}
                                 </span>
                             ))
                         ) : (
@@ -270,11 +266,11 @@ export function RecipeDetailPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                         {recipe.tags && recipe.tags.length > 0 ? (
-                            recipe.tags.map((tag: any) => (
-                                <span key={tag.id} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-1.5"
+                            recipe.tags.map((tag: string, index: number) => (
+                                <span key={index} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-1.5"
                                     style={{ background: "rgba(34,211,238,0.1)", color: "#22d3ee", border: "1px solid rgba(34,211,238,0.2)" }}>
                                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                    {tag.name}
+                                    {tag}
                                 </span>
                             ))
                         ) : (
