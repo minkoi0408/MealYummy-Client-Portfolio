@@ -524,30 +524,14 @@ export function MembershipPage() {
                 disabled={isProcessing}
                 onClick={() => {
                   setShowPaymentModal(false);
-                  handlePayment("VNPAY");
+                  handlePayment("PAYOS");
                 }}
-                className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] text-white"
                 style={{
-                  background: "rgba(255, 255, 255, 0.95)",
-                  color: "#005BAA", // VNPay blue
-                  boxShadow: "0 4px 16px rgba(255,255,255,0.15)",
+                  background: "linear-gradient(135deg, #f97316, #ef4444)", // PayOS Orange-Red theme
+                  boxShadow: "0 4px 16px rgba(249, 115, 22, 0.3)",
                 }}>
-                <CreditCard className="w-5 h-5" /> Thanh toán qua VNPay
-              </button>
-
-              <button
-                disabled={isProcessing}
-                onClick={() => {
-                  setShowPaymentModal(false);
-                  handlePayment("MOMO");
-                }}
-                className="w-full h-12 rounded-xl font-black text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{
-                  background: "#A50064", // MoMo pink
-                  color: "white",
-                  boxShadow: "0 4px 16px rgba(165,0,100,0.3)",
-                }}>
-                <Wallet className="w-5 h-5" /> Thanh toán qua MoMo
+                <CreditCard className="w-5 h-5" /> Thanh toán qua PayOS
               </button>
             </div>
           </div>

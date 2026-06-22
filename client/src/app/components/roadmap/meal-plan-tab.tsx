@@ -527,8 +527,22 @@ export function MealPlanTab() {
             {calendarDays.map((day, i) => {
               const dateStr = formatDate(day);
               const dayMeals = mealPlan.filter((m) => m.date === dateStr);
+              const eatenMeals = dayMeals.filter((m) => m.isEaten);
+              const totalEatenCal = eatenMeals.reduce((s, m: any) => s + parseCalories(m.recipe?.calories || m.calories), 0);
+              const diff = totalEatenCal - targets.calories;
+              const isPastOrToday = dateStr <= formatDate(new Date());
               const isSelected = dateStr === formatDate(selectedDate);
               const isToday = dateStr === formatDate(new Date());
+
+              let statusEmoji = null;
+              if (dayMeals.length > 0) {
+                if (isPastOrToday && totalEatenCal > 0) {
+                  if (diff > 150) statusEmoji = "🚨";
+                  else if (diff < -150) statusEmoji = "⚠️";
+                  else statusEmoji = "✅";
+                }
+              }
+
               return (
                 <button key={i} onClick={() => setSelectedDate(day)}
                   className={`flex-shrink-0 snap-center flex flex-col items-center justify-center w-16 h-20 rounded-2xl transition-all ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
@@ -541,12 +555,12 @@ export function MealPlanTab() {
                   <p className="text-lg font-black leading-none" style={{ color: isSelected ? "#0f1117" : "white" }}>
                     {day.getDate()}
                   </p>
-                  <div className="flex gap-0.5 mt-1.5">
-                    {dayMeals.length > 0 ? (
+                  <div className="flex gap-0.5 mt-1.5 h-3 items-center justify-center">
+                    {statusEmoji ? (
+                      <span className="text-[10px] leading-none">{statusEmoji}</span>
+                    ) : dayMeals.length > 0 ? (
                       <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-black/50" : "bg-lime-400"}`} />
-                    ) : (
-                      <div className="w-1.5 h-1.5 rounded-full bg-transparent" />
-                    )}
+                    ) : null}
                   </div>
                 </button>
               );
@@ -631,18 +645,21 @@ export function MealPlanTab() {
                                   <Circle className="w-6 h-6 text-slate-500 hover:text-lime-400 transition-colors" />
                                 )}
                               </button>
-                              <Link to={`/meal/${meal.recipe.id}`} className="flex-1 min-w-0 flex gap-3">
+                              <button 
+                                onClick={() => toggleMealStatus(meal.id)} 
+                                className="flex-1 min-w-0 flex gap-3 text-left focus:outline-none"
+                              >
                                 <ImageWithFallback src={meal.recipe.image} alt={meal.recipe.name}
-                                  className={`w-16 h-16 rounded-lg object-cover flex-shrink-0 ${meal.isEaten ? 'grayscale' : ''}`} />
+                                  className={`w-16 h-16 rounded-lg object-cover flex-shrink-0 transition-all ${meal.isEaten ? 'grayscale opacity-60 scale-95' : ''}`} />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`font-semibold text-sm leading-tight text-white mb-1 line-clamp-1 ${meal.isEaten ? 'line-through text-slate-400' : ''}`}>{meal.recipe.name}</p>
-                                  <div className="flex items-center gap-2 text-xs mb-1.5" style={{ color: "#64748b" }}>
-                                    <span className="flex items-center gap-0.5"><Clock className="w-3 h-3 text-lime-400" />{meal.recipe.cookTime}</span>
-                                    {cal > 0 && <span className="flex items-center gap-0.5"><Flame className="w-3 h-3 text-orange-400" />{meal.recipe.calories} kcal</span>}
+                                  <p className={`font-semibold text-sm leading-tight text-white mb-1 line-clamp-1 transition-all ${meal.isEaten ? 'line-through text-slate-400' : ''}`}>{meal.recipe.name}</p>
+                                  <div className="flex items-center gap-2 text-xs mb-1.5 transition-all" style={{ color: meal.isEaten ? "#475569" : "#64748b" }}>
+                                    <span className="flex items-center gap-0.5"><Clock className={`w-3 h-3 ${meal.isEaten ? 'text-slate-500' : 'text-lime-400'}`} />{meal.recipe.cookTime}</span>
+                                    {cal > 0 && <span className="flex items-center gap-0.5"><Flame className={`w-3 h-3 ${meal.isEaten ? 'text-slate-500' : 'text-orange-400'}`} />{meal.recipe.calories} kcal</span>}
                                   </div>
                                   {/* Mini macros */}
                                   {cal > 0 && (
-                                    <div className={`flex items-center gap-1.5 text-[10px] ${meal.isEaten ? 'opacity-50' : ''}`}>
+                                    <div className={`flex items-center gap-1.5 text-[10px] transition-all ${meal.isEaten ? 'opacity-40 grayscale' : ''}`}>
                                       <span style={{ color: "#a3e635" }}>P: {mac.protein}g</span>
                                       <span style={{ color: "#475569" }}>·</span>
                                       <span style={{ color: "#fb923c" }}>C: {mac.carbs}g</span>
@@ -651,7 +668,7 @@ export function MealPlanTab() {
                                     </div>
                                   )}
                                 </div>
-                              </Link>
+                              </button>
                             </div>
                             <button
                               onClick={() => { removeFromMealPlan(meal.id); toast.success("Đã xóa khỏi thực đơn"); }}
