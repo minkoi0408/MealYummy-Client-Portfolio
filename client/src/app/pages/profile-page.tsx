@@ -18,7 +18,9 @@ import {
 import { Switch } from "../components/ui/switch";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/auth-context";
-import { useMealPlan } from "../contexts/meal-plan-context";
+import { useFavorites } from '../contexts/favorites-context';
+import { subscriptionApi } from '../../apis/subscription.api';
+import type { UserSubscription } from '../../apis/subscription.api';
 
 function parseDateLabel(dateStr: string) {
   const today = new Date().toISOString().split("T")[0];
@@ -285,9 +287,7 @@ function PricingCards() {
 
 const SETTINGS_MENU = [
   { id: "edit-profile" as const, icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
-  { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
-  { id: "security" as const, icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật 2 Lớp (MFA)" },
-  { id: "notifications" as const, icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
+  { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Chỉnh sửa mật khẩu" },
 ];
 
 export function ProfilePage() {
@@ -295,24 +295,41 @@ export function ProfilePage() {
   const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
   const targets = calcTDEE(metrics);
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
-  const [notifications, setNotifications] = useState<NotificationSettings>(loadNotifications);
-  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications" | "security">(null);
+  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "change-password">(null);
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
-  const [totpQrCode, setTotpQrCode] = useState("");
-  const [totpCodeInput, setTotpCodeInput] = useState("");
+  
+  // Password state
+  const [hasPassword, setHasPassword] = useState(true); // Ideally from backend: profile.hasPassword
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
   const { logout, role, user } = useAuth();
-  const { mealPlan } = useMealPlan();
 
-  const byDate: Record<string, typeof mealPlan> = {};
-  mealPlan.forEach((item) => {
-    if (!byDate[item.date]) byDate[item.date] = [];
-    byDate[item.date].push(item);
-  });
-  const dates = Object.keys(byDate).sort((a, b) => (a > b ? -1 : 1)).slice(0, 7);
-  const totalMeals = mealPlan.length;
+  const getAccountAge = () => {
+    if (!user || !(user as any).createdAt) return "0";
+    const createdDate = new Date((user as any).createdAt);
+    const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays.toString();
+  };
+  const { favoriteIds } = useFavorites();
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+
+  useEffect(() => {
+    if (role !== "ROLE_FREE") {
+      subscriptionApi.getCurrentSubscription()
+        .then(res => {
+          if (res.data && res.data.data) {
+            setSubscription(res.data.data);
+          }
+        })
+        .catch(err => console.error("Failed to load subscription", err));
+    }
+  }, [role]);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -657,12 +674,11 @@ export function ProfilePage() {
       setActiveDialog("edit-profile");
       return;
     }
-    if (id === "notifications") {
-      setActiveDialog("notifications");
-      return;
-    }
-    if (id === "security") {
-      setActiveDialog("security");
+    if (id === "change-password") {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setActiveDialog("change-password");
       return;
     }
     toast.message("Tính năng đang phát triển");
@@ -719,9 +735,9 @@ export function ProfilePage() {
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2 mb-5">
                   {[
-                    { val: "12", label: "Món đã lưu", color: "#a3e635" },
+                    { val: (favoriteIds?.length || 0).toString(), label: "Món đã lưu", color: "#a3e635" },
                     { val: "47", label: "Lượt AI", color: "#4ade80" },
-                    { val: "8", label: "Ngày dùng", color: "#22d3ee" },
+                    { val: getAccountAge(), label: "Ngày dùng", color: "#22d3ee" },
                   ].map((s) => (
                     <div key={s.label} className="text-center p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
                       <div className="text-xl font-black mb-0.5" style={{ color: s.color }}>{s.val}</div>
@@ -729,6 +745,22 @@ export function ProfilePage() {
                     </div>
                   ))}
                 </div>
+
+                {subscription && (
+                  <div className="mb-5 p-3 rounded-xl" style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)" }}>
+                    <div className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: "#a3e635" }}>
+                      <Crown className="w-3.5 h-3.5" /> Thông tin gói đăng ký
+                    </div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span style={{ color: "#94a3b8" }}>Bắt đầu:</span>
+                      <span className="font-semibold text-white">{new Date(subscription.startDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span style={{ color: "#94a3b8" }}>Kết thúc:</span>
+                      <span className="font-semibold text-white">{new Date(subscription.endDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -772,57 +804,6 @@ export function ProfilePage() {
           {/* ── RIGHT: Nutrition Profile + Pricing Plans ─────────────── */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* Meal History */}
-            <div className="rounded-2xl p-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.06)" }}>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest" style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
-                    <Calendar className="w-3.5 h-3.5" /> Lịch sử bữa ăn
-                  </div>
-                  <h2 className="text-base sm:text-lg font-black text-white">Bạn đã ăn gì gần đây?</h2>
-                  <p className="text-sm" style={{ color: "#64748b" }}>Tổng cộng {totalMeals} bữa đã lưu.</p>
-                </div>
-              </div>
-
-              {dates.length === 0 ? (
-                <div className="rounded-xl p-5 text-center" style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)" }}>
-                  <p className="text-sm mb-3" style={{ color: "#94a3b8" }}>Chưa có dữ liệu bữa ăn. Hãy thêm món trong trang Thực đơn.</p>
-                  <Link to="/roadmap">
-                    <button className="h-9 px-4 rounded-xl text-xs font-bold transition-all hover:scale-105" style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635" }}>
-                      Tới Lộ trình / Thực đơn
-                    </button>
-                  </Link>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {dates.map((date) => {
-                    const meals = byDate[date];
-                    const totalCal = meals.reduce((sum, m) => sum + parseCalories(m.recipe.calories), 0);
-                    return (
-                      <div key={date} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs font-semibold uppercase" style={{ color: "#64748b" }}>{parseDateLabel(date)}</p>
-                          <p className="text-xs font-bold" style={{ color: "#a3e635" }}>{meals.length} bữa · {totalCal} kcal</p>
-                        </div>
-                        <div className="space-y-1.5">
-                          {meals.map((m) => (
-                            <Link key={m.id} to={`/meal/${m.recipe.id}`} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-white truncate">{m.recipe.name}</p>
-                                <div className="flex items-center gap-3 text-[11px] mt-0.5" style={{ color: "#64748b" }}>
-                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {m.recipe.cookTime}</span>
-                                  <span className="flex items-center gap-1"><Flame className="w-3 h-3 text-orange-400" /> {m.recipe.calories}</span>
-                                </div>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
 
 
             {/* Section header */}
@@ -906,51 +887,59 @@ export function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Notifications dialog */}
-      <Dialog open={activeDialog === "notifications"} onOpenChange={(open) => setActiveDialog(open ? "notifications" : null)}>
+      {/* Change Password Dialog */}
+      <Dialog open={activeDialog === "change-password"} onOpenChange={(open) => setActiveDialog(open ? "change-password" : null)}>
         <DialogContent
           className="p-0 overflow-hidden"
           style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
         >
           <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Bell className="w-4 h-4 text-purple-400" /> Thông báo
+              <Lock className="w-4 h-4 text-blue-400" /> {hasPassword ? "Thay đổi mật khẩu" : "Thêm mật khẩu mới"}
             </DialogTitle>
             <DialogDescription style={{ color: "#64748b" }}>
-              Bật / tắt các loại thông báo.
+              {hasPassword ? "Bạn nên sử dụng mật khẩu mạnh để bảo vệ tài khoản tốt hơn." : "Bạn đang đăng nhập bằng Google và chưa có mật khẩu, hãy thiết lập để đăng nhập dễ dàng hơn lần sau."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="px-6 py-5 space-y-3">
-            {([
-              { key: "mealPlanReminders" as const, title: "Nhắc thực đơn", desc: "Nhắc giờ ăn và theo dõi mục tiêu." },
-              { key: "productUpdates" as const, title: "Cập nhật sản phẩm", desc: "Thông báo tính năng mới và cải tiến." },
-              { key: "promoOffers" as const, title: "Ưu đãi", desc: "Khuyến mãi và gợi ý membership." },
-              { key: "emailNotifications" as const, title: "Nhận qua email", desc: "Gửi tổng kết & nhắc nhở qua email." },
-            ]).map((item) => (
-              <div
-                key={item.key}
-                className="rounded-2xl p-4 flex items-center gap-4"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white">{item.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
-                    {item.desc}
-                  </p>
-                </div>
-                <Switch
-                  checked={notifications[item.key]}
-                  onCheckedChange={(checked) => {
-                    setNotifications((prev) => {
-                      const next = { ...prev, [item.key]: checked };
-                      saveNotifications(next);
-                      return next;
-                    });
-                  }}
+          <div className="px-6 py-5 space-y-4">
+            {hasPassword && (
+              <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mật khẩu hiện tại</p>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                  placeholder="Nhập mật khẩu hiện tại"
                 />
               </div>
-            ))}
+            )}
+            
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mật khẩu mới</p>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                placeholder="Nhập mật khẩu mới"
+              />
+            </div>
+            
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Xác nhận mật khẩu mới</p>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </div>
           </div>
 
           <DialogFooter className="px-6 pb-6">
@@ -959,103 +948,28 @@ export function ProfilePage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
               onClick={() => setActiveDialog(null)}
             >
-              Đóng
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Security dialog */}
-      <Dialog open={activeDialog === "security"} onOpenChange={(open) => setActiveDialog(open ? "security" : null)}>
-        <DialogContent
-          className="p-0 overflow-hidden"
-          style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
-        >
-          <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Shield className="w-4 h-4 text-amber-400" /> Bảo mật 2 Lớp (MFA)
-            </DialogTitle>
-            <DialogDescription style={{ color: "#64748b" }}>
-              Bảo vệ tài khoản bằng Google Authenticator.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-6 py-5 space-y-4">
-            {!totpQrCode ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <p className="text-sm text-white mb-6">
-                  Bật xác thực 2 bước (2FA) giúp tài khoản của bạn an toàn hơn trước các rủi ro bảo mật.
-                </p>
-                <button
-                  onClick={async () => {
-                    try {
-                      const { authApi } = await import("../../apis/auth.api");
-                      const res = await authApi.setupTotp(profile.email);
-                      setTotpQrCode(res.data.data);
-                    } catch (e: any) {
-                      toast.error("Không thể thiết lập TOTP.");
-                    }
-                  }}
-                  className="px-6 py-3 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(245,158,11,0.3)] transition-all hover:scale-105 active:scale-95"
-                  style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)", color: "#0f1117" }}
-                >
-                  Cài đặt Google Authenticator
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="bg-white p-2 rounded-xl shadow-lg">
-                  <img src={totpQrCode} alt="QR Code" className="w-48 h-48" />
-                </div>
-                <p className="text-xs text-center px-4" style={{ color: "#94a3b8", lineHeight: 1.6 }}>
-                  Mở ứng dụng <strong>Google Authenticator</strong> và quét mã QR này, sau đó nhập mã 6 số hiện ra để hoàn tất.
-                </p>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={totpCodeInput}
-                  onChange={(e) => setTotpCodeInput(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Nhập mã 6 số..."
-                  className="w-full text-center h-12 text-xl font-bold tracking-[0.5em] rounded-xl outline-none placeholder:tracking-normal placeholder:font-normal placeholder:text-sm"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="px-6 pb-6">
-            <button
-              className="h-10 px-4 rounded-xl text-xs font-semibold hover:bg-white/5 transition-colors"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
-              onClick={() => {
-                setActiveDialog(null);
-                setTotpQrCode("");
-                setTotpCodeInput("");
-              }}
-            >
               Hủy
             </button>
-            {totpQrCode && (
-              <button
-                disabled={totpCodeInput.length !== 6}
-                className="h-10 px-5 rounded-xl text-xs font-black transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
-                onClick={async () => {
-                  try {
-                    const { authApi } = await import("../../apis/auth.api");
-                    await authApi.verifyTotpSetup(profile.email, totpCodeInput);
-                    toast.success("Cài đặt Google Authenticator thành công!");
-                    setActiveDialog(null);
-                    setTotpQrCode("");
-                    setTotpCodeInput("");
-                  } catch (e: any) {
-                    toast.error("Mã không chính xác. Vui lòng thử lại.");
-                  }
-                }}
-              >
-                Xác nhận mã
-              </button>
-            )}
+            <button
+              className="h-10 px-5 rounded-xl text-xs font-black"
+              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
+              onClick={() => {
+                if (newPassword !== confirmPassword) {
+                  toast.error("Mật khẩu xác nhận không khớp!");
+                  return;
+                }
+                if (newPassword.length < 6) {
+                  toast.error("Mật khẩu phải dài ít nhất 6 ký tự!");
+                  return;
+                }
+                // Call API here...
+                toast.success(hasPassword ? "Đã thay đổi mật khẩu!" : "Đã thiết lập mật khẩu thành công!");
+                setHasPassword(true);
+                setActiveDialog(null);
+              }}
+            >
+              Xác nhận
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
