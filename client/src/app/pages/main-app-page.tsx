@@ -13,6 +13,7 @@ import { motion, useMotionValue, useSpring, useTransform, useInView } from "moti
 import { Select, ConfigProvider, theme } from "antd";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { mealApi } from "../../apis/meal.api";
+import ReactMarkdown from 'react-markdown';
 
 // ─── 3D card tilt hook ────────────────────────────────────────────────────────
 function useTiltCard(strength = 10) {
@@ -38,17 +39,21 @@ function useTiltCard(strength = 10) {
 
 
 function mapMealResponseToRecipe(meal: any): any {
+  const calories = meal.nutrition?.calories ? Math.round(meal.nutrition.calories) + " kcal" : "N/A";
+  const protein = meal.nutrition?.protein ? Math.round(meal.nutrition.protein) + "g Prot" : "0g";
+  const carbs = meal.nutrition?.carbs ? Math.round(meal.nutrition.carbs) + "g Carb" : "0g";
+  const fat = meal.nutrition?.fat ? Math.round(meal.nutrition.fat) + "g Fat" : "0g";
+
   return {
     id: meal.id,
     name: meal.name,
     description: meal.description,
     image: meal.images?.find((img: any) => img.isThumbnail)?.url || meal.images?.[0]?.url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
     cuisine: meal.categories?.[0]?.name || "Món ăn",
-    prepTime: "15 phút",
-    cookTime: "30 phút",
-    servings: "2 người",
-    difficulty: "Vừa",
-    calories: "350 kcal", // Placeholder
+    calories,
+    protein,
+    carbs,
+    fat,
     ingredients: meal.ingredients?.map((i: any) => `${i.value} ${i.unitDesc || i.unit} ${i.name || 'Nguyên liệu'}`) || [],
     instructions: ["Xem chi tiết để biết cách nấu"],
     tips: "Chúc bạn ngon miệng!"
@@ -86,8 +91,10 @@ export function MainAppPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [aiMessage, setAiMessage] = useState<string>("");
   const [isTyping, setIsTyping] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const { toggleFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -98,6 +105,26 @@ export function MainAppPage() {
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [prompt]);
+
+  const fetchQuota = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      if (!token) return;
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/ai/knowledge/quota`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.data) setQuota(d.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQuota();
+  }, [fetchQuota]);
 
   async function handleSubmit() {
     const isFilterActive = prompt.trim() !== "";
@@ -124,14 +151,26 @@ export function MainAppPage() {
           question: question
         })
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429 || errorData.code === 429) {
+           toast.error("Bạn đã vượt quá số lần hỏi AI trong ngày. Vui lòng nâng cấp tài khoản để dùng tiếp.");
+        } else {
+           toast.error(errorData.message || "Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
+        }
+        return;
+      }
+
       const data = await response.json();
-      if (data.data && Array.isArray(data.data)) {
-        const mappedData = data.data.map(mapMealResponseToRecipe);
+      if (data.data && data.data.suggestedMeals) {
+        const mappedData = data.data.suggestedMeals.map(mapMealResponseToRecipe);
         setResults(mappedData);
+        setAiMessage(data.data.aiMessage || "");
+        fetchQuota(); // Cập nhật lại số lần dùng sau khi gọi
       } else {
         toast.error("Không tìm thấy món ăn phù hợp.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi gọi AI:", error);
       toast.error("Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
     } finally {
@@ -248,7 +287,17 @@ export function MainAppPage() {
             </p>
           </div>
 
-
+          {quota && quota.limit < 9999 && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5"
+                   style={{ background: quota.remaining > 0 ? "rgba(163,230,53,0.1)" : "rgba(239,68,68,0.1)",
+                            color: quota.remaining > 0 ? "#a3e635" : "#ef4444",
+                            border: `1px solid ${quota.remaining > 0 ? "rgba(163,230,53,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                <Zap className="w-3 h-3" />
+                Số lần AI còn lại trong ngày: {quota.remaining} / {quota.limit}
+              </div>
+            </div>
+          )}
 
           {/* ── CTA Button ────────────────────────────────────────────────── */}
           <button
@@ -301,6 +350,22 @@ export function MainAppPage() {
                     <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} className="w-3 h-3 rounded-full bg-lime-400" />
                   </div>
                   <p className="text-slate-400 text-sm font-medium">Đang tìm kiếm món ăn phù hợp...</p>
+                </div>
+              )}
+
+              {aiMessage && (
+                <div className="mb-6 p-4 rounded-xl" style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.15)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Bot className="w-5 h-5 text-lime-400" />
+                        <h3 className="font-bold text-lime-400 text-sm">Chuyên gia Dinh dưỡng AI</h3>
+                    </div>
+                    <div className="text-sm text-slate-300 leading-relaxed space-y-2 ai-markdown-content">
+                        {aiMessage.includes("Gemini AI hiện đang quá tải") ? (
+                            <p>Đây là danh sách các món ăn phù hợp nhất với yêu cầu của bạn đã được hệ thống phân tích và chọn lọc:</p>
+                        ) : (
+                            <ReactMarkdown>{aiMessage}</ReactMarkdown>
+                        )}
+                    </div>
                 </div>
               )}
 
@@ -460,18 +525,22 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
           </p>
 
           {/* Meta */}
-          <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-lime-400" />
-              {recipe.cookTime}
-            </span>
-            <span className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-3 text-[11px] mb-3 font-medium" style={{ color: "#94a3b8" }}>
+            <span className="flex items-center gap-1 text-slate-300">
               <Flame className="w-3.5 h-3.5 text-orange-400" />
               {recipe.calories}
             </span>
             <span className="flex items-center gap-1">
-              <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
-              {recipe.difficulty}
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+              {recipe.protein}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+              {recipe.carbs}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+              {recipe.fat}
             </span>
           </div>
 

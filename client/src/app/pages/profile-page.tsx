@@ -318,6 +318,7 @@ export function ProfilePage() {
   };
   const { favoriteIds } = useFavorites();
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
 
   useEffect(() => {
     if (role !== "ROLE_FREE") {
@@ -549,6 +550,18 @@ export function ProfilePage() {
         }
       })
       .catch(() => { });
+
+    // Fetch quota
+    fetch(`${API_URL}/ai/knowledge/quota`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setQuota(data.data);
+        }
+      })
+      .catch(() => { });
   }, []);
 
   const handleSaveMetrics = async () => {
@@ -736,7 +749,7 @@ export function ProfilePage() {
                 <div className="grid grid-cols-3 gap-2 mb-5">
                   {[
                     { val: (favoriteIds?.length || 0).toString(), label: "Món đã lưu", color: "#a3e635" },
-                    { val: "47", label: "Lượt AI", color: "#4ade80" },
+                    { val: quota ? quota.remaining.toString() : "...", label: "Lượt AI", color: "#4ade80" },
                     { val: getAccountAge(), label: "Ngày dùng", color: "#22d3ee" },
                   ].map((s) => (
                     <div key={s.label} className="text-center p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>

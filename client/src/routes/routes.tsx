@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./protected-route";
+import { PremiumRoute } from "./premium-route";
 import { HomePage } from "../app/pages/home-page";
 import { LoginPage } from "../app/pages/login-page";
 import { MainAppPage } from "../app/pages/main-app-page";
@@ -72,8 +73,13 @@ export const router = createBrowserRouter([
         Component: RecipeDetailPage,
       },
       {
-        path: "/roadmap",
-        Component: RoadmapPage,
+        Component: PremiumRoute,
+        children: [
+          {
+            path: "/roadmap",
+            Component: RoadmapPage,
+          },
+        ]
       },
       {
         path: "/profile",
