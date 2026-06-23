@@ -76,6 +76,29 @@ export function RoleManagement() {
     );
   };
 
+  const toggleAllInGroup = (type: string, selectAll: boolean) => {
+    const groupPerms = permissionsByType[type].map(p => p.permissionCode);
+    if (selectAll) {
+      setSelectedPermissions(prev => [...new Set([...prev, ...groupPerms])]);
+    } else {
+      setSelectedPermissions(prev => prev.filter(code => !groupPerms.includes(code)));
+    }
+  };
+
+  const renderPermissionPill = (p: string) => {
+    let colorClass = "bg-gray-100 text-gray-800 border-gray-200";
+    if (p.startsWith("GET_")) colorClass = "bg-green-100 text-green-800 border-green-200";
+    else if (p.startsWith("POST_")) colorClass = "bg-amber-100 text-amber-800 border-amber-200";
+    else if (p.startsWith("PUT_") || p.startsWith("PATCH_")) colorClass = "bg-blue-100 text-blue-800 border-blue-200";
+    else if (p.startsWith("DELETE_")) colorClass = "bg-red-100 text-red-800 border-red-200";
+  
+    return (
+      <span key={p} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colorClass}`}>
+        {p}
+      </span>
+    );
+  };
+
   const handleSavePermissions = async () => {
     if (!editingRole) return;
     setIsSaving(true);
@@ -192,18 +215,27 @@ export function RoleManagement() {
                       {(!role.permissions || role.permissions.length === 0) ? (
                         <span className="text-xs text-gray-400 italic">Chưa có quyền</span>
                       ) : (
-                        role.permissions.map(p => (
-                          <span key={p} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                            {p}
-                          </span>
-                        ))
+                        <>
+                          {role.permissions.slice(0, 5).map(renderPermissionPill)}
+                          {role.permissions.length > 5 && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                              + {role.permissions.length - 5} quyền nữa
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => openEditModal(role)}
-                      className="inline-flex items-center gap-1 text-[#10B981] hover:text-[#059669] transition-colors bg-[#10B981]/10 hover:bg-[#10B981]/20 px-3 py-1.5 rounded-md"
+                      disabled={role.roleCode === "ROLE_ADMIN"}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-md transition-colors ${
+                        role.roleCode === "ROLE_ADMIN"
+                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                          : "text-[#10B981] hover:text-[#059669] bg-[#10B981]/10 hover:bg-[#10B981]/20"
+                      }`}
+                      title={role.roleCode === "ROLE_ADMIN" ? "Admin có toàn quyền, không thể sửa" : ""}
                     >
                       <Edit className="w-4 h-4" />
                       Sửa quyền
@@ -263,12 +295,29 @@ export function RoleManagement() {
               <div className="px-8 py-6 max-h-[60vh] overflow-y-auto custom-scrollbar bg-white">
                 {Object.entries(permissionsByType).map(([type, perms]) => (
                   <div key={type} className="mb-8 last:mb-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="flex items-center gap-3 mb-4">
-                      <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
-                        Nhóm: <span className="text-[#10B981]">{type}</span>
-                      </h4>
-                      <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent"></div>
-                    </div>
+                      <div className="flex items-center gap-3 mb-4">
+                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-widest bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-200">
+                          Nhóm: <span className="text-[#10B981]">{type}</span>
+                        </h4>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleAllInGroup(type, true)}
+                            className="text-xs text-[#10B981] hover:underline font-semibold"
+                          >
+                            Chọn tất cả
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleAllInGroup(type, false)}
+                            className="text-xs text-gray-500 hover:underline font-semibold"
+                          >
+                            Bỏ chọn
+                          </button>
+                        </div>
+                        <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent"></div>
+                      </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {perms.map(permission => {

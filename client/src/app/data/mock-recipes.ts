@@ -1,4 +1,18 @@
-import { type Recipe } from "../contexts/favorites-context";
+export interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  prepTime: string;
+  cookTime: string;
+  servings: string;
+  difficulty: string;
+  calories: string;
+  cuisine: string;
+  ingredients: string[];
+  instructions: string[];
+  tips: string;
+}
 
 export const mockRecipes: Recipe[] = [
   {

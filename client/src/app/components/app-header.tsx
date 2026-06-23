@@ -8,7 +8,9 @@ import {
   Menu,
   X,
   Lightbulb,
-  LogOut
+  LogOut,
+  Lock,
+  Crown
 } from "lucide-react";
 import { useBrightness } from "../contexts/brightness-context";
 import { useAuth } from "../contexts/auth-context";
@@ -22,7 +24,8 @@ export function AppHeader() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isBright, toggleBrightness } = useBrightness();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, role } = useAuth();
+  const isFree = role === "ROLE_FREE";
 
   return (
     <>
@@ -110,6 +113,8 @@ export function AppHeader() {
             <nav className="hidden lg:flex items-center gap-1 flex-1">
               {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, dot, activeColorBright, activeBgBright }) => {
                 const isActive = location.pathname === link;
+                const isRoadmap = link === "/roadmap";
+                const isLocked = isRoadmap && isFree;
                 return (
                   <Link
                     key={link}
@@ -129,6 +134,14 @@ export function AppHeader() {
                   >
                     <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
                     <span>{label}</span>
+                    {isLocked && (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none ml-0.5"
+                        style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}
+                      >
+                        <Crown className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                     {isActive && (
                       <span
                         className={`absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${dot}`}

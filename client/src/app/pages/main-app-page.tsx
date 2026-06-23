@@ -12,10 +12,8 @@ import { motion, useMotionValue, useSpring, useTransform, useInView } from "moti
 
 import { Select, ConfigProvider, theme } from "antd";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
-import { categoryApi, type Category } from "../../apis/category.api";
-import { tagApi, type Tag } from "../../apis/tag.api";
-import { ingredientApi, type Ingredient } from "../../apis/ingredient.api";
 import { mealApi } from "../../apis/meal.api";
+import ReactMarkdown from 'react-markdown';
 
 // ─── 3D card tilt hook ────────────────────────────────────────────────────────
 function useTiltCard(strength = 10) {
@@ -41,17 +39,21 @@ function useTiltCard(strength = 10) {
 
 
 function mapMealResponseToRecipe(meal: any): any {
+  const calories = meal.nutrition?.calories ? Math.round(meal.nutrition.calories) + " kcal" : "N/A";
+  const protein = meal.nutrition?.protein ? Math.round(meal.nutrition.protein) + "g Prot" : "0g";
+  const carbs = meal.nutrition?.carbs ? Math.round(meal.nutrition.carbs) + "g Carb" : "0g";
+  const fat = meal.nutrition?.fat ? Math.round(meal.nutrition.fat) + "g Fat" : "0g";
+
   return {
     id: meal.id,
     name: meal.name,
     description: meal.description,
     image: meal.images?.find((img: any) => img.isThumbnail)?.url || meal.images?.[0]?.url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
     cuisine: meal.categories?.[0]?.name || "Món ăn",
-    prepTime: "15 phút",
-    cookTime: "30 phút",
-    servings: "2 người",
-    difficulty: "Vừa",
-    calories: "350 kcal", // Placeholder
+    calories,
+    protein,
+    carbs,
+    fat,
     ingredients: meal.ingredients?.map((i: any) => `${i.value} ${i.unitDesc || i.unit} ${i.name || 'Nguyên liệu'}`) || [],
     instructions: ["Xem chi tiết để biết cách nấu"],
     tips: "Chúc bạn ngon miệng!"
@@ -62,35 +64,6 @@ function mapMealResponseToRecipe(meal: any): any {
 
 export function MainAppPage() {
   const [prompt, setPrompt] = useState("");
-  const { data: categories = [] } = useQuery({
-    queryKey: ['categories'],
-    queryFn: async () => {
-      const res = await categoryApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const { data: tags = [] } = useQuery({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const res = await tagApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const { data: ingredients = [] } = useQuery({
-    queryKey: ['ingredients'],
-    queryFn: async () => {
-      const res = await ingredientApi.getAll(0, 1000);
-      return res.data.data.content || [];
-    }
-  });
-
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [excludedIngredients, setExcludedIngredients] = useState<string[]>([]);
-
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const {
     data: infiniteMealsData,
@@ -118,8 +91,10 @@ export function MainAppPage() {
 
   const [submitted, setSubmitted] = useState(false);
   const [results, setResults] = useState<any[]>([]);
+  const [aiMessage, setAiMessage] = useState<string>("");
   const [isTyping, setIsTyping] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
   const { toggleFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -131,8 +106,28 @@ export function MainAppPage() {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [prompt]);
 
+  const fetchQuota = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      if (!token) return;
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/ai/knowledge/quota`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.data) setQuota(d.data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchQuota();
+  }, [fetchQuota]);
+
   async function handleSubmit() {
-    const isFilterActive = prompt.trim() || selectedCategories.length > 0 || selectedTags.length > 0 || excludedIngredients.length > 0;
+    const isFilterActive = prompt.trim() !== "";
     if (!isFilterActive) return;
 
     setSubmitted(true);
@@ -153,20 +148,29 @@ export function MainAppPage() {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          question: question,
-          categoryIds: selectedCategories,
-          tagIds: selectedTags,
-          excludedIngredientIds: excludedIngredients
+          question: question
         })
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429 || errorData.code === 429) {
+           toast.error("Bạn đã vượt quá số lần hỏi AI trong ngày. Vui lòng nâng cấp tài khoản để dùng tiếp.");
+        } else {
+           toast.error(errorData.message || "Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
+        }
+        return;
+      }
+
       const data = await response.json();
-      if (data.data && Array.isArray(data.data)) {
-        const mappedData = data.data.map(mapMealResponseToRecipe);
+      if (data.data && data.data.suggestedMeals) {
+        const mappedData = data.data.suggestedMeals.map(mapMealResponseToRecipe);
         setResults(mappedData);
+        setAiMessage(data.data.aiMessage || "");
+        fetchQuota(); // Cập nhật lại số lần dùng sau khi gọi
       } else {
         toast.error("Không tìm thấy món ăn phù hợp.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi gọi AI:", error);
       toast.error("Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
     } finally {
@@ -180,14 +184,10 @@ export function MainAppPage() {
 
   const handleReset = () => {
     setPrompt("");
-    setSelectedCategories([]);
-    setSelectedTags([]);
-    setExcludedIngredients([]);
     setSubmitted(false);
     setResults([]);
   }
 
-  const activeCnt = selectedCategories.length + selectedTags.length + excludedIngredients.length + (prompt.trim() ? 1 : 0);
 
   return (
     <div className="min-h-screen">
@@ -267,7 +267,7 @@ export function MainAppPage() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!prompt.trim() && selectedCategories.length === 0 && selectedTags.length === 0 && excludedIngredients.length === 0}
+                disabled={!prompt.trim()}
                 className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
               >
@@ -287,89 +287,22 @@ export function MainAppPage() {
             </p>
           </div>
 
-          {/* ── Advanced Filter Toggle ─────────────────────────────────────── */}
-          <div className="mb-4">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-              style={{
-                background: filterOpen ? "rgba(163,230,53,0.08)" : "rgba(26,31,46,0.6)",
-                border: filterOpen ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ color: filterOpen ? "#a3e635" : "#94a3b8" }}>
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="text-sm font-semibold">{filterOpen ? "Đóng bộ lọc nâng cao" : "Bộ lọc nâng cao (Danh mục, Thẻ, Nguyên liệu tránh)"}</span>
+          {quota && quota.limit < 9999 && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5"
+                   style={{ background: quota.remaining > 0 ? "rgba(163,230,53,0.1)" : "rgba(239,68,68,0.1)",
+                            color: quota.remaining > 0 ? "#a3e635" : "#ef4444",
+                            border: `1px solid ${quota.remaining > 0 ? "rgba(163,230,53,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                <Zap className="w-3 h-3" />
+                Số lần AI còn lại trong ngày: {quota.remaining} / {quota.limit}
               </div>
-              <ChevronDown className="w-4 h-4 transition-transform" style={{ color: filterOpen ? "#a3e635" : "#475569", transform: filterOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-            </button>
-
-            {/* Filter Panel Dropdown */}
-            {filterOpen && (
-              <div className="mt-2 p-4 sm:p-5 rounded-xl animate-in fade-in" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <ConfigProvider theme={{ algorithm: theme.darkAlgorithm, token: { colorPrimary: '#a3e635', colorBgContainer: '#1a1f2e', colorBorder: 'rgba(255,255,255,0.1)' } }}>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Danh mục món ăn</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Chọn danh mục..."
-                        value={selectedCategories}
-                        onChange={setSelectedCategories}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={categories.map(c => ({ label: c.name, value: c.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Thẻ trạng thái</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Chọn thẻ..."
-                        value={selectedTags}
-                        onChange={setSelectedTags}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={tags.map(t => ({ label: t.name, value: t.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                    <div>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: "#64748b" }}>Tránh nguyên liệu</h3>
-                      <Select
-                        mode="multiple"
-                        placeholder="Tránh nguyên liệu..."
-                        value={excludedIngredients}
-                        onChange={setExcludedIngredients}
-                        style={{ width: '100%', minHeight: '40px' }}
-                        options={ingredients.map(i => ({ label: i.name, value: i.id }))}
-                        maxTagCount="responsive"
-                      />
-                    </div>
-                  </div>
-                </ConfigProvider>
-              </div>
-            )}
-          </div>
-
-          {activeCnt > 0 && (
-            <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
-              <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc {activeCnt} điều kiện</span>
-              <button
-                onClick={handleReset}
-                className="text-xs transition-colors"
-                style={{ color: "rgba(148,163,184,0.6)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(148,163,184,0.6)"; }}
-              >
-                Đặt lại
-              </button>
             </div>
           )}
 
           {/* ── CTA Button ────────────────────────────────────────────────── */}
           <button
             onClick={handleSubmit}
-            disabled={!prompt.trim() && selectedCategories.length === 0 && selectedTags.length === 0 && excludedIngredients.length === 0}
+            disabled={!prompt.trim()}
             className="w-full h-12 mb-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: "linear-gradient(135deg, #a3e635, #4ade80)",
@@ -417,6 +350,22 @@ export function MainAppPage() {
                     <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} className="w-3 h-3 rounded-full bg-lime-400" />
                   </div>
                   <p className="text-slate-400 text-sm font-medium">Đang tìm kiếm món ăn phù hợp...</p>
+                </div>
+              )}
+
+              {aiMessage && (
+                <div className="mb-6 p-4 rounded-xl" style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.15)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Bot className="w-5 h-5 text-lime-400" />
+                        <h3 className="font-bold text-lime-400 text-sm">Chuyên gia Dinh dưỡng AI</h3>
+                    </div>
+                    <div className="text-sm text-slate-300 leading-relaxed space-y-2 ai-markdown-content">
+                        {aiMessage.includes("Gemini AI hiện đang quá tải") ? (
+                            <p>Đây là danh sách các món ăn phù hợp nhất với yêu cầu của bạn đã được hệ thống phân tích và chọn lọc:</p>
+                        ) : (
+                            <ReactMarkdown>{aiMessage}</ReactMarkdown>
+                        )}
+                    </div>
                 </div>
               )}
 
@@ -576,18 +525,22 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
           </p>
 
           {/* Meta */}
-          <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-lime-400" />
-              {recipe.cookTime}
-            </span>
-            <span className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-3 text-[11px] mb-3 font-medium" style={{ color: "#94a3b8" }}>
+            <span className="flex items-center gap-1 text-slate-300">
               <Flame className="w-3.5 h-3.5 text-orange-400" />
               {recipe.calories}
             </span>
             <span className="flex items-center gap-1">
-              <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
-              {recipe.difficulty}
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+              {recipe.protein}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+              {recipe.carbs}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+              {recipe.fat}
             </span>
           </div>
 

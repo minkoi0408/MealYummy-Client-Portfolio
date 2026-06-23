@@ -86,7 +86,7 @@ export function CategoryManagementPage() {
         message.error("Vui lòng nhập ít nhất 1 danh mục hợp lệ.");
         return;
       }
-      await dataApi.createNestedBulk(validData as any);
+      await categoryApi.createNestedBulk(validData as any);
       message.success("Lưu dữ liệu thành công!");
       setIsModalOpen(false);
       setBulkCategories([{ name: '' }]);
@@ -145,7 +145,7 @@ export function CategoryManagementPage() {
       title: 'Thao tác',
       key: 'action',
       width: '15%',
-      render: (_, record: Category) => (
+      render: (_: any, record: Category) => (
         <Space size="middle">
           <Button 
             type="text" 

@@ -96,7 +96,8 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
         {
           username: payload.username,
           email: payload.email,
-          avatarUrl: payload.avatarUrl
+          avatarUrl: payload.avatarUrl,
+          createdAt: payload.createdAt
         },
         true // Google login default to remember
       );

@@ -122,7 +122,7 @@ export function TagManagementPage() {
       title: 'Thao tác',
       key: 'action',
       width: '15%',
-      render: (_, record: TagType) => (
+      render: (_: any, record: TagType) => (
         <Space size="middle">
           <Button 
             type="text" 
