@@ -137,13 +137,18 @@ function EarthGroup({ phase }: { phase: Phase }) {
   useFrame((_, delta) => {
     if (!groupRef.current) return;
 
-    // Rotation speeds (matching the original repo)
-    const rotSpeed = phase === "scanning" ? 1 : phase === "zooming" ? 0.3 : 0;
-
-    if (earthRef.current) earthRef.current.rotation.y += 0.0019 * rotSpeed * 60 * delta;
-    if (lightsRef.current) lightsRef.current.rotation.y += 0.0019 * rotSpeed * 60 * delta;
-    if (cloudsRef.current) cloudsRef.current.rotation.y += 0.0026 * rotSpeed * 60 * delta;
-    if (glowRef.current) glowRef.current.rotation.y += 0.002 * rotSpeed * 60 * delta;
+    // Quay nhẹ nhàng và luôn giữ Việt Nam (Châu Á) ở mặt trước
+    const targetRotY = (-196.7 * Math.PI) / 180; // Góc xoay để Việt Nam hướng về Camera
+    if (earthRef.current) {
+      if (phase === "scanning") {
+         earthRef.current.rotation.y = targetRotY + Math.sin(Date.now() * 0.001) * 0.2;
+      } else {
+         earthRef.current.rotation.y = THREE.MathUtils.lerp(earthRef.current.rotation.y, targetRotY, delta * 3);
+      }
+    }
+    if (lightsRef.current) lightsRef.current.rotation.y = earthRef.current ? earthRef.current.rotation.y : 0;
+    if (cloudsRef.current) cloudsRef.current.rotation.y = earthRef.current ? earthRef.current.rotation.y + 0.05 : 0;
+    if (glowRef.current) glowRef.current.rotation.y = earthRef.current ? earthRef.current.rotation.y : 0;
 
     // Smooth scale transition
     currentScale.current = THREE.MathUtils.lerp(
@@ -162,7 +167,9 @@ function EarthGroup({ phase }: { phase: Phase }) {
   return (
     <group ref={groupRef} rotation={[0, 0, (-23.4 * Math.PI) / 180]}>
       {/* Earth surface */}
-      <mesh ref={earthRef} geometry={geometry} material={earthMat} />
+      <mesh ref={earthRef} geometry={geometry} material={earthMat}>
+         <LocationPin3D phase={phase} />
+      </mesh>
 
       {/* Night lights */}
       <mesh ref={lightsRef} geometry={geometry} material={lightsMat} />
@@ -176,11 +183,10 @@ function EarthGroup({ phase }: { phase: Phase }) {
   );
 }
 
-// ─── Location Pin 3D ───────────────────────────────────────────────────────────
 function LocationPin3D({ phase }: { phase: Phase }) {
   const pinRef = useRef<THREE.Group>(null);
-  // Vietnam: lat ~16, lon ~107
-  const pinPos = useMemo(() => latLonToVec3(16, 107, 1.08), []);
+  // Thủ Đức, Quận 9: lat 10.8382, lon 106.7799
+  const pinPos = useMemo(() => latLonToVec3(10.8382, 106.7799, 1.03), []);
   const pinNormal = useMemo(() => pinPos.clone().normalize(), [pinPos]);
 
   const quaternion = useMemo(() => {
@@ -561,7 +567,6 @@ export function ThreeGlobe({
 
           <Suspense fallback={<LoadingFallback />}>
             <EarthGroup phase={phase} />
-            <LocationPin3D phase={phase} />
             <ScanRings phase={phase} />
             <OrbitRing phase={phase} />
             <SatelliteDot phase={phase} />

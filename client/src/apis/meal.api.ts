@@ -95,5 +95,9 @@ export const mealApi = {
     return callAPI('POST', `/meals/${id}/images`, formData, null, {
       'Content-Type': 'multipart/form-data',
     });
+  },
+
+  getRestaurantKeywords: (mealName: string): Promise<AxiosResponse<BaseApiResponse<string[]>>> => {
+    return callAPI('GET', `/ai/knowledge/restaurant-keywords`, null, { mealName });
   }
 };
