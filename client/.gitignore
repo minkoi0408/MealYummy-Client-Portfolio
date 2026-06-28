@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+.codegraph
 PROJECT_SUMMARY.md
+PROD_ENV_TEMPLATE.txt
+
+scratch/
