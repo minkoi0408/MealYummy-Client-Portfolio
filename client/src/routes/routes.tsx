@@ -26,6 +26,7 @@ import { MembershipPage } from "../app/pages/membership-page";
 import { FavoritePage } from "../app/pages/favorite-page";
 import { RoadmapPage } from "../app/pages/roadmap-page";
 import { LoadingSkeletonPage } from "../app/pages/loading-skeleton-page";
+import { MealPlanPage } from "../app/pages/meal-plan-page";
 
 export const router = createBrowserRouter([
   {
@@ -106,6 +107,10 @@ export const router = createBrowserRouter([
       {
         path: "/favorites",
         Component: FavoritePage,
+      },
+      {
+        path: "/meal-plan",
+        Component: MealPlanPage,
       }
     ]
   },

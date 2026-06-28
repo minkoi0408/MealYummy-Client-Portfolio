@@ -9,7 +9,7 @@ import { ImageWithFallback } from "../../components/figma/ImageWithFallback";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { favoriteApi } from "../../../apis/favorite.api";
-import { mockRecipes } from "../../data/mock-recipes";
+import { mealApi } from "../../../apis/meal.api";
 import { toast } from "sonner";
 import { useBrightness } from "../../contexts/brightness-context";
 
@@ -24,8 +24,10 @@ const MEAL_SLOTS = [
 
 // ─── Nutrition helpers ─────────────────────────────────────────────────────────
 
-function parseCalories(cal: string): number {
-  const m = cal?.match(/(\d+)/);
+function parseCalories(cal: any): number {
+  if (!cal) return 0;
+  if (typeof cal === 'number') return cal;
+  const m = String(cal).match(/(\d+)/);
   return m ? parseInt(m[1]) : 0;
 }
 function estimateMacros(calories: number) {
@@ -46,9 +48,9 @@ function formatDate(date: Date) {
 }
 
 function getCalendarDays(centerDate: Date) {
-  return Array.from({ length: 15 }, (_, i) => {
+  return Array.from({ length: 5 }, (_, i) => {
     const d = new Date(centerDate);
-    d.setDate(d.getDate() + (i - 7));
+    d.setDate(d.getDate() + (i - 2));
     return d;
   });
 }
@@ -157,53 +159,43 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
   const dayMeals = mealPlan.filter((m) => m.date === dateStr);
   const eatenMeals = dayMeals.filter((m) => m.isEaten);
 
-  const totalPlannedCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe?.calories || m.calories), 0);
-  const totalEatenCal = eatenMeals.reduce((s, m) => s + parseCalories(m.recipe?.calories || m.calories), 0);
+  const totalCal = dayMeals.reduce((s, m) => s + parseCalories(m.recipe?.calories || m.calories), 0);
 
-  const totals = eatenMeals.reduce((s, m) => {
+  const totals = dayMeals.reduce((s, m) => {
     const mac = estimateMacros(parseCalories(m.recipe?.calories || m.calories));
-    return { protein: s.protein + mac.protein, carbs: s.carbs + mac.carbs, fat: s.fat + mac.fat, fiber: s.fiber + mac.fiber };
-  }, { protein: 0, carbs: 0, fat: 0, fiber: 0 });
+    return { protein: s.protein + mac.protein, carbs: s.carbs + mac.carbs, fat: s.fat + mac.fat };
+  }, { protein: 0, carbs: 0, fat: 0 });
 
   const macros = [
     { label: "Protein", value: totals.protein, max: targets.protein, unit: "g", color: "#a3e635", icon: <Dumbbell className="w-3.5 h-3.5" /> },
     { label: "Carbs", value: totals.carbs, max: targets.carbs, unit: "g", color: "#fb923c", icon: <Zap className="w-3.5 h-3.5" /> },
     { label: "Fat", value: totals.fat, max: targets.fat, unit: "g", color: "#c4b5fd", icon: <Droplet className="w-3.5 h-3.5" /> },
-    { label: "Chất xơ", value: totals.fiber, max: targets.fiber, unit: "g", color: "#34d399", icon: <Leaf className="w-3.5 h-3.5" /> },
   ];
 
-  const calPct = Math.round(Math.min(100, (totalEatenCal / targets.calories) * 100));
+  const calPct = Math.round(Math.min(100, (totalCal / targets.calories) * 100));
 
   // Smart Warnings Logic
-  const todayStr = formatDate(new Date());
-  const isPastOrToday = dateStr <= todayStr;
-  const diff = totalEatenCal - targets.calories;
+  const diff = totalCal - targets.calories;
   let statusColor = "#a3e635"; // Default Green (Đủ)
   let statusGradient = "linear-gradient(90deg,#a3e635,#4ade80)";
   let statusMessage = "Đang trống";
 
-  if (isPastOrToday) {
-    if (totalEatenCal === 0) {
-      statusMessage = "Chưa ghi nhận bữa ăn nào";
-      statusColor = "#94a3b8";
-      statusGradient = "linear-gradient(90deg,#94a3b8,#cbd5e1)";
-    } else if (diff > 150) {
-      statusMessage = `🚨 Cảnh báo: Ăn thừa ${Math.abs(diff)} kcal`;
-      statusColor = "#ef4444"; // Red
-      statusGradient = "linear-gradient(90deg,#f87171,#ef4444)";
-    } else if (diff < -150) {
-      statusMessage = `⚠️ Còn thiếu ${Math.abs(diff)} kcal`;
-      statusColor = "#fbbf24"; // Yellow
-      statusGradient = "linear-gradient(90deg,#fcd34d,#fbbf24)";
-    } else {
-      statusMessage = "✅ Tuyệt vời: Bạn ăn rất chuẩn xác!";
-      statusColor = "#22c55e"; // Green
-      statusGradient = "linear-gradient(90deg,#4ade80,#22c55e)";
-    }
+  if (totalCal === 0) {
+    statusMessage = "Chưa có món ăn nào";
+    statusColor = "#94a3b8";
+    statusGradient = "linear-gradient(90deg,#94a3b8,#cbd5e1)";
+  } else if (diff > 150) {
+    statusMessage = `🚨 Cảnh báo: Vượt quá ${Math.abs(diff)} kcal`;
+    statusColor = "#ef4444"; // Red
+    statusGradient = "linear-gradient(90deg,#f87171,#ef4444)";
+  } else if (diff < -150) {
+    statusMessage = `⚠️ Còn thiếu ${Math.abs(diff)} kcal`;
+    statusColor = "#fbbf24"; // Yellow
+    statusGradient = "linear-gradient(90deg,#fcd34d,#fbbf24)";
   } else {
-    statusMessage = "Bản nháp thực đơn (chưa ăn)";
-    statusColor = "#60a5fa";
-    statusGradient = "linear-gradient(90deg,#93c5fd,#60a5fa)";
+    statusMessage = "✅ Tuyệt vời: Lượng calo rất chuẩn xác!";
+    statusColor = "#22c55e"; // Green
+    statusGradient = "linear-gradient(90deg,#4ade80,#22c55e)";
   }
 
   return (
@@ -211,15 +203,15 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
       {/* Top: calo big + ring */}
       <div className="flex items-center gap-5 mb-5">
         <div className="relative flex-shrink-0">
-          <NutritionRing value={totalEatenCal} max={targets.calories} color={statusColor} size={80} />
+          <NutritionRing value={totalCal} max={targets.calories} color={statusColor} size={80} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-xs font-black leading-none" style={{ color: "var(--foreground)" }}>{calPct}%</span>
           </div>
         </div>
         <div className="flex-1">
-          <p className="text-xs font-bold mb-1" style={{ color: "var(--muted-foreground)" }}>Calo Đã Tiêu Thụ</p>
+          <p className="text-xs font-bold mb-1" style={{ color: "var(--muted-foreground)" }}>Tổng Calo Thực Đơn</p>
           <p className="text-4xl font-black leading-none" style={{ color: "var(--foreground)" }}>
-            {totalEatenCal > 0 ? totalEatenCal.toLocaleString() : "0"}
+            {totalCal > 0 ? totalCal.toLocaleString() : "0"}
             <span className="text-base font-bold ml-1" style={{ color: "var(--muted-foreground)" }}>/ {targets.calories.toLocaleString()} kcal</span>
           </p>
           <div className="mt-2 h-2 rounded-full overflow-hidden" style={{ background: isBright ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)" }}>
@@ -233,7 +225,7 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
       </div>
 
       {/* Macro grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {macros.map((m) => {
           const pct = Math.min(100, Math.round((m.value / m.max) * 100));
           const macroColor = isBright && m.color === "#a3e635" ? "#166534" : m.color;
@@ -264,7 +256,7 @@ function DayNutritionPanel({ dateStr, mealPlan, targets }: { dateStr: string; me
         <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: isBright ? "1px solid rgba(0,0,0,0.08)" : "1px solid rgba(255,255,255,0.05)" }}>
           <Target className="w-4 h-4 flex-shrink-0" style={{ color: isBright ? "#166534" : "#a3e635" }} />
           <p className="text-xs font-medium" style={{ color: "var(--muted-foreground)" }}>
-            Kế hoạch: {dayMeals.length} bữa ({totalPlannedCal} kcal) · Thực tế: {eatenMeals.length} bữa ·&nbsp;
+            Kế hoạch: {dayMeals.length} bữa ({totalCal} kcal) · Thực tế: {eatenMeals.length} bữa ·&nbsp;
             <span className="font-bold" style={{ color: isBright ? "#166534" : "#a3e635" }}>{totals.protein}g protein</span>
           </p>
         </div>
@@ -281,7 +273,23 @@ export function MealPlanTab() {
     queryKey: ["favoriteMeals"],
     queryFn: () => favoriteApi.getFavoriteMeals(0, 50)
   });
-  const favorites = favoriteMealsData?.content || [];
+  
+  const { data: allMealsData } = useQuery({
+    queryKey: ["allMeals"],
+    queryFn: () => mealApi.getAll(0, 50)
+  });
+
+  const mapApiMealToRecipe = (m: any) => ({
+    ...m,
+    image: m.images?.[0]?.url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c",
+    cookTime: "15 phút", // Fallback
+    cuisine: m.categories?.[0] || "Khác",
+    calories: m.nutrition?.calories || 0
+  });
+
+  const rawFavorites = favoriteMealsData?.content || [];
+  const favorites = rawFavorites.map(mapApiMealToRecipe);
+  const allApiMeals = (allMealsData?.data?.data?.content || []).map(mapApiMealToRecipe);
   const { isBright } = useBrightness();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -307,7 +315,7 @@ export function MealPlanTab() {
   }
 
   const calendarDays = getCalendarDays(selectedDate);
-  const allRecipes = [...favorites, ...mockRecipes.filter((r) => !favorites.find((f) => f.id === r.id))];
+  const allRecipes = [...favorites, ...allApiMeals.filter((r) => !favorites.find((f: any) => f.id === r.id))];
   const filtered = allRecipes.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
 
   function getMeals(date: string, mealType: string) {
@@ -523,7 +531,7 @@ export function MealPlanTab() {
               />
             </div>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 snap-x" style={{ scrollbarWidth: "none" }}>
+          <div className="grid grid-cols-5 gap-2 pb-2">
             {calendarDays.map((day, i) => {
               const dateStr = formatDate(day);
               const dayMeals = mealPlan.filter((m) => m.date === dateStr);
@@ -545,7 +553,7 @@ export function MealPlanTab() {
 
               return (
                 <button key={i} onClick={() => setSelectedDate(day)}
-                  className={`flex-shrink-0 snap-center flex flex-col items-center justify-center w-16 h-20 rounded-2xl transition-all ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
+                  className={`flex flex-col items-center justify-center w-full h-20 rounded-2xl transition-all ${isSelected ? 'scale-105' : 'hover:bg-white/5'}`}
                   style={isSelected
                     ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", boxShadow: "0 4px 12px rgba(163,230,53,0.3)" }
                     : { background: isToday ? "rgba(163,230,53,0.1)" : "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.05)" }}>
