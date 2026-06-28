@@ -23,7 +23,7 @@ jobs:
           cat << EOF > .env.production
           ${{ secrets.PROD_ENV_FILE }}
           EOF
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Copy Files to VPS
