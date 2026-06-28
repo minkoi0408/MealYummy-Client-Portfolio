@@ -34,7 +34,6 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           source: "client/dist/*,client/Dockerfile.frontend,client/nginx.conf"
           target: "/root/meal-yummi"
-          strip_components: 1
 
       - name: Restart Frontend Docker
         uses: appleboy/ssh-action@v1.0.3
