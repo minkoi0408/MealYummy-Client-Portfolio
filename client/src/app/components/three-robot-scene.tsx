@@ -135,7 +135,7 @@ function HamburgerModel({ open, onModelInfo }: {
     }
 
     return { topMeshes: top, bottomMeshes: bottom, pattyY: pY, pattyRadius: pR, center: modelCenter };
-  }, [scene]);
+  }, [scene, isMobile, config.envMapIntensity]);
 
   useEffect(() => {
     if (onModelInfo) onModelInfo({ pattyY, pattyRadius, center });

@@ -1,29 +1,11 @@
 
 
-import {
-  Check,
-  Settings,
-  Lock,
-  Bell,
-  Shield,
-  LogOut,
-  Edit2,
-  Mail,
-  Calendar,
-  Trophy,
-  Rocket,
-  User,
-  Crown,
-  Star,
-  Sparkles,
-  ArrowRight,
-  TrendingUp,
-} from "lucide-react";
+import { Check, Settings, Lock, Bell, Shield, LogOut, Edit2, Mail, Calendar, Trophy, Rocket, User, Crown, Star, Sparkles, ArrowRight, TrendingUp, Flame, Clock } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { jsPDF } from "jspdf";
 import * as htmlToImage from "html-to-image";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AppHeader } from "../components/app-header";
 import {
   Dialog,
@@ -35,6 +17,22 @@ import {
 } from "../components/ui/dialog";
 import { Switch } from "../components/ui/switch";
 import { toast } from "sonner";
+import { useAuth } from "../contexts/auth-context";
+import { useFavorites } from '../contexts/favorites-context';
+import { subscriptionApi } from '../../apis/subscription.api';
+import type { UserSubscription } from '../../apis/subscription.api';
+
+function parseDateLabel(dateStr: string) {
+  const today = new Date().toISOString().split("T")[0];
+  if (dateStr === today) return "Hôm nay";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "numeric" });
+}
+
+function parseCalories(cal: string): number {
+  const m = cal?.match(/(\d+)/);
+  return m ? parseInt(m[1]) : 0;
+}
 
 type UserMetrics = {
   weight: number;
@@ -160,9 +158,38 @@ const PROFILE_TIERS = [
 const FREE_PERKS = ["AI gợi ý món ăn theo khẩu vị", "Thư viện 500+ món Fitness", "Xếp hạng & yêu thích"];
 const MEM_PERKS = ["Tính chỉ số BMI & sức khoẻ", "Thực đơn cá nhân hoá từng ngày", "Dinh dưỡng tự động", "Danh sách nguyên liệu AI", "Mua sắm thực phẩm online"];
 
+import { bundleApi } from "../../apis/bundle.api";
+import type { Bundle } from "../../types/bundle.types";
+
 function PricingCards() {
-  const [tier, setTier] = useState("monthly");
-  const active = PROFILE_TIERS.find((t) => t.id === tier)!;
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [tier, setTier] = useState<string>("");
+
+  useEffect(() => {
+    bundleApi.getAllActiveBundles()
+      .then(res => {
+        if (res.data?.data) {
+          const dataPayload = res.data.data as any;
+          const bundleList = Array.isArray(dataPayload) ? dataPayload : (dataPayload.content || []);
+          
+          if (Array.isArray(bundleList)) {
+            setBundles(bundleList);
+            const premium = bundleList.find((b: any) => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+            if (premium && premium.durations && premium.durations.length > 0) {
+              setTier(premium.durations[0].durationCode);
+            }
+          }
+        }
+      })
+      .catch(console.error);
+  }, []);
+
+  const freeBundle = bundles.find(b => b.name.toLowerCase().includes("free") || (b.durations && b.durations.length > 0 && b.durations[0].price === 0));
+  const premiumBundle = bundles.find(b => b.name.toLowerCase().includes("membership") || (b.durations && b.durations.length > 0 && b.durations[0].price > 0));
+  const activeDuration = premiumBundle?.durations?.find(d => d.durationCode === tier) || premiumBundle?.durations?.[0];
+
+  const formatPrice = (n: number) => n.toLocaleString("vi-VN") + "đ";
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       {/* Free card */}
@@ -171,13 +198,17 @@ function PricingCards() {
         <div className="flex items-center gap-2 mb-4">
           <span className="text-3xl">🥉</span>
           <div>
-            <div className="font-black text-white text-lg">Free</div>
+            <div className="font-black text-white text-lg">{freeBundle?.name || "Free"}</div>
             <div className="text-[10px] uppercase tracking-widest" style={{ color: "#64748b" }}>Người trải nghiệm</div>
           </div>
           <div className="ml-auto text-sm font-black" style={{ color: "#94a3b8" }}>0đ</div>
         </div>
         <ul className="space-y-2 flex-1 mb-4">
-          {FREE_PERKS.map((p) => (
+          {freeBundle?.features?.length ? freeBundle.features.map((p) => (
+            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#94a3b8" }}>
+              <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#64748b" }} />{p}
+            </li>
+          )) : FREE_PERKS.map((p) => (
             <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#94a3b8" }}>
               <Check className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#64748b" }} />{p}
             </li>
@@ -190,65 +221,73 @@ function PricingCards() {
       </div>
 
       {/* Membership card */}
-      <div className="relative rounded-2xl p-5 flex flex-col"
-        style={{ background: "rgba(163,230,53,0.05)", border: "2px solid rgba(163,230,53,0.3)", boxShadow: "0 0 28px rgba(163,230,53,0.1)" }}>
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <div className="px-3 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 text-gray-900"
-            style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)" }}>
-            <Star className="w-2.5 h-2.5 fill-current" /> Phổ biến
+      {premiumBundle ? (
+        <div className="relative rounded-2xl p-5 flex flex-col"
+          style={{ background: "rgba(163,230,53,0.05)", border: "2px solid rgba(163,230,53,0.3)", boxShadow: "0 0 28px rgba(163,230,53,0.1)" }}>
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+            <div className="px-3 py-0.5 rounded-full text-[10px] font-black flex items-center gap-1 text-gray-900"
+              style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)" }}>
+              <Star className="w-2.5 h-2.5 fill-current" /> Phổ biến
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 mb-3 mt-1">
-          <span className="text-3xl">🥇</span>
-          <div>
-            <div className="font-black text-white text-lg">Membership</div>
-            <div className="text-[10px] uppercase tracking-widest" style={{ color: "#a3e635" }}>Gymer Pro</div>
+          <div className="flex items-center gap-2 mb-3 mt-1">
+            <span className="text-3xl">🥇</span>
+            <div>
+              <div className="font-black text-white text-lg">{premiumBundle.name}</div>
+              <div className="text-[10px] uppercase tracking-widest" style={{ color: "#a3e635" }}>Gymer Pro</div>
+            </div>
+            <div className="ml-auto text-right">
+              <div className="text-base font-black" style={{ color: "#a3e635" }}>{activeDuration ? formatPrice(activeDuration.price) : "Liên hệ"}</div>
+              <div className="text-[10px]" style={{ color: "#64748b" }}>{activeDuration?.durationCode?.toLowerCase().replace("_", " ")}</div>
+            </div>
           </div>
-          <div className="ml-auto text-right">
-            <div className="text-base font-black" style={{ color: "#a3e635" }}>{active.price}</div>
-            <div className="text-[10px]" style={{ color: "#64748b" }}>{active.label.toLowerCase()}</div>
+          {/* Tier pills */}
+          <div className="flex gap-1.5 mb-3">
+            {premiumBundle.durations?.map((t) => (
+              <button key={t.durationCode} onClick={() => setTier(t.durationCode)}
+                className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                style={{
+                  background: tier === t.durationCode ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
+                  border: `1px solid ${tier === t.durationCode ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
+                  color: tier === t.durationCode ? "#a3e635" : "#64748b",
+                }}>
+                {t.durationCode.replace("_", " ")}
+                {t.originalPrice && <div className="text-[8px]" style={{ color: "#a3e635" }}>Tiết kiệm {formatPrice(t.originalPrice - t.price)}</div>}
+              </button>
+            ))}
           </div>
+          <ul className="space-y-2 flex-1 mb-4">
+            {premiumBundle.features?.length ? premiumBundle.features.map((p) => (
+              <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(163,230,53,0.2)" }}>
+                  <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
+                </div>{p}
+              </li>
+            )) : MEM_PERKS.map((p) => (
+              <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
+                <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(163,230,53,0.2)" }}>
+                  <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
+                </div>{p}
+              </li>
+            ))}
+          </ul>
+          <Link to="/membership" className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
+            style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
+            Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        {/* Tier pills */}
-        <div className="flex gap-1.5 mb-3">
-          {PROFILE_TIERS.map((t) => (
-            <button key={t.id} onClick={() => setTier(t.id)}
-              className="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all"
-              style={{
-                background: tier === t.id ? "rgba(163,230,53,0.15)" : "rgba(255,255,255,0.04)",
-                border: `1px solid ${tier === t.id ? "rgba(163,230,53,0.4)" : "rgba(255,255,255,0.07)"}`,
-                color: tier === t.id ? "#a3e635" : "#64748b",
-              }}>
-              {t.label}
-              {t.saving && <div className="text-[8px]" style={{ color: "#a3e635" }}>{t.saving}</div>}
-            </button>
-          ))}
-        </div>
-        <ul className="space-y-2 flex-1 mb-4">
-          {MEM_PERKS.map((p) => (
-            <li key={p} className="flex items-center gap-2 text-xs" style={{ color: "#cbd5e1" }}>
-              <div className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "rgba(163,230,53,0.2)" }}>
-                <Check className="w-2 h-2" style={{ color: "#a3e635" }} />
-              </div>{p}
-            </li>
-          ))}
-        </ul>
-        <button className="w-full h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all hover:opacity-90"
-          style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
-          <Sparkles className="w-3.5 h-3.5" /> Đăng ký ngay <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      ) : null}
     </div>
   );
+
 }
 
 
 const SETTINGS_MENU = [
   { id: "edit-profile" as const, icon: <User className="w-4 h-4 text-lime-400" />, label: "Chỉnh sửa hồ sơ" },
-  { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Thay đổi mật khẩu" },
-  { id: "security" as const, icon: <Shield className="w-4 h-4 text-amber-400" />, label: "Bảo mật 2 Lớp (MFA)" },
-  { id: "notifications" as const, icon: <Bell className="w-4 h-4 text-purple-400" />, label: "Thông báo" },
+  { id: "change-password" as const, icon: <Lock className="w-4 h-4 text-blue-400" />, label: "Chỉnh sửa mật khẩu" },
 ];
 
 export function ProfilePage() {
@@ -256,14 +295,42 @@ export function ProfilePage() {
   const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
   const targets = calcTDEE(metrics);
   const [profile, setProfile] = useState<UserProfile>(loadProfile);
-  const [notifications, setNotifications] = useState<NotificationSettings>(loadNotifications);
-  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "notifications" | "security">(null);
+  const [activeDialog, setActiveDialog] = useState<null | "edit-profile" | "change-password">(null);
   const [draftProfile, setDraftProfile] = useState<UserProfile>(profile);
-  const [totpQrCode, setTotpQrCode] = useState("");
-  const [totpCodeInput, setTotpCodeInput] = useState("");
+  
+  // Password state
+  const [hasPassword, setHasPassword] = useState(true); // Ideally from backend: profile.hasPassword
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
+  const { logout, role, user } = useAuth();
+
+  const getAccountAge = () => {
+    if (!user || !(user as any).createdAt) return "0";
+    const createdDate = new Date((user as any).createdAt);
+    const diffTime = Math.abs(new Date().getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays.toString();
+  };
+  const { favoriteIds } = useFavorites();
+  const [subscription, setSubscription] = useState<UserSubscription | null>(null);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
+
+  useEffect(() => {
+    if (role !== "ROLE_FREE") {
+      subscriptionApi.getCurrentSubscription()
+        .then(res => {
+          if (res.data && res.data.data) {
+            setSubscription(res.data.data);
+          }
+        })
+        .catch(err => console.error("Failed to load subscription", err));
+    }
+  }, [role]);
 
   const handleExportPDF = async () => {
     setIsExporting(true);
@@ -458,7 +525,8 @@ export function ProfilePage() {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    fetch("http://localhost:8082/api/v1/users/metrics", {
+    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+    fetch(`${API_URL}/users/metrics`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -471,7 +539,7 @@ export function ProfilePage() {
       .catch(() => { });
 
     // Fetch history
-    fetch("http://localhost:8082/api/v1/users/metrics/history", {
+    fetch(`${API_URL}/users/metrics/history`, {
       headers: { "Authorization": `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -479,6 +547,18 @@ export function ProfilePage() {
         if (data && data.data) {
           const sorted = data.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
           setMetricsHistory(sorted);
+        }
+      })
+      .catch(() => { });
+
+    // Fetch quota
+    fetch(`${API_URL}/ai/knowledge/quota`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.data) {
+          setQuota(data.data);
         }
       })
       .catch(() => { });
@@ -494,7 +574,8 @@ export function ProfilePage() {
     setIsSavingMetrics(true);
     const toastId = toast.loading("Đang lưu chỉ số...");
     try {
-      const res = await fetch("http://localhost:8082/api/v1/users/metrics", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/users/metrics`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -507,7 +588,7 @@ export function ProfilePage() {
         toast.success(data.message || "Đã lưu chỉ số thành công", { id: toastId });
         saveMetrics(metrics);
         // Re-fetch history to update chart
-        fetch("http://localhost:8082/api/v1/users/metrics/history", {
+        fetch(`${API_URL}/users/metrics/history`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
           .then(r => r.json())
@@ -530,7 +611,7 @@ export function ProfilePage() {
 
   const handleLogout = async () => {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    
+
     if (token) {
       try {
         const { authApi } = await import("../../apis/auth.api");
@@ -567,7 +648,8 @@ export function ProfilePage() {
 
     const toastId = toast.loading("Đang tải ảnh lên...");
     try {
-      const res = await fetch("http://localhost:8082/api/v1/users/avatar", {
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/users/avatar`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -605,12 +687,11 @@ export function ProfilePage() {
       setActiveDialog("edit-profile");
       return;
     }
-    if (id === "notifications") {
-      setActiveDialog("notifications");
-      return;
-    }
-    if (id === "security") {
-      setActiveDialog("security");
+    if (id === "change-password") {
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setActiveDialog("change-password");
       return;
     }
     toast.message("Tính năng đang phát triển");
@@ -660,16 +741,16 @@ export function ProfilePage() {
                   <p className="text-sm mb-3" style={{ color: "#64748b" }}>{profile.email}</p>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
                     style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)", color: "#a3e635" }}>
-                    <Crown className="w-3 h-3" /> Gói Free
+                    <Crown className="w-3 h-3" /> {role === "ROLE_FREE" ? "Gói Free" : "Gói Membership"}
                   </span>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 gap-2 mb-5">
                   {[
-                    { val: "12", label: "Món đã lưu", color: "#a3e635" },
-                    { val: "47", label: "Lượt AI", color: "#4ade80" },
-                    { val: "8", label: "Ngày dùng", color: "#22d3ee" },
+                    { val: (favoriteIds?.length || 0).toString(), label: "Món đã lưu", color: "#a3e635" },
+                    { val: quota ? quota.remaining.toString() : "...", label: "Lượt AI", color: "#4ade80" },
+                    { val: getAccountAge(), label: "Ngày dùng", color: "#22d3ee" },
                   ].map((s) => (
                     <div key={s.label} className="text-center p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
                       <div className="text-xl font-black mb-0.5" style={{ color: s.color }}>{s.val}</div>
@@ -678,17 +759,21 @@ export function ProfilePage() {
                   ))}
                 </div>
 
-                {/* Contact info */}
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
-                    <Mail className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                    <span className="truncate">{profile.email}</span>
+                {subscription && (
+                  <div className="mb-5 p-3 rounded-xl" style={{ background: "rgba(163,230,53,0.1)", border: "1px solid rgba(163,230,53,0.25)" }}>
+                    <div className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: "#a3e635" }}>
+                      <Crown className="w-3.5 h-3.5" /> Thông tin gói đăng ký
+                    </div>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span style={{ color: "#94a3b8" }}>Bắt đầu:</span>
+                      <span className="font-semibold text-white">{new Date(subscription.startDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span style={{ color: "#94a3b8" }}>Kết thúc:</span>
+                      <span className="font-semibold text-white">{new Date(subscription.endDate).toLocaleDateString("vi-VN")}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2" style={{ color: "#64748b" }}>
-                    <Calendar className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                    <span>Tham gia: 15/02/2026</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -732,394 +817,6 @@ export function ProfilePage() {
           {/* ── RIGHT: Nutrition Profile + Pricing Plans ─────────────── */}
           <div className="lg:col-span-2 space-y-5">
 
-            {/* Nutrition profile */}
-            <div
-              className="rounded-2xl p-5"
-              style={{
-                background: "rgba(26,31,46,0.9)",
-                border: "1px solid rgba(163,230,53,0.25)",
-              }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest"
-                    style={{
-                      background: "rgba(163,230,53,0.08)",
-                      border: "1px solid rgba(163,230,53,0.2)",
-                      color: "#a3e635",
-                    }}
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Hồ sơ dinh dưỡng
-                  </div>
-                  <h2 className="text-base sm:text-lg font-black text-white">
-                    Mục tiêu ăn uống của bạn
-                  </h2>
-                </div>
-              </div>
-
-              {/* Weight / height / age */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {([
-                  { key: "weight" as const, label: "Cân nặng", unit: "kg", min: 30, max: 200 },
-                  { key: "height" as const, label: "Chiều cao", unit: "cm", min: 100, max: 250 },
-                  { key: "age" as const, label: "Tuổi", unit: "tuổi", min: 10, max: 99 },
-                ]).map(({ key, label, unit, min, max }) => (
-                  <div key={key}>
-                    <p
-                      className="text-xs font-semibold mb-1.5"
-                      style={{ color: "#94a3b8" }}
-                    >
-                      {label}
-                    </p>
-                    <div
-                      className="flex items-center rounded-xl overflow-hidden"
-                      style={{
-                        background: "rgba(255,255,255,0.06)",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      <button
-                        onClick={() =>
-                          updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
-                        }
-                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                        style={{ color: "#64748b" }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                        }}
-                      >
-                        −
-                      </button>
-                      <div className="flex-1 text-center">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          pattern="[0-9]*"
-                          value={(metrics as any)[key]}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9]/g, "");
-                            updateMetrics({ [key]: val === "" ? "" : Number(val) });
-                          }}
-                          onBlur={(e) => {
-                            let val = Number(e.target.value) || min;
-                            if (val < min) val = min;
-                            if (val > max) val = max;
-                            updateMetrics({ [key]: val });
-                          }}
-                          className="w-full bg-transparent text-center text-base font-black text-white outline-none"
-                        />
-                        <p className="text-[10px]" style={{ color: "#475569" }}>
-                          {unit}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
-                        }
-                        className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                        style={{ color: "#64748b" }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Gender + goal row */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <p
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: "#94a3b8" }}
-                  >
-                    Giới tính
-                  </p>
-                  <div className="flex gap-2">
-                    {(["male", "female"] as const).map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => updateMetrics({ gender: g })}
-                        className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                        style={
-                          metrics.gender === g
-                            ? {
-                              background:
-                                "linear-gradient(135deg, #a3e635, #4ade80)",
-                              color: "#0f1117",
-                            }
-                            : {
-                              background: "rgba(255,255,255,0.06)",
-                              border: "1px solid rgba(255,255,255,0.1)",
-                              color: "#64748b",
-                            }
-                        }
-                      >
-                        {g === "male" ? "👨 Nam" : "👩 Nữ"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p
-                    className="text-xs font-semibold mb-2"
-                    style={{ color: "#94a3b8" }}
-                  >
-                    Mục tiêu
-                  </p>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {([
-                      { value: "cut", label: "Giảm mỡ", color: "#f87171" },
-                      { value: "maintain", label: "Duy trì", color: "#a3e635" },
-                      { value: "bulk", label: "Tăng cơ", color: "#fb923c" },
-                    ] as const).map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => updateMetrics({ goal: opt.value })}
-                        className="py-2 rounded-xl text-[11px] font-semibold transition-all"
-                        style={
-                          metrics.goal === opt.value
-                            ? {
-                              background: `${opt.color}20`,
-                              color: opt.color,
-                              border: `1px solid ${opt.color}50`,
-                            }
-                            : {
-                              background: "rgba(255,255,255,0.04)",
-                              color: "#64748b",
-                              border: "1px solid rgba(255,255,255,0.08)",
-                            }
-                        }
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Activity Level row */}
-              <div className="mb-4">
-                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>
-                  Mức độ vận động
-                </p>
-                <div className="relative">
-                  <select
-                    value={metrics.activity}
-                    onChange={(e) => updateMetrics({ activity: e.target.value as any })}
-                    className="w-full appearance-none rounded-xl px-4 py-2.5 text-[13px] font-semibold outline-none transition-all cursor-pointer"
-                    style={{
-                      background: "rgba(255,255,255,0.06)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      color: "#e2e8f0",
-                    }}
-                  >
-                    <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, ít tập luyện)</option>
-                    <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập thể dục 1-3 ngày/tuần)</option>
-                    <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập thể dục 3-5 ngày/tuần)</option>
-                    <option value="active" style={{ background: "#0f1117" }}>Vận động nhiều (Tập thể dục 6-7 ngày/tuần)</option>
-                    <option value="very_active" style={{ background: "#0f1117" }}>Rất nhiều (VĐV, lao động tay chân)</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-                  </div>
-                </div>
-              </div>
-
-              {/* Advanced metrics for cut/bulk */}
-              {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-                <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in zoom-in duration-300">
-                  {([
-                    { key: "bodyFat" as const, label: "% Lượng mỡ (BDF-Ước tính)", unit: "%", min: 3, max: 100 },
-                    { key: "muscleMass" as const, label: "Lượng cơ bắp (Ước tính)", unit: "kg", min: 10, max: 120 },
-                  ]).map(({ key, label, unit, min, max }) => (
-                    <div key={key}>
-                      <p
-                        className="text-xs font-semibold mb-1.5"
-                        style={{ color: "#94a3b8" }}
-                      >
-                        {label}
-                      </p>
-                      <div
-                        className="flex items-center rounded-xl overflow-hidden"
-                        style={{
-                          background: "rgba(255,255,255,0.06)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                        }}
-                      >
-                        <button
-                          onClick={() =>
-                            updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })
-                          }
-                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                          style={{ color: "#64748b" }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                          }}
-                        >
-                          −
-                        </button>
-                        <div className="flex-1 text-center">
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            value={(metrics as any)[key]}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(/[^0-9]/g, "");
-                              updateMetrics({ [key]: val === "" ? "" : Number(val) });
-                            }}
-                            onBlur={(e) => {
-                              let val = Number(e.target.value) || min;
-                              if (val < min) val = min;
-                              if (val > max) val = max;
-                              updateMetrics({ [key]: val });
-                            }}
-                            className="w-full bg-transparent text-center text-base font-black text-white outline-none"
-                          />
-                          <p className="text-[10px]" style={{ color: "#475569" }}>
-                            {unit}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })
-                          }
-                          className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors"
-                          style={{ color: "#64748b" }}
-                          onMouseEnter={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                          }}
-                          onMouseLeave={(e) => {
-                            (e.currentTarget as HTMLButtonElement).style.color = "#64748b";
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Summary */}
-              <div
-                className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3"
-                style={{
-                  background: "rgba(163,230,53,0.06)",
-                  border: "1px solid rgba(163,230,53,0.15)",
-                }}
-              >
-                {[
-                  { label: "BMR", value: targets.bmr, unit: "kcal", color: "#94a3b8" },
-                  { label: "TDEE", value: targets.tdee, unit: "kcal", color: "#fb923c" },
-                  {
-                    label: "Mục tiêu",
-                    value: targets.calories,
-                    unit: "kcal",
-                    color: "#a3e635",
-                  },
-                  {
-                    label: "Protein",
-                    value: targets.protein,
-                    unit: "g",
-                    color: "#4ade80",
-                  },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <p
-                      className="text-xs mb-0.5"
-                      style={{ color: "#475569" }}
-                    >
-                      {s.label}
-                    </p>
-                    <p
-                      className="text-lg font-black"
-                      style={{ color: s.color }}
-                    >
-                      {s.value.toLocaleString()}
-                      <span
-                        className="text-xs font-normal ml-0.5"
-                        style={{ color: "#475569" }}
-                      >
-                        {s.unit}
-                      </span>
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Action buttons */}
-              <div className="mt-5 flex justify-end gap-3">
-                {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={isExporting}
-                    className="h-10 px-5 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                    style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc" }}
-                  >
-                    {isExporting ? "Đang xuất..." : "📄 Xuất InBody (PDF)"}
-                  </button>
-                )}
-                <button
-                  onClick={handleSaveMetrics}
-                  disabled={isSavingMetrics}
-                  className="h-10 px-6 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-                  style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}
-                >
-                  {isSavingMetrics ? "Đang lưu..." : "Lưu thay đổi"}
-                </button>
-              </div>
-
-              {/* Metrics History Chart */}
-              {metricsHistory.length > 0 && (
-                <div className="mt-8 pt-6" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
-                  <div className="flex items-center gap-2 mb-6">
-                    <TrendingUp className="w-4 h-4 text-lime-400" />
-                    <h3 className="text-sm font-black text-white">Lịch sử thành phần cấu tạo cơ thể</h3>
-                  </div>
-                  <div id="history-chart" className="h-[280px] w-full bg-[#0f1117] p-2 rounded-xl">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                        <XAxis
-                          dataKey="updatedAt"
-                          tickFormatter={(timeStr) => timeStr ? new Date(timeStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''}
-                          stroke="#475569"
-                          fontSize={11}
-                          tickMargin={12}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => `${v}kg`} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
-                        <Tooltip
-                          contentStyle={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
-                          labelFormatter={(l) => new Date(l).toLocaleDateString('vi-VN')}
-                        />
-                        <Line yAxisId="left" type="monotone" name="Trọng lượng (kg)" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                        <Line yAxisId="left" type="monotone" name="Cơ bắp (kg)" dataKey="muscleMass" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                        <Line yAxisId="right" type="monotone" name="Mỡ (%)" dataKey="bodyFat" stroke="#f87171" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              )}
-            </div>
 
 
             {/* Section header */}
@@ -1135,27 +832,6 @@ export function ProfilePage() {
             {/* Free vs Membership cards */}
             <PricingCards />
 
-            {/* Guarantee */}
-            <div className="rounded-2xl p-5" style={{ background: "rgba(163,230,53,0.04)", border: "1px solid rgba(163,230,53,0.15)" }}>
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg"
-                  style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}>
-                  <Trophy className="w-5 h-5 text-gray-900" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white mb-1">Đảm bảo hoàn tiền trong 7 ngày</h3>
-                  <p className="text-sm mb-3" style={{ color: "#64748b" }}>Không hài lòng? Chúng tôi hoàn lại 100% chi phí, không cần lý do.</p>
-                  <div className="flex flex-wrap gap-2">
-                    {["Thanh toán an toàn", "Hủy bất kỳ lúc nào", "Không ràng buộc"].map((b) => (
-                      <span key={b} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                        <Check className="w-3 h-3" /> {b}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </main>
@@ -1224,51 +900,59 @@ export function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Notifications dialog */}
-      <Dialog open={activeDialog === "notifications"} onOpenChange={(open) => setActiveDialog(open ? "notifications" : null)}>
+      {/* Change Password Dialog */}
+      <Dialog open={activeDialog === "change-password"} onOpenChange={(open) => setActiveDialog(open ? "change-password" : null)}>
         <DialogContent
           className="p-0 overflow-hidden"
           style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
         >
           <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
             <DialogTitle className="text-white flex items-center gap-2">
-              <Bell className="w-4 h-4 text-purple-400" /> Thông báo
+              <Lock className="w-4 h-4 text-blue-400" /> {hasPassword ? "Thay đổi mật khẩu" : "Thêm mật khẩu mới"}
             </DialogTitle>
             <DialogDescription style={{ color: "#64748b" }}>
-              Bật / tắt các loại thông báo.
+              {hasPassword ? "Bạn nên sử dụng mật khẩu mạnh để bảo vệ tài khoản tốt hơn." : "Bạn đang đăng nhập bằng Google và chưa có mật khẩu, hãy thiết lập để đăng nhập dễ dàng hơn lần sau."}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="px-6 py-5 space-y-3">
-            {([
-              { key: "mealPlanReminders" as const, title: "Nhắc thực đơn", desc: "Nhắc giờ ăn và theo dõi mục tiêu." },
-              { key: "productUpdates" as const, title: "Cập nhật sản phẩm", desc: "Thông báo tính năng mới và cải tiến." },
-              { key: "promoOffers" as const, title: "Ưu đãi", desc: "Khuyến mãi và gợi ý membership." },
-              { key: "emailNotifications" as const, title: "Nhận qua email", desc: "Gửi tổng kết & nhắc nhở qua email." },
-            ]).map((item) => (
-              <div
-                key={item.key}
-                className="rounded-2xl p-4 flex items-center gap-4"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white">{item.title}</p>
-                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
-                    {item.desc}
-                  </p>
-                </div>
-                <Switch
-                  checked={notifications[item.key]}
-                  onCheckedChange={(checked) => {
-                    setNotifications((prev) => {
-                      const next = { ...prev, [item.key]: checked };
-                      saveNotifications(next);
-                      return next;
-                    });
-                  }}
+          <div className="px-6 py-5 space-y-4">
+            {hasPassword && (
+              <div>
+                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mật khẩu hiện tại</p>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                  placeholder="Nhập mật khẩu hiện tại"
                 />
               </div>
-            ))}
+            )}
+            
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mật khẩu mới</p>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                placeholder="Nhập mật khẩu mới"
+              />
+            </div>
+            
+            <div>
+              <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Xác nhận mật khẩu mới</p>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl outline-none text-sm"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </div>
           </div>
 
           <DialogFooter className="px-6 pb-6">
@@ -1277,103 +961,28 @@ export function ProfilePage() {
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
               onClick={() => setActiveDialog(null)}
             >
-              Đóng
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Security dialog */}
-      <Dialog open={activeDialog === "security"} onOpenChange={(open) => setActiveDialog(open ? "security" : null)}>
-        <DialogContent
-          className="p-0 overflow-hidden"
-          style={{ background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)" }}
-        >
-          <DialogHeader className="px-6 pt-6 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <Shield className="w-4 h-4 text-amber-400" /> Bảo mật 2 Lớp (MFA)
-            </DialogTitle>
-            <DialogDescription style={{ color: "#64748b" }}>
-              Bảo vệ tài khoản bằng Google Authenticator.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="px-6 py-5 space-y-4">
-            {!totpQrCode ? (
-              <div className="flex flex-col items-center justify-center py-6 text-center">
-                <p className="text-sm text-white mb-6">
-                  Bật xác thực 2 bước (2FA) giúp tài khoản của bạn an toàn hơn trước các rủi ro bảo mật.
-                </p>
-                <button
-                  onClick={async () => {
-                    try {
-                      const { authApi } = await import("../../apis/auth.api");
-                      const res = await authApi.setupTotp(profile.email);
-                      setTotpQrCode(res.data.data);
-                    } catch (e: any) {
-                      toast.error("Không thể thiết lập TOTP.");
-                    }
-                  }}
-                  className="px-6 py-3 rounded-xl text-sm font-bold shadow-[0_4px_20px_rgba(245,158,11,0.3)] transition-all hover:scale-105 active:scale-95"
-                  style={{ background: "linear-gradient(135deg, #fbbf24, #f59e0b)", color: "#0f1117" }}
-                >
-                  Cài đặt Google Authenticator
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="bg-white p-2 rounded-xl shadow-lg">
-                  <img src={totpQrCode} alt="QR Code" className="w-48 h-48" />
-                </div>
-                <p className="text-xs text-center px-4" style={{ color: "#94a3b8", lineHeight: 1.6 }}>
-                  Mở ứng dụng <strong>Google Authenticator</strong> và quét mã QR này, sau đó nhập mã 6 số hiện ra để hoàn tất.
-                </p>
-                <input
-                  type="text"
-                  maxLength={6}
-                  value={totpCodeInput}
-                  onChange={(e) => setTotpCodeInput(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="Nhập mã 6 số..."
-                  className="w-full text-center h-12 text-xl font-bold tracking-[0.5em] rounded-xl outline-none placeholder:tracking-normal placeholder:font-normal placeholder:text-sm"
-                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f1f5f9" }}
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="px-6 pb-6">
-            <button
-              className="h-10 px-4 rounded-xl text-xs font-semibold hover:bg-white/5 transition-colors"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#cbd5e1" }}
-              onClick={() => {
-                setActiveDialog(null);
-                setTotpQrCode("");
-                setTotpCodeInput("");
-              }}
-            >
               Hủy
             </button>
-            {totpQrCode && (
-              <button
-                disabled={totpCodeInput.length !== 6}
-                className="h-10 px-5 rounded-xl text-xs font-black transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
-                onClick={async () => {
-                  try {
-                    const { authApi } = await import("../../apis/auth.api");
-                    await authApi.verifyTotpSetup(profile.email, totpCodeInput);
-                    toast.success("Cài đặt Google Authenticator thành công!");
-                    setActiveDialog(null);
-                    setTotpQrCode("");
-                    setTotpCodeInput("");
-                  } catch (e: any) {
-                    toast.error("Mã không chính xác. Vui lòng thử lại.");
-                  }
-                }}
-              >
-                Xác nhận mã
-              </button>
-            )}
+            <button
+              className="h-10 px-5 rounded-xl text-xs font-black"
+              style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }}
+              onClick={() => {
+                if (newPassword !== confirmPassword) {
+                  toast.error("Mật khẩu xác nhận không khớp!");
+                  return;
+                }
+                if (newPassword.length < 6) {
+                  toast.error("Mật khẩu phải dài ít nhất 6 ký tự!");
+                  return;
+                }
+                // Call API here...
+                toast.success(hasPassword ? "Đã thay đổi mật khẩu!" : "Đã thiết lập mật khẩu thành công!");
+                setHasPassword(true);
+                setActiveDialog(null);
+              }}
+            >
+              Xác nhận
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

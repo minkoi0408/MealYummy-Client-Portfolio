@@ -6,7 +6,8 @@ import {
 } from "lucide-react";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { AppHeader } from "../components/app-header";
-import { mockRecipes } from "../data/mock-recipes";
+import { useQuery } from "@tanstack/react-query";
+import { mealApi } from "../../apis/meal.api";
 
 interface Restaurant {
   id: string; name: string; address: string; distance: number;
@@ -25,8 +26,22 @@ type LocationState =
 
 export function NearbyRestaurantsPage() {
   const { id } = useParams();
-  const recipe = mockRecipes.find((r) => r.id === id);
   const isFromShopping = !id;
+
+  const { data: recipe } = useQuery({
+    queryKey: ['meal', id],
+    queryFn: async () => {
+      if (!id) return null;
+      try {
+        const res = await mealApi.getById(id);
+        return res.data.data;
+      } catch (err) {
+        return null;
+      }
+    },
+    enabled: !!id
+  });
+
   const recipeName = isFromShopping ? "Chợ & Siêu thị" : (recipe?.name ?? "Món ăn");
 
   const [locationState, setLocationState] = useState<LocationState>({ status: "idle" });
@@ -39,96 +54,7 @@ export function NearbyRestaurantsPage() {
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [activeAbortController, setActiveAbortController] = useState<AbortController | null>(null); // Spinner cho danh sách chợ/quán
 
-  useEffect(() => { 
-    requestLocation(); 
-  }, []);
-
-  // Pro Search Logic: Debounced effect with AbortController
-  useEffect(() => {
-    if (inputValue.length <= 2) {
-      setSuggestions([]);
-      return;
-    }
-
-    const abortController = new AbortController();
-    const timeoutId = setTimeout(() => {
-      setIsSuggesting(true); // Chỉ spinner gợi ý, KHÔNG ảnh hưởng spinner danh sách
-      fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(inputValue)}&limit=6&lat=10.7769&lon=106.7009`, {
-        signal: abortController.signal
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data && data.features) {
-            setSuggestions(data.features.map((f: any) => ({
-              display_name: [f.properties.name, f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
-              name: f.properties.name || f.properties.street || "Địa điểm chưa rõ",
-              lat: f.geometry.coordinates[1],
-              lon: f.geometry.coordinates[0]
-            })));
-          }
-          setIsSuggesting(false);
-        })
-        .catch(err => {
-          if (err.name !== 'AbortError') setIsSuggesting(false);
-        });
-    }, 400); // Giảm độ trễ xuống 400ms cho cảm giác nhanh hơn
-
-    return () => {
-      clearTimeout(timeoutId);
-      abortController.abort();
-    };
-  }, [inputValue]);
-
-  // Update input text ONLY when location is found via GPS (not manual input)
-  // We use a ref or a flag to prevent loops, but useEffect with specific dependency works.
-
-
-  function requestLocation() {
-    setLocationState({ status: "loading" });
-    
-    // Tọa độ mặc định (Quận 1, TP.HCM) để bản đồ luôn có cái để hiện
-    const defaultLat = 10.7769;
-    const defaultLng = 106.7009;
-
-    if (!navigator.geolocation) {
-      setLocationState({ 
-        status: "error", 
-        message: "Trình duyệt không hỗ trợ định vị. Đang hiện vị trí mặc định.",
-        lat: defaultLat,
-        lng: defaultLng
-      });
-      loadMockData(); 
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { 
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setLocationState({ 
-          status: "success", 
-          lat: lat, 
-          lng: lng, 
-          city: "Vị trí của bạn"
-        }); 
-        loadMockData(lat, lng); 
-      },
-      (error) => { 
-        console.error("Geolocation error:", error);
-        setLocationState({ 
-          status: "error", 
-          message: "Không thể lấy vị trí. Đang hiện bản đồ khu vực trung tâm.", 
-          lat: defaultLat, 
-          lng: defaultLng,
-          city: "Trung tâm TP.HCM"
-        }); 
-        loadMockData(defaultLat, defaultLng); 
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
-  }
-
-  function loadMockData(lat?: number, lng?: number) { 
+  async function loadMockData(lat?: number, lng?: number) { 
     if (activeAbortController) activeAbortController.abort();
     const abortController = new AbortController();
     setActiveAbortController(abortController);
@@ -139,10 +65,22 @@ export function NearbyRestaurantsPage() {
     setIsLoadingPlaces(true);
     setRestaurants([]); 
 
-    // CHIẾN THUẬT QUÉT SÂU: Ưu tiên "Chợ" và "Bà Chiểu" trước để không bị Siêu thị lấn lướt
-    const searchTerms = isFromShopping 
+    let searchTerms = isFromShopping 
       ? ["chợ", "bà chiểu", "market", "siêu thị"] 
-      : [recipeName];
+      : [`quán ${recipeName.toLowerCase()}`];
+
+    if (!isFromShopping) {
+      try {
+        const keywordRes = await mealApi.getRestaurantKeywords(recipeName);
+        if (keywordRes.data && keywordRes.data.data && keywordRes.data.data.length > 0) {
+          searchTerms = [...searchTerms, ...keywordRes.data.data];
+        } else {
+          searchTerms.push("quán ăn", "nhà hàng", "quán cơm");
+        }
+      } catch (err) {
+        searchTerms.push("quán ăn", "nhà hàng", "quán cơm");
+      }
+    }
     
     // Đẩy bias lên 5.0 để quét cực sát khu vực Phan Đăng Lưu
     const fetchPromises = searchTerms.map(term => 
@@ -189,6 +127,7 @@ export function NearbyRestaurantsPage() {
               ? "https://images.unsplash.com/photo-1763793244461-01fa59bbae5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400"
               : "https://images.unsplash.com/photo-1758458800136-e6337d2e5c10?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=400",
             tags: p.osm_value === 'marketplace' ? ["Chợ truyền thống", "Giá rẻ"] : ["Siêu thị", "Tiện lợi"],
+            isGenericFallback: !isFromShopping && !finalName.toLowerCase().includes(recipeName.toLowerCase().split(' ')[0]),
             deliveryTime: dist < 1 ? "10-15 phút" : "25-30 phút"
           });
         });
@@ -196,11 +135,17 @@ export function NearbyRestaurantsPage() {
         const finalResults = Array.from(uniquePlacesMap.values())
           .filter((p: any) => p.distance <= 5 && !p.name.toLowerCase().includes("điện máy"))
           .sort((a: any, b: any) => {
-            // Ưu tiên Tuyệt đối các địa điểm có chữ "Chợ" lên đầu
-            const aIsMarket = a.name.toLowerCase().includes('chợ');
-            const bIsMarket = b.name.toLowerCase().includes('chợ');
-            if (aIsMarket && !bIsMarket) return -1;
-            if (!aIsMarket && bIsMarket) return 1;
+            // Ưu tiên Tuyệt đối các địa điểm có chữ "Chợ" lên đầu (nếu là đi chợ)
+            // Hoặc ưu tiên các địa điểm có tên giống món ăn lên đầu
+            if (isFromShopping) {
+              const aIsMarket = a.name.toLowerCase().includes('chợ');
+              const bIsMarket = b.name.toLowerCase().includes('chợ');
+              if (aIsMarket && !bIsMarket) return -1;
+              if (!aIsMarket && bIsMarket) return 1;
+            } else {
+               if (!a.isGenericFallback && b.isGenericFallback) return -1;
+               if (a.isGenericFallback && !b.isGenericFallback) return 1;
+            }
             return a.distance - b.distance;
           });
 
@@ -213,6 +158,98 @@ export function NearbyRestaurantsPage() {
         }
       });
   }
+
+  function requestLocation() {
+    setLocationState({ status: "loading" });
+    
+    // Tọa độ mặc định (Khu vực TP. Thủ Đức/Quận 9 theo yêu cầu của user)
+    const defaultLat = 10.8382;
+    const defaultLng = 106.7799;
+
+    if (!navigator.geolocation) {
+      setLocationState({ 
+        status: "error", 
+        message: "Trình duyệt không hỗ trợ định vị. Đang hiện vị trí mặc định.",
+        lat: defaultLat,
+        lng: defaultLng
+      });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { 
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLocationState({ 
+          status: "success", 
+          lat: lat, 
+          lng: lng, 
+          city: "Vị trí của bạn"
+        }); 
+      },
+      (error) => { 
+        console.error("Geolocation error:", error);
+        setLocationState({ 
+          status: "error", 
+          message: "Không thể lấy vị trí. Đang hiện bản đồ khu vực trung tâm.", 
+          lat: defaultLat, 
+          lng: defaultLng,
+          city: "Trung tâm TP.HCM"
+        }); 
+      },
+      { timeout: 8000, enableHighAccuracy: true }
+    );
+  }
+
+  useEffect(() => { 
+    requestLocation(); 
+  }, []);
+
+  useEffect(() => {
+    if (locationState.status === "success" || locationState.status === "error") {
+      if (isFromShopping || recipe) {
+        loadMockData(locationState.lat, locationState.lng);
+      }
+    }
+  }, [locationState.status, locationState.lat, locationState.lng, recipeName, isFromShopping, recipe]);
+
+  // Pro Search Logic: Debounced effect with AbortController
+  useEffect(() => {
+    if (inputValue.length <= 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      setIsSuggesting(true); // Chỉ spinner gợi ý, KHÔNG ảnh hưởng spinner danh sách
+      fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(inputValue)}&limit=6&lat=10.8382&lon=106.7799`, {
+        signal: abortController.signal
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.features) {
+            setSuggestions(data.features.map((f: any) => ({
+              display_name: [f.properties.name, f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
+              name: f.properties.name || f.properties.street || "Địa điểm chưa rõ",
+              lat: f.geometry.coordinates[1],
+              lon: f.geometry.coordinates[0]
+            })));
+          }
+          setIsSuggesting(false);
+        })
+        .catch(err => {
+          if (err.name !== 'AbortError') setIsSuggesting(false);
+        });
+    }, 400); // Giảm độ trễ xuống 400ms cho cảm giác nhanh hơn
+
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [inputValue]);
+
+
 
   const sorted = [...restaurants].sort((a, b) => sortBy === "distance" ? a.distance - b.distance : b.rating - a.rating);
   const displayed = filterOpen ? sorted.filter((r) => r.openNow) : sorted;
@@ -405,8 +442,8 @@ export function NearbyRestaurantsPage() {
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"
               src={!import.meta.env.VITE_GOOGLE_MAPS_KEY 
-                ? `https://maps.google.com/maps?q=${encodeURIComponent(locationState.city && locationState.city !== 'Vị trí của bạn' ? locationState.city : `${locationState.lat},${locationState.lng}`)}&z=15&output=embed`
-                : `https://www.google.com/maps/embed/v1/search?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}&q=siêu+thị+chợ&center=${locationState.lat},${locationState.lng}&zoom=14`
+                ? `https://maps.google.com/maps?q=${encodeURIComponent(isFromShopping ? "siêu thị chợ" : `quán ${recipeName} gần đây`)}&ll=${locationState.lat},${locationState.lng}&z=15&output=embed`
+                : `https://www.google.com/maps/embed/v1/search?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}&q=${encodeURIComponent(isFromShopping ? "siêu thị chợ" : `quán ${recipeName}`)}&center=${locationState.lat},${locationState.lng}&zoom=14`
               }
             ></iframe>
           ) : (
@@ -505,6 +542,15 @@ export function NearbyRestaurantsPage() {
                         <MapPin className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
                         <span className="line-clamp-1">{restaurant.address}</span>
                       </div>
+
+                      {/* Smart Fallback Badge */}
+                      {!isFromShopping && (restaurant as any).isGenericFallback && (
+                         <div className="flex items-center gap-1.5 mb-3 px-2 py-1 rounded-md w-fit" style={{ background: "rgba(56,189,248,0.1)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.2)" }}>
+                            <Star className="w-3 h-3" />
+                            <span className="text-[10px] font-bold uppercase tracking-wide">Có thể phục vụ: {recipeName}</span>
+                         </div>
+                      )}
+
                       <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                         <button className="flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold transition-all"
                           style={{ background: "rgba(255,255,255,0.05)", color: "#cbd5e1", border: "1px solid rgba(255,255,255,0.1)" }}

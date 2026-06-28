@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { tagAPI } from '../apis/tag.api';
+import { tagApi } from '../apis/tag.api';
 import { type Tag } from '../types/meal.type';
 
 interface TagState {
@@ -24,10 +24,10 @@ const useTagStore = create<TagState>((set, get) => ({
 
         set({ isLoading: true, error: null });
         try {
-            const response = await tagAPI.getAll();
+            const response = await tagApi.getAll();
             // Nếu call API sử dụng Response<T>, kết quả sẽ nằm trong response.data.data
             set({
-                tags: response.data?.data || [],
+                tags: response.data?.data?.content || [],
                 isLoading: false,
                 isLoaded: true
             });

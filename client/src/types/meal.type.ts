@@ -1,8 +1,3 @@
-export interface Price {
-  minPrice: number;
-  maxPrice: number;
-}
-
 export interface Nutrition {
   calories: number;
   protein: number;
@@ -22,19 +17,19 @@ export interface Tag {
 }
 
 export interface MealIngredient {
-  id: string;
+  id?: string;
   name: string;
   value: number;
-  unitDesc: string;
+  unit: string;
+  unitDesc?: string;
 }
 
 export interface Meal {
   id: string;
   name: string;
-  price: Price;
   nutrition: Nutrition;
-  description: String;
-  categories: Category[];
-  tags: Tag[];
+  description: string;
+  categories: string[];
+  tags: string[];
   ingredients: MealIngredient[];
 }

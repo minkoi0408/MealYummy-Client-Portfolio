@@ -1,10 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 
 interface User {
   username: string;
   email: string;
   avatarUrl?: string;
+  role?: string;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -12,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   login: (accessToken: string, refreshToken?: string, userData?: User, rememberMe?: boolean) => void;
   logout: () => void;
+  role: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
   useEffect(() => {
@@ -30,7 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
       if (storedUser) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setRole(parsedUser.role || null);
         } catch (e) {
           console.error("Failed to parse stored user", e);
         }
@@ -47,9 +54,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (refreshToken) {
       storage.setItem("refreshToken", refreshToken);
     }
+    
+    // Decode JWT for role
+    let decodedRole = "";
+    try {
+      const decoded: any = jwtDecode(accessToken);
+      decodedRole = decoded.role || decoded.Role || "";
+    } catch (e) {
+      console.error("Failed to decode token", e);
+    }
+
     if (userData) {
-      storage.setItem("user", JSON.stringify(userData));
-      setUser(userData);
+      const extendedUserData = { ...userData, role: decodedRole };
+      storage.setItem("user", JSON.stringify(extendedUserData));
+      setUser(extendedUserData);
+      setRole(decodedRole);
+    } else {
+      setRole(decodedRole);
     }
     
     setIsAuthenticated(true);
@@ -66,6 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     setIsAuthenticated(false);
     setUser(null);
+    setRole(null);
     toast.success("Đã đăng xuất thành công");
   };
 
@@ -76,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, role }}>
       {children}
     </AuthContext.Provider>
   );

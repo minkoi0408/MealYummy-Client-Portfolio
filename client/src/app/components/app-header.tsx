@@ -2,36 +2,30 @@ import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import {
   Sparkles,
-  Trophy,
+  Map,
   Heart,
-  Calendar,
-  History,
-  Dumbbell,
-  ShoppingCart,
   User,
   Menu,
   X,
   Lightbulb,
-  LogOut
+  LogOut,
+  Lock,
+  Crown
 } from "lucide-react";
 import { useBrightness } from "../contexts/brightness-context";
 import { useAuth } from "../contexts/auth-context";
 
 const NAV_ITEMS = [
   { label: "Gợi ý", icon: Sparkles, link: "/app", activeColor: "text-lime-400", activeBg: "bg-lime-950/60", dot: "bg-lime-400", activeColorBright: "text-lime-700", activeBgBright: "bg-lime-100" },
-  { label: "Xếp hạng", icon: Trophy, link: "/results", activeColor: "text-amber-400", activeBg: "bg-amber-950/60", dot: "bg-amber-400", activeColorBright: "text-amber-700", activeBgBright: "bg-amber-100" },
-  { label: "Yêu thích", icon: Heart, link: "/dashboard", activeColor: "text-pink-400", activeBg: "bg-pink-950/60", dot: "bg-pink-400", activeColorBright: "text-pink-700", activeBgBright: "bg-pink-100" },
-  { label: "Gym", icon: Dumbbell, link: "/gym", activeColor: "text-lime-300", activeBg: "bg-lime-950/60", dot: "bg-lime-300", activeColorBright: "text-lime-700", activeBgBright: "bg-lime-100" },
-  { label: "Thực đơn", icon: Calendar, link: "/meal-plan", activeColor: "text-cyan-400", activeBg: "bg-cyan-950/60", dot: "bg-cyan-400", activeColorBright: "text-cyan-700", activeBgBright: "bg-cyan-100" },
-  { label: "Lịch sử", icon: History, link: "/history", activeColor: "text-slate-200", activeBg: "bg-slate-800/60", dot: "bg-slate-200", activeColorBright: "text-slate-700", activeBgBright: "bg-slate-200" },
-  { label: "Đi chợ", icon: ShoppingCart, link: "/shopping", activeColor: "text-violet-400", activeBg: "bg-violet-950/60", dot: "bg-violet-400", activeColorBright: "text-violet-700", activeBgBright: "bg-violet-100" },
+  { label: "Lộ trình", icon: Map, link: "/roadmap", activeColor: "text-cyan-400", activeBg: "bg-cyan-950/60", dot: "bg-cyan-400", activeColorBright: "text-cyan-700", activeBgBright: "bg-cyan-100" },
 ];
 
 export function AppHeader() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isBright, toggleBrightness } = useBrightness();
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, logout, role } = useAuth();
+  const isFree = role === "ROLE_FREE";
 
   return (
     <>
@@ -119,6 +113,8 @@ export function AppHeader() {
             <nav className="hidden lg:flex items-center gap-1 flex-1">
               {NAV_ITEMS.map(({ label, icon: Icon, link, activeColor, activeBg, dot, activeColorBright, activeBgBright }) => {
                 const isActive = location.pathname === link;
+                const isRoadmap = link === "/roadmap";
+                const isLocked = isRoadmap && isFree;
                 return (
                   <Link
                     key={link}
@@ -138,6 +134,14 @@ export function AppHeader() {
                   >
                     <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "scale-110" : ""} transition-transform`} />
                     <span>{label}</span>
+                    {isLocked && (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black leading-none ml-0.5"
+                        style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}
+                      >
+                        <Crown className="w-2.5 h-2.5" />
+                      </span>
+                    )}
                     {isActive && (
                       <span
                         className={`absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full ${dot}`}
@@ -196,6 +200,30 @@ export function AppHeader() {
 
             {isAuthenticated ? (
               <>
+                {/* Favorite */}
+                <Link to="/favorites" className="flex-shrink-0">
+                  <div
+                    className="w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center hover:scale-105 transition-all cursor-pointer"
+                    style={{
+                      background: isBright
+                        ? "linear-gradient(135deg, rgba(244,114,182,0.1), rgba(236,72,153,0.1))"
+                        : "linear-gradient(135deg, rgba(244,114,182,0.1), rgba(219,39,119,0.1))",
+                      border: isBright
+                        ? "1.5px solid rgba(244,114,182,0.3)"
+                        : "1px solid rgba(244,114,182,0.2)",
+                      transition: "all 0.8s ease",
+                    }}
+                  >
+                    <Heart
+                      className="w-4 h-4"
+                      style={{
+                        color: isBright ? "#db2777" : "#f472b6",
+                        transition: "color 0.8s ease",
+                      }}
+                    />
+                  </div>
+                </Link>
+
                 {/* Profile */}
                 <Link to="/profile" className="flex-shrink-0">
                   <div

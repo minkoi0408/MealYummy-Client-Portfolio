@@ -35,7 +35,7 @@ const ThreeFoodOrbit = lazy(() => import("../components/three-food-orbit").then(
 // ─── 3D tilt hook với tối ưu mobile ─────────────────────────────────────────────────────────────
 function useTilt3D(strength = 14) {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -45,12 +45,12 @@ function useTilt3D(strength = 14) {
 
   const x = useMotionValue(0);
   const y = useMotionValue(0);
-  
+
   // Giảm độ phức tạp animation trên mobile
-  const springConfig = isMobile 
-    ? { stiffness: 150, damping: 20 } 
+  const springConfig = isMobile
+    ? { stiffness: 150, damping: 20 }
     : { stiffness: 280, damping: 28 };
-    
+
   const rotateX = useSpring(useTransform(y, [-0.5, 0.5], [strength, -strength]), springConfig);
   const rotateY = useSpring(useTransform(x, [-0.5, 0.5], [-strength, strength]), springConfig);
   const scale = useSpring(1, { stiffness: 200, damping: 20 });
@@ -78,7 +78,7 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-60px" });
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -92,15 +92,15 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
 
     if (!isMobile) {
       // GSAP animation for desktop (smoother)
-      gsap.fromTo(ref.current, 
-        { 
-          opacity: 0, 
-          y: 40, 
+      gsap.fromTo(ref.current,
+        {
+          opacity: 0,
+          y: 40,
           filter: "blur(6px)",
         },
-        { 
-          opacity: 1, 
-          y: 0, 
+        {
+          opacity: 1,
+          y: 0,
           filter: "blur(0px)",
           duration: 0.7,
           delay: delay,
@@ -116,10 +116,10 @@ function FadeUp({ children, delay = 0, className = "" }: { children: React.React
       ref={ref}
       initial={{ opacity: 0, y: isMobile ? 20 : 40, filter: isMobile ? "blur(0px)" : "blur(6px)" }}
       animate={inView ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-      transition={{ 
-        duration: isMobile ? 0.4 : 0.7, 
-        delay: isMobile ? delay * 0.5 : delay, 
-        ease: [0.16, 1, 0.3, 1] 
+      transition={{
+        duration: isMobile ? 0.4 : 0.7,
+        delay: isMobile ? delay * 0.5 : delay,
+        ease: [0.16, 1, 0.3, 1]
       }}
       className={className}
       style={{ willChange: 'transform, opacity' }}
@@ -138,7 +138,7 @@ const features = [
     gradient: "linear-gradient(135deg, #a3e635, #4ade80)",
     glowColor: "rgba(163,230,53,0.25)",
     link: "/app",
-    badge: "Chính",
+    badge: "Free",
   },
   {
     id: 2,
@@ -214,7 +214,7 @@ const testimonials = [
 function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | "right"; speed?: number }) {
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -223,14 +223,14 @@ function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | 
   }, []);
 
   const stars = Array.from({ length: isMobile ? 12 : 20 }, (_, i) => i);
-  
+
   // Use GSAP for desktop smooth animation
   useEffect(() => {
     if (!containerRef.current || isMobile) return;
 
     const container = containerRef.current;
     const timeline = gsap.timeline({ repeat: -1, ease: "none" });
-    
+
     timeline.to(container, {
       x: direction === "left" ? "-50%" : "50%",
       duration: speed,
@@ -241,7 +241,7 @@ function StarMarquee({ direction = "left", speed = 30 }: { direction?: "left" | 
       timeline.kill();
     };
   }, [direction, speed, isMobile]);
-  
+
   return (
     <div className="relative w-full overflow-hidden py-3" style={{ maskImage: "linear-gradient(90deg, transparent, black 10%, black 90%, transparent)" }}>
       {!isMobile ? (
@@ -526,40 +526,6 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* ── STATS SECTION ──────────────────────────────────── */}
-      <section className="py-14 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div
-            className="grid grid-cols-2 md:grid-cols-4 gap-px rounded-2xl overflow-hidden"
-            style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.12)" }}
-          >
-            {stats.map((stat, i) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={i}
-                  className="flex flex-col items-center justify-center gap-2 py-8 px-4 text-center"
-                  style={{ background: "#0f1117" }}
-                >
-                  <Icon className="w-6 h-6 text-lime-400 mb-1" />
-                  <p
-                    className="text-3xl font-black"
-                    style={{
-                      background: "linear-gradient(90deg, #a3e635, #4ade80)",
-                      WebkitBackgroundClip: "text",
-                      WebkitTextFillColor: "transparent",
-                    }}
-                  >
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-slate-400 font-medium">{stat.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* ── FEATURES SECTION ──────────────────────────────────── */}
       <section className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
@@ -638,24 +604,24 @@ export function HomePage() {
           </div>
         </div>
 
-          {/* Three.js Food Orbit Scene */}
-          <div className="mt-16">
-            <div className="text-center mb-6">
-              <span
-                className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
-                style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.25)", color: "#fb923c" }}
-              >
-                🍲 3D Food Universe
-              </span>
-            </div>
-            <Suspense fallback={
-              <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
-                <div className="text-4xl animate-pulse">🍲</div>
-              </div>
-            }>
-              <ThreeFoodOrbit className="w-full" />
-            </Suspense>
+        {/* Three.js Food Orbit Scene */}
+        <div className="mt-16">
+          <div className="text-center mb-6">
+            <span
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest"
+              style={{ background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.25)", color: "#fb923c" }}
+            >
+              🍲 3D Food Universe
+            </span>
           </div>
+          <Suspense fallback={
+            <div className="w-full flex items-center justify-center" style={{ height: 460 }}>
+              <div className="text-4xl animate-pulse">🍲</div>
+            </div>
+          }>
+            <ThreeFoodOrbit className="w-full" />
+          </Suspense>
+        </div>
       </section>
 
       {/* ── MACRO TRACKER BANNER ──────────────────────────────────── */}

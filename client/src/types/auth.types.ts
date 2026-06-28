@@ -11,6 +11,7 @@ export interface AuthResponseDTO {
   avatarUrl: string;
   accessToken: string;
   refreshToken: string;
+  createdAt?: string;
 }
 
 export interface RegisterRequestDTO {
@@ -34,6 +35,7 @@ export interface ResetPasswordDTO {
 
 export interface RefreshTokenRequestDTO {
   refreshToken: string;
+  createdAt?: string;
 }
 
 export interface GoogleTokenRequestDTO {

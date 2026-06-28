@@ -1,0 +1,14 @@
+FROM nginx:alpine
+
+# Xoá trang mặc định của Nginx
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy folder build (dist) từ Local vào Nginx
+COPY dist /usr/share/nginx/html
+
+# Copy file cấu hình tuỳ chỉnh
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

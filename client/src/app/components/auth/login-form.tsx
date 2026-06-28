@@ -1,9 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { authApi } from "../../../apis/auth.api";
 import type { LoginRequestDTO, GoogleTokenRequestDTO } from "../../../types/auth.types";
 import { useAuth } from "../../contexts/auth-context";
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email: string, rememberMe: boolean, message?: string, hasTotp?: boolean) => void, onForgotPassword?: () => void }) {
   const navigate = useNavigate();
@@ -54,7 +61,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
 
         window.google.accounts.id.renderButton(
           btnElement,
-          { theme: "outline", size: "large", width: "100%", shape: "circle" }
+          { theme: "outline", size: "large", width: "280", shape: "circle" }
         );
         return true;
       }
@@ -89,13 +96,26 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
         {
           username: payload.username,
           email: payload.email,
-          avatarUrl: payload.avatarUrl
+          avatarUrl: payload.avatarUrl,
+          createdAt: payload.createdAt
         },
         true // Google login default to remember
       );
 
+      let role = "";
+      try {
+        const decoded: any = jwtDecode(payload.accessToken);
+        role = decoded.role || decoded.Role || "";
+      } catch (e) {
+        // Ignore decoding errors
+      }
+
       toast.success("Đăng nhập bằng Google thành công!");
-      navigate(location.state?.from?.pathname || "/home", { replace: true });
+      
+      const destination = (role === "ROLE_ADMIN" || role === "ROLE_MANAGER")
+        ? "/admin"
+        : (location.state?.from?.pathname || "/home");
+      navigate("/loading", { replace: true, state: { destination } });
     } catch (error: any) {
       toast.error("Đăng nhập bằng Google thất bại.");
     } finally {
@@ -131,7 +151,7 @@ export function LoginForm({ onSuccess, onForgotPassword }: { onSuccess?: (email:
       if (onSuccess) {
         onSuccess(formData.email, rememberMe, message, hasTotp);
       } else {
-        navigate("/home");
+        navigate("/loading", { replace: true, state: { destination: "/home" } });
       }
     } catch (error: any) {
       const message = error.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";

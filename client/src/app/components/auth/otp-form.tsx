@@ -90,7 +90,8 @@ export function OtpForm({ email, onSuccess, context = "register", rememberMe = f
           {
             username: payload.username,
             email: payload.email,
-            avatarUrl: payload.avatarUrl
+            avatarUrl: payload.avatarUrl,
+            createdAt: payload.createdAt
           },
           rememberMe
         );

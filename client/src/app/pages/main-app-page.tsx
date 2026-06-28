@@ -5,58 +5,15 @@ import {
   RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check, Bot
 } from "lucide-react";
 import { AppHeader } from "../components/app-header";
-import { mockRecipes } from "../data/mock-recipes";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
 import { toast } from "sonner";
 import { motion, useMotionValue, useSpring, useTransform, useInView } from "motion/react";
 
-interface ChatMessage {
-  role: "user" | "model";
-  content: string;
-}
-
-// ─── Tags ─────────────────────────────────────────────────────────────────────
-
-const CATEGORY_TAGS = [
-  {
-    category: "Mục tiêu & Chế độ",
-    tags: [
-      { id: "high-protein", label: "💪 Giàu Protein", match: (r: any) => parseInt(r.calories) > 0 && (r.description.includes("protein") || r.description.includes("cơ")) },
-      { id: "low-calo", label: "🥗 Ít Calo (<400)", match: (r: any) => parseInt(r.calories) < 400 },
-      { id: "eat-clean", label: "🌿 Eat Clean", match: (r: any) => r.description.includes("clean") || r.description.includes("sạch") },
-      { id: "chay", label: "🥬 Thuần Chay", match: (r: any) => !r.ingredients?.some((i: string) => /thịt|bò|gà|tôm|cá|mực|heo|trứng/i.test(i)) },
-    ]
-  },
-  {
-    category: "Thời gian nấu",
-    tags: [
-      { id: "fast", label: "⚡ Siêu tốc (<15p)", match: (r: any) => parseInt(r.cookTime) <= 15 },
-      { id: "mid", label: "⏱ Vừa phải (15-30p)", match: (r: any) => { const t = parseInt(r.cookTime); return t > 15 && t <= 30; } },
-      { id: "slow", label: "🍲 Nấu chậm (>30p)", match: (r: any) => parseInt(r.cookTime) > 30 },
-    ]
-  },
-  {
-    category: "Ẩm thực",
-    tags: [
-      { id: "viet", label: "🇻🇳 Việt Nam", match: (r: any) => r.cuisine === "Việt Nam" },
-      { id: "han", label: "🇰🇷 Hàn Quốc", match: (r: any) => r.cuisine === "Hàn Quốc" },
-      { id: "tay", label: "🥩 Phương Tây", match: (r: any) => r.cuisine === "Âu" || r.cuisine === "Ý" || r.cuisine === "Phương Tây" },
-      { id: "fusion", label: "✨ Fusion", match: (r: any) => r.cuisine === "Fusion" || r.cuisine === "Quốc tế" },
-    ]
-  }
-];
-
-const ALL_TAGS = CATEGORY_TAGS.flatMap(g => g.tags);
-
-const QUICK_PROMPTS = [
-  { label: "💪 High protein", q: "protein" },
-  { label: "⚡ Nấu nhanh", q: "Nấu nhanh < 20 phút" },
-  { label: "🥗 Ít calo", q: "Nhiều rau ít calo" },
-  { label: "🇻🇳 Việt Nam", q: "Món Việt" },
-  { label: "🌶 Món cay", q: "Món cay cuối tuần" },
-  { label: "🍳 Bữa sáng", q: "Bữa sáng" },
-];
+import { Select, ConfigProvider, theme } from "antd";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { mealApi } from "../../apis/meal.api";
+import ReactMarkdown from 'react-markdown';
 
 // ─── 3D card tilt hook ────────────────────────────────────────────────────────
 function useTiltCard(strength = 10) {
@@ -80,74 +37,65 @@ function useTiltCard(strength = 10) {
   return { rotateX, rotateY, scale, onMouseMove, onMouseLeave };
 }
 
-// ─── Chat Message Formatter ──────────────────────────────────────────────────
-function formatChatMessage(text: string) {
-  let html = text;
-  
-  // 1. Convert markdown images to tokens
-  html = html.replace(/!\[(.*?)\]\((https?:\/\/[^\s)]+)\)/g, '###IMG:$1|$2###');
-  
-  // 2. Convert markdown links that point to images (Cloudinary/Unsplash) to tokens
-  html = html.replace(/\[(.*?)\]\(((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s)]+)\)/g, '###IMG:$1|$2###');
-  
-  // 3. Convert plain Cloudinary or Unsplash URLs to tokens
-  html = html.replace(/((https:\/\/res\.cloudinary\.com|https:\/\/images\.unsplash\.com)[^\s<)]+)/g, '###IMG:Meal Image|$1###');
-  
-  // 4. Restore tokens to img HTML
-  html = html.replace(/###IMG:(.*?)\|(https?:\/\/[^\s]+)###/g, '<div class="mt-3 mb-4"><img src="$2" alt="$1" class="rounded-xl w-full max-w-[400px] h-48 object-cover border border-white/10 shadow-lg hover:scale-[1.02] transition-transform" /></div>');
-  
-  // 5. Bold text
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
-  
-  // 6. Line breaks
-  html = html.replace(/\n/g, '<br/>');
-  
-  return html;
+
+function mapMealResponseToRecipe(meal: any): any {
+  const calories = meal.nutrition?.calories ? Math.round(meal.nutrition.calories) + " kcal" : "N/A";
+  const protein = meal.nutrition?.protein ? Math.round(meal.nutrition.protein) + "g Prot" : "0g";
+  const carbs = meal.nutrition?.carbs ? Math.round(meal.nutrition.carbs) + "g Carb" : "0g";
+  const fat = meal.nutrition?.fat ? Math.round(meal.nutrition.fat) + "g Fat" : "0g";
+
+  return {
+    id: meal.id,
+    name: meal.name,
+    description: meal.description,
+    image: meal.images?.find((img: any) => img.isThumbnail)?.url || meal.images?.[0]?.url || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400",
+    cuisine: meal.categories?.[0]?.name || "Món ăn",
+    calories,
+    protein,
+    carbs,
+    fat,
+    ingredients: meal.ingredients?.map((i: any) => `${i.value} ${i.unitDesc || i.unit} ${i.name || 'Nguyên liệu'}`) || [],
+    instructions: ["Xem chi tiết để biết cách nấu"],
+    tips: "Chúc bạn ngon miệng!"
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function MainAppPage() {
   const [prompt, setPrompt] = useState("");
-  const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
+
+  const {
+    data: infiniteMealsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useInfiniteQuery({
+    queryKey: ['defaultMealsInfinite'],
+    queryFn: async ({ pageParam = 0 }) => {
+      const res = await mealApi.getAll(pageParam, 4);
+      return res.data.data;
+    },
+    getNextPageParam: (lastPage) => {
+      const number = lastPage.page !== undefined ? lastPage.page.number : lastPage.number;
+      const totalPages = lastPage.page !== undefined ? lastPage.page.totalPages : lastPage.totalPages;
+      if (number !== undefined && totalPages !== undefined && number < totalPages - 1) {
+        return number + 1;
+      }
+      return undefined;
+    },
+    initialPageParam: 0
+  });
+
+  const defaultMeals = infiniteMealsData ? infiniteMealsData.pages.flatMap(p => p.content.map(mapMealResponseToRecipe)) : [];
+
   const [submitted, setSubmitted] = useState(false);
-  const [results, setResults] = useState(mockRecipes);
+  const [results, setResults] = useState<any[]>([]);
+  const [aiMessage, setAiMessage] = useState<string>("");
   const [isTyping, setIsTyping] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(4);
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  
-  useEffect(() => {
-    // DB là nguồn sự thật duy nhất - load từ DB khi khởi động
-    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    if (token) {
-      fetch("http://localhost:8082/api/v1/ai/knowledge/chat/history", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.data && Array.isArray(data.data)) {
-          setChatHistory(data.data);
-        }
-      })
-      .catch(console.error);
-    } else {
-      // Guest: dùng localStorage
-      const saved = localStorage.getItem("ai_chat_history");
-      if (saved) setChatHistory(JSON.parse(saved));
-    }
-  }, []);
-
-  // Lưu vào localStorage chỉ khi là guest (không có token)
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    if (!token) {
-      localStorage.setItem("ai_chat_history", JSON.stringify(chatHistory));
-    }
-  }, [chatHistory]);
-
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const { addFavorite, removeFavorite, isFavorite } = useFavorites();
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
+  const { toggleFavorite, isFavorite } = useFavorites();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -158,75 +106,75 @@ export function MainAppPage() {
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
   }, [prompt]);
 
-  function toggleTag(id: string) {
-    setActiveTags((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  }
-
-  function getActiveTagObjects() {
-    return ALL_TAGS.filter((t) => activeTags.has(t.id));
-  }
-
-  function computeResults() {
-    let filtered = [...mockRecipes];
-    const q = prompt.trim().toLowerCase();
-    if (q) {
-      filtered = filtered.filter((r) =>
-        r.name.toLowerCase().includes(q) ||
-        r.description.toLowerCase().includes(q) ||
-        r.cuisine.toLowerCase().includes(q) ||
-        r.ingredients?.some((i: string) => i.toLowerCase().includes(q))
-      );
+  const fetchQuota = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      if (!token) return;
+      const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const res = await fetch(`${API_URL}/ai/knowledge/quota`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        if (d.data) setQuota(d.data);
+      }
+    } catch (e) {
+      console.error(e);
     }
-    const activeTagObjs = getActiveTagObjects();
-    if (activeTagObjs.length > 0) {
-      filtered = filtered.filter((r) => activeTagObjs.every((tag) => tag.match(r)));
-    }
-    if (q) filtered = filtered.sort(() => Math.random() - 0.5);
-    return filtered;
-  }
+  }, []);
+
+  useEffect(() => {
+    fetchQuota();
+  }, [fetchQuota]);
 
   async function handleSubmit() {
-    if (!prompt.trim() && activeTags.size === 0) return;
-    
-    // 1. Lọc món ăn từ dữ liệu local
-    setResults(computeResults());
+    const isFilterActive = prompt.trim() !== "";
+    if (!isFilterActive) return;
+
     setSubmitted(true);
+    setResults([]);
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
 
-    // 2. Gọi API Bác sĩ AI (RAG) nếu user có nhập text
-    if (prompt.trim()) {
-      const question = prompt.trim();
-      setPrompt("");
-      const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: question }];
-      setChatHistory(newHistory);
-      setIsAiLoading(true);
-      
-      try {
-        const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-        const headers: HeadersInit = { 'Content-Type': 'application/json' };
-        if (token) headers['Authorization'] = `Bearer ${token}`;
+    const question = prompt.trim() || "Gợi ý món ăn";
+    setPrompt("");
+    setIsAiLoading(true);
 
-        const response = await fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ question: question, history: chatHistory })
-        });
-        const data = await response.json();
-        if (data.data) {
-          setChatHistory([...newHistory, { role: "model", content: data.data }]);
+    try {
+      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
+      const headers: HeadersInit = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+      const response = await fetch(`${API_URL}/ai/knowledge/chat`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          question: question
+        })
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 429 || errorData.code === 429) {
+           toast.error("Bạn đã vượt quá số lần hỏi AI trong ngày. Vui lòng nâng cấp tài khoản để dùng tiếp.");
         } else {
-          setChatHistory([...newHistory, { role: "model", content: "Không nhận được phản hồi từ AI." }]);
+           toast.error(errorData.message || "Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
         }
-      } catch (error) {
-        console.error("Lỗi gọi AI:", error);
-        setChatHistory([...newHistory, { role: "model", content: "Xin lỗi, hệ thống AI đang gặp sự cố kết nối. Vui lòng thử lại sau." }]);
-      } finally {
-        setIsAiLoading(false);
+        return;
       }
+
+      const data = await response.json();
+      if (data.data && data.data.suggestedMeals) {
+        const mappedData = data.data.suggestedMeals.map(mapMealResponseToRecipe);
+        setResults(mappedData);
+        setAiMessage(data.data.aiMessage || "");
+        fetchQuota(); // Cập nhật lại số lần dùng sau khi gọi
+      } else {
+        toast.error("Không tìm thấy món ăn phù hợp.");
+      }
+    } catch (error: any) {
+      console.error("Lỗi gọi AI:", error);
+      toast.error("Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
+    } finally {
+      setIsAiLoading(false);
     }
   }
 
@@ -234,55 +182,12 @@ export function MainAppPage() {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   }
 
-  function handleQuickPrompt(q: string) {
-    setPrompt(q);
-    const query = q.toLowerCase();
-    const filtered = mockRecipes.filter((r) =>
-      r.name.toLowerCase().includes(query) ||
-      r.description.toLowerCase().includes(query) ||
-      r.cuisine.toLowerCase().includes(query)
-    );
-    setResults(filtered.length ? filtered : mockRecipes.sort(() => Math.random() - 0.5).slice(0, 8));
-    setSubmitted(true);
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-
-    // Gọi AI luôn cho Quick Prompt
-    const newHistory: ChatMessage[] = [...chatHistory, { role: "user", content: q }];
-    setChatHistory(newHistory);
-    setIsAiLoading(true);
-    
-    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    const headers: HeadersInit = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    fetch(`http://localhost:8082/api/v1/ai/knowledge/chat`, { 
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ question: q, history: chatHistory })
-    })
-      .then(res => res.json())
-      .then(data => setChatHistory([...newHistory, { role: "model", content: data.data || "Không có phản hồi" }]))
-      .catch(() => setChatHistory([...newHistory, { role: "model", content: "Lỗi kết nối AI" }]))
-      .finally(() => setIsAiLoading(false));
-  }
-
   const handleReset = () => {
     setPrompt("");
-    setActiveTags(new Set());
     setSubmitted(false);
-    setResults(mockRecipes);
-    setChatHistory([]);
-    localStorage.removeItem("ai_chat_history");
-    const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-    if (token) {
-      fetch(`http://localhost:8082/api/v1/ai/knowledge/chat/history`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      }).catch(console.error);
-    }
+    setResults([]);
   }
 
-  const activeCnt = activeTags.size + (prompt.trim() ? 1 : 0);
 
   return (
     <div className="min-h-screen">
@@ -307,8 +212,8 @@ export function MainAppPage() {
               AI Gợi Ý Món Ăn
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white mb-2 leading-tight">
-              Hôm nay ăn gì cho{" "}
-              <span className="text-lime-400">đúng mục tiêu?</span>
+              Không biết ăn gì ?{" "}
+              <span className="text-lime-400">tìm kiếm món ngay</span>
             </h1>
             <p className="text-slate-400 text-sm">
               Nhập mô tả hoặc chọn tag để AI gợi ý món phù hợp với thể trạng của bạn
@@ -318,7 +223,7 @@ export function MainAppPage() {
           {/* ── AI Search Input ────────────────────────────────────────────── */}
           <div className="mb-4">
             <div
-              className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all"
+              className="flex items-center gap-3 rounded-2xl px-4 py-2 transition-all"
               style={{
                 background: "rgba(26,31,46,0.9)",
                 border: isTyping
@@ -331,7 +236,7 @@ export function MainAppPage() {
             >
               {/* Icon */}
               <div
-                className="flex-shrink-0 mb-0.5 w-8 h-8 rounded-xl flex items-center justify-center"
+                className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center"
                 style={{ background: "rgba(163,230,53,0.15)" }}
               >
                 <img src="/logo.svg" alt="AI" className="w-5 h-5 object-contain" />
@@ -346,14 +251,14 @@ export function MainAppPage() {
                 onBlur={() => setIsTyping(false)}
                 placeholder="Ví dụ: Món giàu protein ít béo, dưới 30 phút..."
                 rows={1}
-                className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed min-h-[28px] max-h-[120px] py-0.5"
+                className="flex-1 bg-transparent resize-none outline-none text-sm leading-normal py-2 max-h-[120px]"
                 style={{ color: "#f1f5f9" }}
               />
 
               {prompt && (
                 <button
                   onClick={() => setPrompt("")}
-                  className="flex-shrink-0 mb-0.5 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                  className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
                   style={{ background: "rgba(255,255,255,0.08)" }}
                 >
                   <X className="w-3.5 h-3.5 text-slate-400" />
@@ -362,8 +267,8 @@ export function MainAppPage() {
 
               <button
                 onClick={handleSubmit}
-                disabled={!prompt.trim() && activeTags.size === 0}
-                className="flex-shrink-0 mb-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={!prompt.trim()}
+                className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "linear-gradient(135deg, #a3e635, #4ade80)" }}
               >
                 <ArrowUp className="w-4 h-4 text-gray-900" />
@@ -382,142 +287,22 @@ export function MainAppPage() {
             </p>
           </div>
 
-          {/* ── Quick Prompts ──────────────────────────────────────────────── */}
-          <div className="flex flex-wrap gap-2 mb-5">
-            {QUICK_PROMPTS.map((p) => (
-              <button
-                key={p.q}
-                onClick={() => handleQuickPrompt(p.q)}
-                className="text-xs px-3 py-1.5 rounded-full font-medium transition-all hover:-translate-y-0.5"
-                style={{
-                  background: "rgba(26,31,46,0.9)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  color: "#94a3b8",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(163,230,53,0.4)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#a3e635";
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.06)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.border = "1px solid rgba(255,255,255,0.08)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "#94a3b8";
-                  (e.currentTarget as HTMLButtonElement).style.background = "rgba(26,31,46,0.9)";
-                }}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── Advanced Filter Toggle ─────────────────────────────────────── */}
-          <div className="mb-4">
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all"
-              style={{
-                background: filterOpen ? "rgba(163,230,53,0.08)" : "rgba(26,31,46,0.6)",
-                border: filterOpen ? "1px solid rgba(163,230,53,0.3)" : "1px solid rgba(255,255,255,0.08)",
-              }}
-            >
-              <div className="flex items-center gap-2" style={{ color: filterOpen ? "#a3e635" : "#94a3b8" }}>
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="text-sm font-semibold">{filterOpen ? "Đóng bộ lọc" : "Lọc theo nhu cầu"}</span>
-                {activeTags.size > 0 && !filterOpen && (
-                  <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: "#a3e635", color: "#0f1117" }}>
-                    {activeTags.size}
-                  </span>
-                )}
+          {quota && quota.limit < 9999 && (
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="text-xs font-medium px-3 py-1 rounded-full flex items-center gap-1.5"
+                   style={{ background: quota.remaining > 0 ? "rgba(163,230,53,0.1)" : "rgba(239,68,68,0.1)",
+                            color: quota.remaining > 0 ? "#a3e635" : "#ef4444",
+                            border: `1px solid ${quota.remaining > 0 ? "rgba(163,230,53,0.2)" : "rgba(239,68,68,0.2)"}` }}>
+                <Zap className="w-3 h-3" />
+                Số lần AI còn lại trong ngày: {quota.remaining} / {quota.limit}
               </div>
-              <ChevronDown className="w-4 h-4 transition-transform" style={{ color: filterOpen ? "#a3e635" : "#475569", transform: filterOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-            </button>
-
-            {/* Filter Panel Dropdown */}
-            {filterOpen && (
-              <div className="mt-2 p-4 sm:p-5 rounded-xl animate-in fade-in" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                <div className="grid gap-5">
-                  {CATEGORY_TAGS.map((group, idx) => (
-                    <div key={idx}>
-                      <h3 className="text-[11px] font-bold uppercase tracking-wider mb-2.5" style={{ color: "#64748b" }}>{group.category}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {group.tags.map(tag => {
-                          const active = activeTags.has(tag.id);
-                          return (
-                            <button
-                              key={tag.id}
-                              onClick={() => toggleTag(tag.id)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                              style={active
-                                ? { background: "rgba(163,230,53,0.15)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.3)" }
-                                : { background: "rgba(255,255,255,0.03)", color: "#cbd5e1", border: "1px solid rgba(255,255,255,0.08)" }
-                              }
-                            >
-                              {active && <Check className="w-3 h-3" />}
-                              {tag.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Panel Footer */}
-                {activeTags.size > 0 && (
-                  <div className="mt-5 pt-3 flex justify-end" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
-                    <button onClick={() => { setActiveTags(new Set()); setFilterOpen(false); }} className="text-xs font-semibold px-4 py-2 rounded-lg transition-colors hover:bg-white/5" style={{ color: "#f87171" }}>
-                      Xóa tất cả bộ lọc
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          {activeCnt > 0 && (
-            <div className="flex items-center gap-2 flex-wrap -mt-2 mb-5">
-              <span className="text-xs" style={{ color: "rgba(148,163,184,0.6)" }}>Đang lọc:</span>
-              {prompt.trim() && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
-                  style={{
-                    background: "rgba(163,230,53,0.1)",
-                    border: "1px solid rgba(163,230,53,0.25)",
-                    color: "#a3e635",
-                  }}
-                >
-                  <Search className="w-3 h-3" />
-                  "{prompt.trim().slice(0, 24)}{prompt.trim().length > 24 ? "…" : ""}"
-                </span>
-              )}
-              {getActiveTagObjects().map((tag) => (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium transition-colors"
-                  style={{
-                    background: "rgba(163,230,53,0.08)",
-                    border: "1px solid rgba(163,230,53,0.2)",
-                    color: "#a3e635",
-                  }}
-                >
-                  {tag.label} <X className="w-2.5 h-2.5" />
-                </button>
-              ))}
-              <button
-                onClick={handleReset}
-                className="text-xs transition-colors"
-                style={{ color: "rgba(148,163,184,0.6)" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(148,163,184,0.6)"; }}
-              >
-                Đặt lại
-              </button>
             </div>
           )}
 
           {/* ── CTA Button ────────────────────────────────────────────────── */}
           <button
             onClick={handleSubmit}
-            disabled={!prompt.trim() && activeTags.size === 0}
+            disabled={!prompt.trim()}
             className="w-full h-12 mb-10 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{
               background: "linear-gradient(135deg, #a3e635, #4ade80)",
@@ -538,26 +323,13 @@ export function MainAppPage() {
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h2 className="font-bold text-base text-white">
-                    {results.length > 0
-                      ? `${results.length} món gợi ý từ menu`
-                      : (isAiLoading || chatHistory.length > 0) ? "" : "Không tìm thấy kết quả"}
+                    {isAiLoading ? "Đang tìm kiếm..." : (results.length > 0 ? `${results.length} món gợi ý từ menu` : "Không tìm thấy kết quả")}
                   </h2>
-                  {results.length === 0 && !isAiLoading && chatHistory.length === 0 && (
+                  {results.length === 0 && !isAiLoading && (
                     <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Thử điều chỉnh tag hoặc từ khoá nhé!</p>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  {chatHistory.length > 0 && (
-                    <button
-                      onClick={handleReset}
-                      className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all"
-                      style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
-                      onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.2)"; }}
-                      onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(239,68,68,0.1)"; }}
-                    >
-                      🗑️ Xóa lịch sử chat
-                    </button>
-                  )}
                   <button
                     onClick={handleReset}
                     className="text-xs flex items-center gap-1 transition-colors"
@@ -570,79 +342,30 @@ export function MainAppPage() {
                 </div>
               </div>
 
-              {/* ── AI Chat History Box ────────────────────────────────────────── */}
-              {chatHistory.length > 0 && (
-                <div className="mb-8 flex flex-col gap-4">
-                  {chatHistory.map((msg, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`p-4 sm:p-5 rounded-2xl relative overflow-hidden ${msg.role === 'user' ? 'ml-8 sm:ml-12' : 'mr-8 sm:mr-12'}`}
-                      style={msg.role === 'user' ? {
-                        background: "rgba(30,41,59,0.7)",
-                        border: "1px solid rgba(255,255,255,0.05)"
-                      } : {
-                        background: "rgba(163,230,53,0.05)",
-                        border: "1px solid rgba(163,230,53,0.2)",
-                        boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-                      }}
-                    >
-                      {msg.role === 'model' && <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />}
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        {msg.role === 'model' ? (
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635" }}>
-                            <img src="/logo.svg" alt="MealYummy AI" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
-                          </div>
+              {isAiLoading && (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <div className="flex gap-2 mb-3">
+                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: 0 }} className="w-3 h-3 rounded-full bg-lime-400" />
+                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: 0.2 }} className="w-3 h-3 rounded-full bg-lime-400" />
+                    <motion.div animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }} transition={{ duration: 1, repeat: Infinity, delay: 0.4 }} className="w-3 h-3 rounded-full bg-lime-400" />
+                  </div>
+                  <p className="text-slate-400 text-sm font-medium">Đang tìm kiếm món ăn phù hợp...</p>
+                </div>
+              )}
+
+              {aiMessage && (
+                <div className="mb-6 p-4 rounded-xl" style={{ background: "rgba(163,230,53,0.05)", border: "1px solid rgba(163,230,53,0.15)" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                        <Bot className="w-5 h-5 text-lime-400" />
+                        <h3 className="font-bold text-lime-400 text-sm">Chuyên gia Dinh dưỡng AI</h3>
+                    </div>
+                    <div className="text-sm text-slate-300 leading-relaxed space-y-2 ai-markdown-content">
+                        {aiMessage.includes("Gemini AI hiện đang quá tải") ? (
+                            <p>Đây là danh sách các món ăn phù hợp nhất với yêu cầu của bạn đã được hệ thống phân tích và chọn lọc:</p>
                         ) : (
-                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 bg-slate-700 text-white font-bold text-xs sm:text-sm shadow-inner">
-                            Bạn
-                          </div>
+                            <ReactMarkdown>{aiMessage}</ReactMarkdown>
                         )}
-                        <div className="flex-1 min-w-0">
-                          <h3 className={`text-xs sm:text-sm font-bold mb-1.5 flex items-center gap-2 ${msg.role === 'model' ? 'text-lime-400' : 'text-slate-300'}`}>
-                            {msg.role === 'model' ? 'Bác Sĩ MealYummy' : 'Bạn đã hỏi:'}
-                          </h3>
-                          <div 
-                            className="text-sm leading-relaxed text-slate-200"
-                            dangerouslySetInnerHTML={{ 
-                              __html: formatChatMessage(msg.content)
-                            }}
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                  
-                  {isAiLoading && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-4 sm:p-5 rounded-2xl relative overflow-hidden mr-8 sm:mr-12"
-                      style={{
-                        background: "rgba(163,230,53,0.05)",
-                        border: "1px solid rgba(163,230,53,0.2)"
-                      }}
-                    >
-                      <div className="absolute top-0 left-0 w-1 h-full" style={{ background: "linear-gradient(to bottom, #a3e635, #4ade80)" }} />
-                      <div className="flex items-start gap-3 sm:gap-4">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(163,230,53,0.15)" }}>
-                          <img src="/logo.svg" className="w-5 h-5 sm:w-6 sm:h-6 object-contain" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="text-xs sm:text-sm font-bold text-lime-400 mb-1 flex items-center gap-2">
-                            Bác Sĩ MealYummy
-                            <span className="flex gap-1 ml-1">
-                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                              <motion.span animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-lime-400" />
-                            </span>
-                          </h3>
-                          <div className="text-sm text-slate-400">Đang phân tích dữ liệu y khoa...</div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
+                    </div>
                 </div>
               )}
 
@@ -653,10 +376,7 @@ export function MainAppPage() {
                       key={r.id}
                       recipe={r}
                       isFav={isFavorite(r.id)}
-                      onToggleFav={() => {
-                        if (isFavorite(r.id)) { removeFavorite(r.id); toast.success("Đã bỏ khỏi yêu thích"); }
-                        else { addFavorite(r); toast.success("Đã thêm vào yêu thích!"); }
-                      }}
+                      onToggleFav={() => toggleFavorite(r.id)}
                     />
                   ))}
                 </div>
@@ -670,37 +390,35 @@ export function MainAppPage() {
                 </div>
                 <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
                   style={{ background: "rgba(163,230,53,0.1)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.2)" }}>
-                  {Math.min(visibleCount, mockRecipes.length)} món
+                  {defaultMeals.length} món
                 </span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {mockRecipes.slice(0, visibleCount).map((r) => (
+                {defaultMeals.map((r: any) => (
                   <RecipeCard
                     key={r.id}
                     recipe={r}
                     isFav={isFavorite(r.id)}
-                    onToggleFav={() => {
-                      if (isFavorite(r.id)) { removeFavorite(r.id); toast.success("Đã bỏ khỏi yêu thích"); }
-                      else { addFavorite(r); toast.success("Đã thêm vào yêu thích!"); }
-                    }}
+                    onToggleFav={() => toggleFavorite(r.id)}
                   />
                 ))}
               </div>
-              {visibleCount < mockRecipes.length && (
+              {hasNextPage && (
                 <div className="flex justify-center mt-6">
                   <button
-                    onClick={() => setVisibleCount((c) => c + 4)}
-                    className="h-11 px-8 rounded-2xl text-sm font-semibold flex items-center gap-2 transition-all hover:scale-[1.02]"
+                    onClick={() => fetchNextPage()}
+                    disabled={isFetchingNextPage}
+                    className="h-11 px-8 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
                     style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
+                    onMouseEnter={(e) => { if (!isFetchingNextPage) (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.15)"; }}
+                    onMouseLeave={(e) => { if (!isFetchingNextPage) (e.currentTarget as HTMLButtonElement).style.background = "rgba(163,230,53,0.08)"; }}
                   >
-                    Xem thêm {Math.min(4, mockRecipes.length - visibleCount)} món ↓
+                    {isFetchingNextPage ? 'Đang tải...' : 'Xem thêm 4 món ↓'}
                   </button>
                 </div>
               )}
-              {visibleCount >= mockRecipes.length && mockRecipes.length > 16 && (
-                <p className="text-center text-xs mt-4" style={{ color: "#475569" }}>— Đã hiển thị tất cả {mockRecipes.length} món —</p>
+              {!hasNextPage && defaultMeals.length > 0 && (
+                <p className="text-center text-xs mt-4" style={{ color: "#475569" }}>— Đã hiển thị tất cả {defaultMeals.length} món —</p>
               )}
             </>
           )}
@@ -807,23 +525,27 @@ function RecipeCard({ recipe, isFav, onToggleFav }: { recipe: any; isFav: boolea
           </p>
 
           {/* Meta */}
-          <div className="flex items-center gap-3 text-xs mb-3" style={{ color: "#64748b" }}>
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 text-lime-400" />
-              {recipe.cookTime}
-            </span>
-            <span className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-3 text-[11px] mb-3 font-medium" style={{ color: "#94a3b8" }}>
+            <span className="flex items-center gap-1 text-slate-300">
               <Flame className="w-3.5 h-3.5 text-orange-400" />
               {recipe.calories}
             </span>
             <span className="flex items-center gap-1">
-              <ChefHat className="w-3.5 h-3.5" style={{ color: "#475569" }} />
-              {recipe.difficulty}
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+              {recipe.protein}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+              {recipe.carbs}
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block"></span>
+              {recipe.fat}
             </span>
           </div>
 
           {/* CTA */}
-          <Link to={`/meal/${recipe.id}`}>
+          <Link to={`/recipe/${recipe.id}`}>
             <motion.button
               whileHover={{
                 background: "rgba(163,230,53,0.18)",
