@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '20'
 
@@ -23,26 +23,27 @@ jobs:
           cat << EOF > .env.production
           ${{ secrets.PROD_ENV_FILE }}
           EOF
-          npm install
+          npm install --legacy-peer-deps
           npm run build
 
       - name: Copy Files to VPS
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           source: "client/dist/*,client/Dockerfile.frontend,client/nginx.conf"
           target: "/root/meal-yummi"
-          strip_components: 1
 
       - name: Restart Frontend Docker
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd /root/meal-yummi
-            # Chạy lại bộ phận frontend
+            # Force remove old container if it exists from another folder
+            docker rm -f mealyummy_frontend || true
+            # Restart frontend container
             docker compose up -d --build frontend

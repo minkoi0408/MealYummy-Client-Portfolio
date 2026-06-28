@@ -4,6 +4,8 @@
 
 
 # Local Netlify folder
+.idea
+.vscode
 .netlify
 .vercel
 .env*
