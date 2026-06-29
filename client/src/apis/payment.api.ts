@@ -8,6 +8,8 @@ export interface PaymentHistory {
   txId: string;
   userId: string;
   bundleId: string;
+  username?: string;
+  bundleName?: string;
   amount: number;
   status: string;
   createdAt: string;

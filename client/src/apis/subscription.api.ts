@@ -7,6 +7,8 @@ export interface UserSubscription {
   id: string;
   userId: string;
   bundleId: string;
+  username?: string;
+  bundleName?: string;
   startDate: string;
   endDate: string;
   status: string;

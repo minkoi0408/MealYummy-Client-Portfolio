@@ -40,8 +40,18 @@ export function PaymentHistoryPage() {
       key: 'txId',
       render: (id: string) => <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">{id}</span>
     },
-    { title: 'Tài khoản (ID)', dataIndex: 'userId', key: 'userId', render: (text: string) => <span className="font-medium text-gray-700">{text}</span> },
-    { title: 'Gói (ID)', dataIndex: 'bundleId', key: 'bundleId' },
+    { 
+      title: 'Tài khoản', 
+      dataIndex: 'username', 
+      key: 'userId', 
+      render: (text: string, record: PaymentHistory) => <span className="font-medium text-gray-700">{text || record.userId}</span> 
+    },
+    { 
+      title: 'Gói dịch vụ', 
+      dataIndex: 'bundleName', 
+      key: 'bundleId',
+      render: (text: string, record: PaymentHistory) => <span className="font-medium text-[#10B981]">{text || record.bundleId}</span>
+    },
     {
       title: 'Số tiền',
       dataIndex: 'amount',
@@ -62,7 +72,17 @@ export function PaymentHistoryPage() {
         return <Tag color={color} className="font-medium">{text}</Tag>
       }
     },
-    { title: 'Thời gian', dataIndex: 'createdAt', key: 'createdAt', className: "text-gray-500" },
+    { 
+      title: 'Thời gian', 
+      dataIndex: 'createdAt', 
+      key: 'createdAt', 
+      className: "text-gray-500",
+      render: (createdAt: string) => {
+        if (!createdAt) return "";
+        const date = new Date(createdAt);
+        return `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    },
     {
       title: 'Chi tiết',
       key: 'action',

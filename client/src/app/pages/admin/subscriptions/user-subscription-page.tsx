@@ -34,10 +34,39 @@ export function UserSubscriptionPage() {
   }, [currentPage, pageSize]);
 
   const columns = [
-    { title: 'Tài khoản (ID)', dataIndex: 'userId', key: 'userId', render: (text: string) => <span className="font-medium text-gray-800">{text}</span> },
-    { title: 'Gói đã đăng ký (ID)', dataIndex: 'bundleId', key: 'bundleId', render: (text: string) => <Tag color="blue" className="font-medium">{text}</Tag> },
-    { title: 'Ngày bắt đầu', dataIndex: 'startDate', key: 'startDate', className: "text-gray-500" },
-    { title: 'Ngày kết thúc', dataIndex: 'endDate', key: 'endDate', render: (text: string) => <span className="font-medium">{text}</span> },
+    { 
+      title: 'Tài khoản', 
+      dataIndex: 'username', 
+      key: 'userId', 
+      render: (text: string, record: UserSubscription) => <span className="font-medium text-gray-800">{text || record.userId}</span> 
+    },
+    { 
+      title: 'Gói đã đăng ký', 
+      dataIndex: 'bundleName', 
+      key: 'bundleId', 
+      render: (text: string, record: UserSubscription) => <Tag color="blue" className="font-medium">{text || record.bundleId}</Tag> 
+    },
+    { 
+      title: 'Ngày bắt đầu', 
+      dataIndex: 'startDate', 
+      key: 'startDate', 
+      className: "text-gray-500",
+      render: (dateStr: string) => {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        return `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+      }
+    },
+    { 
+      title: 'Ngày kết thúc', 
+      dataIndex: 'endDate', 
+      key: 'endDate', 
+      render: (dateStr: string) => {
+        if (!dateStr) return "";
+        const date = new Date(dateStr);
+        return <span className="font-medium">{`${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}</span>;
+      }
+    },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
