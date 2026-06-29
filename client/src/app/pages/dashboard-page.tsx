@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Settings, LogOut, Shield } from "lucide-react";
 import { useAuth } from "../contexts/auth-context";
 import { RoleManagement } from "../components/admin/role-management";
+import { UserManagement } from "../components/admin/user-management";
+import { DashboardHomePage } from "./admin/dashboard-home";
 
 export function DashboardPage() {
   const { logout, role, user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("roles");
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Only allow Admin/Manager
   useEffect(() => {
@@ -102,9 +104,10 @@ export function DashboardPage() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-8">
-          {activeTab === "roles" ? (
-            <RoleManagement />
-          ) : (
+          {activeTab === "overview" && <DashboardHomePage />}
+          {activeTab === "users" && <UserManagement />}
+          {activeTab === "roles" && <RoleManagement />}
+          {activeTab !== "overview" && activeTab !== "users" && activeTab !== "roles" && (
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex items-center justify-center h-64">
               <p className="text-gray-500">Tính năng đang được phát triển...</p>
             </div>
