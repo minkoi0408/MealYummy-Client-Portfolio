@@ -10,7 +10,7 @@ import { useBrightness } from "../contexts/brightness-context";
 // For now, let's create a placeholder NutritionTab if needed, or use the tabs to switch.
 
 export function RoadmapPage() {
-  const [activeTab, setActiveTab] = useState<"meal" | "nutrition" | "journey">("meal");
+  const [activeTab, setActiveTab] = useState<"meal" | "nutrition" | "journey">("nutrition");
   const { isBright } = useBrightness();
 
   const TABS = [
