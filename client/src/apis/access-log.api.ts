@@ -1,7 +1,14 @@
 import { callAPI } from "./axios.client";
 import { type AxiosResponse } from "axios";
 import { type BaseApiResponse } from "../types/response.api";
-import { type Page } from "../types/page.api";
+
+export interface Page<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
 
 export interface AccessLog {
   id: string;
