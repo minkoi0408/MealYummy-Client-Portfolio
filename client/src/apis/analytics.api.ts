@@ -20,6 +20,7 @@ export interface RecentTransactionDTO {
 export interface DashboardOverviewDTO {
   totalUsers: number;
   totalRevenue: number;
+  thisMonthRevenue: number;
   activeSubscriptions: number;
   totalMeals: number;
   

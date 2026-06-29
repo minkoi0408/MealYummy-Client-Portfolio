@@ -38,10 +38,10 @@ export function DashboardHomePage() {
       bg: "bg-blue-100",
     },
     {
-      title: "Tổng Doanh Thu",
-      value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.totalRevenue),
-      change: data.revenueChangeStr,
-      trend: data.revenueChangeStr.startsWith("-") ? "down" : "up",
+      title: "Doanh Thu Tháng Này",
+      value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.thisMonthRevenue),
+      change: `Tổng: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.totalRevenue)}`,
+      trend: "up",
       icon: CreditCard,
       color: "text-green-600",
       bg: "bg-green-100",
@@ -93,10 +93,16 @@ export function DashboardHomePage() {
               </div>
               <div className="flex flex-col gap-1 mt-2">
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                  <TrendIcon className={`w-3 h-3 mr-1 ${trendColor}`} />
-                  <span className={`${trendColor} font-medium`}>{stat.change}</span>
-                  <span className="text-gray-400 ml-1">so với tháng trước</span>
+                <div className="flex flex-col text-xs text-muted-foreground mt-1">
+                  {stat.title === "Doanh Thu Tháng Này" ? (
+                    <span className="font-medium text-gray-500">{stat.change}</span>
+                  ) : (
+                    <div className="flex items-center">
+                      <TrendIcon className={`w-3 h-3 mr-1 ${trendColor}`} />
+                      <span className={`${trendColor} font-medium`}>{stat.change}</span>
+                      <span className="text-gray-400 ml-1">so với tháng trước</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -154,7 +160,7 @@ export function DashboardHomePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 truncate">{tx.username}</p>
-                  <p className="text-xs text-gray-500 truncate">{tx.email}</p>
+                  <p className="text-xs text-[#10B981] font-medium truncate">{tx.bundleName}</p>
                   <p className="text-[10px] text-gray-400 mt-0.5">{tx.date}</p>
                 </div>
                 <div className="text-sm font-bold text-[#10B981] whitespace-nowrap">
