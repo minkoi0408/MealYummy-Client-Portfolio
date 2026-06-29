@@ -249,7 +249,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
             {/* Progress line background */}
             <div className="absolute top-4 sm:top-5 left-[12.5%] right-[12.5%] h-1 bg-slate-800 -z-0 rounded-full" />
             {/* Progress line foreground */}
-            <div className="absolute top-4 sm:top-5 left-[12.5%] h-1 bg-lime-400 -z-0 rounded-full transition-all duration-500 ease-out" style={{ width: \`\${((step - 1) / (TOTAL_STEPS - 1)) * 75}%\` }} />
+            <div className="absolute top-4 sm:top-5 left-[12.5%] h-1 bg-lime-400 -z-0 rounded-full transition-all duration-500 ease-out" style={{ width: `${((step - 1) / (TOTAL_STEPS - 1)) * 75}%` }} />
           </div>
         </div>
 
@@ -301,9 +301,9 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
                     { value: "bulk", label: "Tăng cơ", icon: "💪", color: "#fb923c" },
                   ] as const).map((opt) => (
                     <button key={opt.value} onClick={() => updateMetrics({ goal: opt.value })}
-                      className="py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-bold flex flex-col items-center gap-2 transition-all hover:-translate-y-1"
+                      className={`py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-bold flex flex-col items-center gap-2 transition-all hover:-translate-y-1`}
                       style={metrics.goal === opt.value
-                        ? { background: \`\${opt.color}20\`, color: opt.color, border: \`2px solid \${opt.color}80\`, boxShadow: \`0 4px 15px \${opt.color}40\` }
+                        ? { background: `${opt.color}20`, color: opt.color, border: `2px solid ${opt.color}80`, boxShadow: `0 4px 15px ${opt.color}40` }
                         : { background: "rgba(255,255,255,0.04)", color: "#64748b", border: "2px solid rgba(255,255,255,0.08)" }}>
                       <span className="text-xl sm:text-2xl">{opt.icon}</span>
                       {opt.label}
@@ -355,10 +355,10 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
                           : [...currentDiseases, disease.code];
                         updateMetrics({ diseases: newDiseases });
                       }}
-                      className={\`flex items-center gap-2 p-2.5 rounded-xl border transition-all \${isSelected ? 'bg-lime-400/15 border-lime-400/50 shadow-[0_0_10px_rgba(163,230,53,0.15)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}\`}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${isSelected ? 'bg-lime-400/15 border-lime-400/50 shadow-[0_0_10px_rgba(163,230,53,0.15)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}`}
                     >
                       <span className="text-lg">{disease.icon}</span>
-                      <span className={\`text-[11px] font-semibold text-left leading-tight \${isSelected ? 'text-lime-400' : 'text-slate-300'}\`}>
+                      <span className={`text-[11px] font-semibold text-left leading-tight ${isSelected ? 'text-lime-400' : 'text-slate-300'}`}>
                         {disease.label}
                       </span>
                       {isSelected && <div className="ml-auto w-2 h-2 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,1)]" />}
@@ -389,9 +389,9 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
                   { label: "Calo Mục Tiêu AI", value: targets.calories, unit: "kcal", color: "#a3e635", isMain: true },
                   { label: "Nhu cầu Protein", value: targets.protein, unit: "g", color: "#4ade80" },
                 ].map((s, i) => (
-                  <div key={i} className={\`text-center p-3 rounded-xl \${s.isMain ? 'bg-lime-400/10 border border-lime-400/30' : 'bg-black/20'}\`}>
+                  <div key={i} className={`text-center p-3 rounded-xl ${s.isMain ? 'bg-lime-400/10 border border-lime-400/30' : 'bg-black/20'}`}>
                     <p className="text-[10px] sm:text-xs mb-1 font-semibold" style={{ color: "#94a3b8" }}>{s.label}</p>
-                    <p className={\`font-black \${s.isMain ? 'text-2xl text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.5)]' : 'text-lg text-white'}\`}>
+                    <p className={`font-black ${s.isMain ? 'text-2xl text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.5)]' : 'text-lg text-white'}`}>
                       {s.value.toLocaleString()} <span className="text-xs font-normal opacity-70">{s.unit}</span>
                     </p>
                   </div>
@@ -416,7 +416,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
           <button 
             onClick={() => setStep(s => Math.max(1, s - 1))}
             disabled={step === 1}
-            className={\`h-11 px-5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all \${step === 1 ? 'opacity-0 pointer-events-none' : 'hover:bg-white/10 text-slate-300'}\`}
+            className={`h-11 px-5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'hover:bg-white/10 text-slate-300'}`}
           >
             <ArrowLeft className="w-4 h-4" /> Quay lại
           </button>
@@ -460,8 +460,8 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
               <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="updatedAt" tickFormatter={(t) => t ? new Date(t).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''} stroke="#475569" fontSize={11} tickMargin={12} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => \`\${v}kg\`} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => \`\${v}%\`} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => `${v}kg`} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} labelFormatter={(l) => new Date(l).toLocaleDateString('vi-VN')} />
                 <Line yAxisId="left" type="monotone" name="Trọng lượng (kg)" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 <Line yAxisId="left" type="monotone" name="Cơ bắp (kg)" dataKey="muscleMass" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
