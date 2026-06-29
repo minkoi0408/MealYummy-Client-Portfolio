@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { AppHeader } from "../components/app-header";
-import { Dumbbell, Calendar, HeartPulse, Route } from "lucide-react";
-import { GymTab } from "../components/roadmap/gym-tab";
+import { Calendar, HeartPulse, Route } from "lucide-react";
 import { MealPlanTab } from "../components/roadmap/meal-plan-tab";
 import { NutritionTab } from "../components/roadmap/nutrition-tab";
 import { JourneyTab } from "../components/roadmap/journey-tab";
+import { ChallengeTab } from "../components/roadmap/challenge-tab";
 import { useBrightness } from "../contexts/brightness-context";
 
 // We will use the MealPlanTab's built-in Body Metrics Panel or create a dedicated one.
 // For now, let's create a placeholder NutritionTab if needed, or use the tabs to switch.
 
 export function RoadmapPage() {
-  const [activeTab, setActiveTab] = useState<"gym" | "meal" | "nutrition" | "journey">("meal");
+  const [activeTab, setActiveTab] = useState<"meal" | "nutrition" | "journey" | "challenge">("nutrition");
   const { isBright } = useBrightness();
 
   const TABS = [
     { id: "nutrition" as const, label: "Hồ sơ dinh dưỡng", icon: <HeartPulse className="w-4 h-4" /> },
     { id: "journey" as const, label: "Hành trình của bạn", icon: <Route className="w-4 h-4" /> },
     { id: "meal" as const, label: "Thực đơn", icon: <Calendar className="w-4 h-4" /> },
-    { id: "gym" as const, label: "Gym Mode", icon: <Dumbbell className="w-4 h-4" /> },
+    { id: "challenge" as const, label: "Thử thách", icon: <span className="text-orange-500 animate-pulse text-lg">🔥</span> }
   ];
 
   return (
@@ -49,10 +49,10 @@ export function RoadmapPage() {
         </div>
 
         <div>
-          {activeTab === "gym" && <GymTab />}
           {activeTab === "meal" && <MealPlanTab />}
           {activeTab === "nutrition" && <NutritionTab onGoToJourney={() => setActiveTab("journey")} />}
           {activeTab === "journey" && <JourneyTab onGoToNutrition={() => setActiveTab("nutrition")} onGoToMealPlan={() => setActiveTab("meal")} />}
+          {activeTab === "challenge" && <ChallengeTab />}
         </div>
       </main>
     </div>

@@ -12,7 +12,8 @@ import {
   Coffee, 
   Package, 
   CreditCard, 
-  UserCheck 
+  UserCheck,
+  FileText
 } from "lucide-react";
 import { useAuth } from "../contexts/auth-context";
 
@@ -60,6 +61,7 @@ export function AdminLayout() {
       items: [
         { path: "/admin/users", label: "Người dùng", icon: Users },
         { path: "/admin/roles", label: "Vai trò & Quyền", icon: Shield },
+        { path: "/admin/access-logs", label: "Nhật ký truy cập", icon: FileText },
       ]
     }
   ];

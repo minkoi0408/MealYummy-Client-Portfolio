@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, LogOut, Shield } from "lucide-react";
+import { LayoutDashboard, Users, Settings, LogOut, Shield, FileText } from "lucide-react";
 import { useAuth } from "../contexts/auth-context";
 import { RoleManagement } from "../components/admin/role-management";
+import { UserManagement } from "../components/admin/user-management";
+import { DashboardHomePage } from "./admin/dashboard-home";
+import { AccessLogsPage } from "./admin/access-logs-page";
 
 export function DashboardPage() {
   const { logout, role, user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("roles");
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Only allow Admin/Manager
   useEffect(() => {
@@ -25,6 +28,7 @@ export function DashboardPage() {
     { id: "overview", label: "Tổng quan", icon: LayoutDashboard },
     { id: "users", label: "Người dùng", icon: Users },
     { id: "roles", label: "Vai trò & Quyền", icon: Shield },
+    { id: "access-logs", label: "Nhật ký truy cập", icon: FileText },
     { id: "settings", label: "Cài đặt", icon: Settings },
   ];
 
@@ -54,13 +58,9 @@ export function DashboardPage() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-sm
-                  ${isActive 
-                    ? "bg-white/10 text-[#10B981]" 
-                    : "text-gray-400 hover:text-[#10B981] hover:bg-white/5"
-                  }`}
+                className={"w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium text-sm " + (isActive ? "bg-white/10 text-[#10B981]" : "text-gray-400 hover:text-[#10B981] hover:bg-white/5")}
               >
-                <Icon className={`w-5 h-5 ${isActive ? "text-[#10B981]" : ""}`} />
+                <Icon className={"w-5 h-5 " + (isActive ? "text-[#10B981]" : "")} />
                 {item.label}
               </button>
             );
@@ -102,13 +102,18 @@ export function DashboardPage() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto p-8">
-          {activeTab === "roles" ? (
-            <RoleManagement />
-          ) : (
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex items-center justify-center h-64">
-              <p className="text-gray-500">Tính năng đang được phát triển...</p>
-            </div>
-          )}
+          <div className="max-w-7xl mx-auto">
+            {activeTab === "overview" && <DashboardHomePage />}
+            {activeTab === "users" && <UserManagement />}
+            {activeTab === "roles" && <RoleManagement />}
+            {activeTab === "access-logs" && <AccessLogsPage />}
+            {activeTab === "settings" && (
+              <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
+                <h2 className="text-xl font-semibold mb-4">Cài đặt hệ thống</h2>
+                <p className="text-gray-500">Chức năng đang được phát triển...</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

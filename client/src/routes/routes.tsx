@@ -16,6 +16,7 @@ import { PaymentHistoryPage } from "../app/pages/admin/subscriptions/payment-his
 import { UserSubscriptionPage } from "../app/pages/admin/subscriptions/user-subscription-page";
 import { UserManagementPage } from "../app/pages/admin/users/user-management-page";
 import { RoleManagementPage } from "../app/pages/admin/users/role-management-page";
+import { AccessLogsPage } from "../app/pages/admin/access-logs-page";
 import { RecipeDetailPage } from "../app/pages/recipe-detail-page";
 import { ProfilePage } from "../app/pages/profile-page";
 import { NearbyRestaurantsPage } from "../app/pages/nearby-restaurants-page";
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
           { path: "user-subscriptions", Component: UserSubscriptionPage },
           { path: "users", Component: UserManagementPage },
           { path: "roles", Component: RoleManagementPage },
+          { path: "access-logs", Component: AccessLogsPage },
         ]
       },
       // Redirect legacy /dashboard
