@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { Users, Utensils, CreditCard, Package, TrendingUp, TrendingDown, Loader2 } from "lucide-react";
+import { Users, Utensils, CreditCard, Package, TrendingUp, TrendingDown, Loader2, Activity } from "lucide-react";
 import { analyticsApi } from "../../../apis/analytics.api";
 import type { DashboardOverviewDTO } from "../../../apis/analytics.api";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function DashboardHomePage() {
   const [data, setData] = useState<DashboardOverviewDTO | null>(null);
+  const [activeUsers, setActiveUsers] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    analyticsApi.getOverview()
-      .then(res => {
-        if (res.data.data) setData(res.data.data);
+    Promise.all([
+      analyticsApi.getOverview(),
+      analyticsApi.getActiveUsers().catch(() => ({ data: { data: [] } }))
+    ])
+      .then(([overviewRes, activeUsersRes]) => {
+        if (overviewRes.data.data) setData(overviewRes.data.data);
+        if (activeUsersRes.data.data) setActiveUsers(activeUsersRes.data.data);
       })
       .catch(err => console.error("Failed to load analytics", err))
       .finally(() => setLoading(false));
@@ -29,6 +34,15 @@ export function DashboardHomePage() {
 
   const stats = [
     {
+      title: "Đang Hoạt Động (Online)",
+      value: activeUsers.length.toLocaleString(),
+      change: "Người dùng có phiên hiện tại",
+      trend: "up",
+      icon: Activity,
+      color: "text-rose-600",
+      bg: "bg-rose-100",
+    },
+    {
       title: "Tổng Người Dùng",
       value: data.totalUsers.toLocaleString(),
       change: data.userChangeStr,
@@ -40,7 +54,7 @@ export function DashboardHomePage() {
     {
       title: "Doanh Thu Tháng Này",
       value: new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.thisMonthRevenue),
-      change: `Tổng: ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.totalRevenue)}`,
+      change: "Tổng: " + new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(data.totalRevenue),
       trend: "up",
       icon: CreditCard,
       color: "text-green-600",
@@ -75,7 +89,7 @@ export function DashboardHomePage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
           const TrendIcon = stat.trend === "up" ? TrendingUp : TrendingDown;
@@ -87,19 +101,19 @@ export function DashboardHomePage() {
                 <h3 className="tracking-tight text-sm font-medium text-gray-500">
                   {stat.title}
                 </h3>
-                <div className={`p-2 rounded-lg ${stat.bg}`}>
-                  <Icon className={`w-4 h-4 ${stat.color}`} />
+                <div className={"p-2 rounded-lg " + stat.bg}>
+                  <Icon className={"w-4 h-4 " + stat.color} />
                 </div>
               </div>
               <div className="flex flex-col gap-1 mt-2">
                 <div className="text-2xl font-bold">{stat.value}</div>
                 <div className="flex flex-col text-xs text-muted-foreground mt-1">
-                  {stat.title === "Doanh Thu Tháng Này" ? (
+                  {stat.title === "Doanh Thu Tháng Này" || stat.title === "Đang Hoạt Động (Online)" ? (
                     <span className="font-medium text-gray-500">{stat.change}</span>
                   ) : (
                     <div className="flex items-center">
-                      <TrendIcon className={`w-3 h-3 mr-1 ${trendColor}`} />
-                      <span className={`${trendColor} font-medium`}>{stat.change}</span>
+                      <TrendIcon className={"w-3 h-3 mr-1 " + trendColor} />
+                      <span className={trendColor + " font-medium"}>{stat.change}</span>
                       <span className="text-gray-400 ml-1">so với tháng trước</span>
                     </div>
                   )}
@@ -125,7 +139,7 @@ export function DashboardHomePage() {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{fill: '#6B7280', fontSize: 12}}
-                  tickFormatter={(val) => `${val / 1000000}M`}
+                  tickFormatter={(val) => val / 1000000 + "M"}
                 />
                 <Tooltip 
                   formatter={(value: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)}
@@ -144,27 +158,30 @@ export function DashboardHomePage() {
           </div>
         </div>
         <div className="col-span-3 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-          <div className="mb-4">
-            <h3 className="font-semibold text-lg">Đăng ký mới gần đây</h3>
-            <p className="text-sm text-gray-500">Danh sách user vừa nâng cấp tài khoản</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">User Đang Online</h3>
+              <p className="text-sm text-gray-500">Danh sách người dùng đang hoạt động ({activeUsers.length})</p>
+            </div>
+            <div className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+            </div>
           </div>
           <div className="space-y-4 mt-6 h-[300px] overflow-auto pr-2">
-            {data.recentTransactions.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">Chưa có giao dịch nào</p>
-            ) : data.recentTransactions.map((tx, i) => (
+            {activeUsers.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">Không có user nào đang online</p>
+            ) : activeUsers.map((username, i) => (
               <div key={i} className="flex items-center gap-4 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 overflow-hidden shrink-0">
-                  {tx.avatarUrl ? (
-                    <img src={tx.avatarUrl} alt={tx.username} className="w-full h-full object-cover" />
-                  ) : tx.username.charAt(0).toUpperCase()}
+                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center font-bold text-rose-700 overflow-hidden shrink-0">
+                  {username.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{tx.username}</p>
-                  <p className="text-xs text-[#10B981] font-medium truncate">{tx.bundleName}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{tx.date}</p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{username}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">Session Active</p>
                 </div>
-                <div className="text-sm font-bold text-[#10B981] whitespace-nowrap">
-                  +{new Intl.NumberFormat('vi-VN').format(tx.amount)}₫
+                <div className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-full whitespace-nowrap">
+                  Online
                 </div>
               </div>
             ))}
