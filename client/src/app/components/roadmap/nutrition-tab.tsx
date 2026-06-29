@@ -6,21 +6,19 @@ import { toast } from "sonner";
 import { useAuth } from "../../contexts/auth-context";
 
 type UserMetrics = {
-  weight: number;
-  height: number;
-  age: number;
-  gender: "male" | "female";
-  activity: "sedentary" | "light" | "moderate" | "active" | "very_active";
-  goal: "cut" | "maintain" | "bulk";
-  bodyFat: number;
-  muscleMass: number;
-  diseases: string[];
+  weight?: number | string;
+  height?: number | string;
+  age?: number | string;
+  gender?: "male" | "female";
+  activity?: "sedentary" | "light" | "moderate" | "active" | "very_active";
+  goal?: "cut" | "maintain" | "bulk";
+  bodyFat?: number | string;
+  muscleMass?: number | string;
+  diseases?: string[];
 };
 
-const DEFAULT_METRICS: UserMetrics = {
-  weight: 70, height: 170, age: 25,
-  gender: "male", activity: "moderate", goal: "maintain",
-  bodyFat: 20, muscleMass: 30, diseases: [],
+const DEFAULT_METRICS: Partial<UserMetrics> = {
+  diseases: [],
 };
 
 const ACTIVITY_MULTIPLIERS = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, very_active: 1.9 };
@@ -47,27 +45,33 @@ const DISEASE_LIST = [
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
 
-function calcTDEE(m: UserMetrics) {
+function calcTDEE(m: Partial<UserMetrics>) {
+  if (!m.weight || !m.height || !m.age || !m.gender || !m.activity || !m.goal) {
+    return { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, bmr: 0, tdee: 0 };
+  }
+  const weight = Number(m.weight);
+  const height = Number(m.height);
+  const age = Number(m.age);
   const bmr = m.gender === "male"
-    ? 10 * m.weight + 6.25 * m.height - 5 * m.age + 5
-    : 10 * m.weight + 6.25 * m.height - 5 * m.age - 161;
+    ? 10 * weight + 6.25 * height - 5 * age + 5
+    : 10 * weight + 6.25 * height - 5 * age - 161;
   const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[m.activity]);
   const target = tdee + GOAL_ADJUSTMENTS[m.goal];
-  const protein = m.goal === "bulk" ? Math.round(m.weight * 2.2) : Math.round(m.weight * 1.8);
+  const protein = m.goal === "bulk" ? Math.round(weight * 2.2) : Math.round(weight * 1.8);
   const fat = Math.round((target * 0.25) / 9);
   const carbs = Math.round((target - protein * 4 - fat * 9) / 4);
   const fiber = Math.round((target / 1000) * 14);
   return { calories: target, protein, carbs, fat, fiber, bmr, tdee };
 }
 
-function loadMetrics(): UserMetrics {
+function loadMetrics(): Partial<UserMetrics> {
   try {
     const s = localStorage.getItem("mealyummy-metrics");
     return s ? { ...DEFAULT_METRICS, ...JSON.parse(s) } : DEFAULT_METRICS;
   } catch { return DEFAULT_METRICS; }
 }
 
-function saveMetricsLocal(m: UserMetrics) {
+function saveMetricsLocal(m: Partial<UserMetrics>) {
   localStorage.setItem("mealyummy-metrics", JSON.stringify(m));
 }
 
@@ -77,7 +81,7 @@ function getToken() {
 
 export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) {
   const { user } = useAuth();
-  const [metrics, setMetrics] = useState<UserMetrics>(loadMetrics);
+  const [metrics, setMetrics] = useState<Partial<UserMetrics>>(loadMetrics);
   const targets = calcTDEE(metrics);
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -142,7 +146,34 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     }
   };
 
+  const validateStep = (currentStep: number) => {
+    if (currentStep === 1) {
+      if (!metrics.weight || !metrics.height || !metrics.age || !metrics.gender) {
+        toast.error("Vui lòng nhập đầy đủ Cân nặng, Chiều cao, Tuổi và Giới tính!");
+        return false;
+      }
+    }
+    if (currentStep === 2) {
+      if (!metrics.goal || !metrics.activity) {
+        toast.error("Vui lòng chọn Mục tiêu và Mức độ vận động!");
+        return false;
+      }
+      if ((metrics.goal === "cut" || metrics.goal === "bulk") && (!metrics.bodyFat || !metrics.muscleMass)) {
+        toast.error("Vui lòng nhập tỷ lệ Mỡ và Khối lượng cơ bắp!");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep(step)) {
+      setStep(s => Math.min(TOTAL_STEPS, s + 1));
+    }
+  };
+
   const handleSaveMetrics = async () => {
+    if (!validateStep(1) || !validateStep(2)) return;
     const token = getToken();
     if (!token) { toast.error("Vui lòng đăng nhập lại"); return; }
 
@@ -192,25 +223,29 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     });
   }
 
-  const renderNumberInput = (key: keyof UserMetrics, label: string, unit: string, min: number, max: number) => (
-    <div key={key}>
-      <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>{label}</p>
-      <div className="flex items-center rounded-xl overflow-hidden h-12" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-        <button onClick={() => updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })}
-          className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">−</button>
-        <div className="flex-1 text-center flex flex-col justify-center">
-          <input type="text" inputMode="numeric" pattern="[0-9]*"
-            value={(metrics as any)[key]}
-            onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); updateMetrics({ [key]: val === "" ? "" : Number(val) }); }}
-            onBlur={(e) => { let val = Number(e.target.value) || min; if (val < min) val = min; if (val > max) val = max; updateMetrics({ [key]: val }); }}
-            className="w-full bg-transparent text-center text-base sm:text-lg font-black text-white outline-none" />
-          <p className="text-[10px] -mt-1" style={{ color: "#475569" }}>{unit}</p>
+  const renderNumberInput = (key: keyof UserMetrics, label: string, unit: string, min: number, max: number) => {
+    const val = (metrics as any)[key] ?? "";
+    return (
+      <div key={key}>
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>{label}</p>
+        <div className="flex items-center rounded-xl overflow-hidden h-12" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <button onClick={() => { const v = Number(val) || min; updateMetrics({ [key]: Math.max(min, v - 1) }); }}
+            className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">−</button>
+          <div className="flex-1 text-center flex flex-col justify-center">
+            <input type="text" inputMode="numeric" pattern="[0-9]*"
+              value={val}
+              placeholder="0"
+              onChange={(e) => { const v = e.target.value.replace(/[^0-9]/g, ""); updateMetrics({ [key]: v === "" ? "" : Number(v) }); }}
+              onBlur={(e) => { if (e.target.value !== "") { let v = Number(e.target.value) || min; if (v < min) v = min; if (v > max) v = max; updateMetrics({ [key]: v }); } }}
+              className="w-full bg-transparent text-center text-base sm:text-lg font-black text-white outline-none placeholder-slate-600" />
+            <p className="text-[10px] -mt-1" style={{ color: "#475569" }}>{unit}</p>
+          </div>
+          <button onClick={() => { const v = Number(val) || min; updateMetrics({ [key]: Math.min(max, v + 1) }); }}
+            className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">+</button>
         </div>
-        <button onClick={() => updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })}
-          className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">+</button>
       </div>
-    </div>
-  );
+    );
+  };
 
   const STEPS = [
     { id: 1, title: "Chỉ số cơ thể" },
@@ -321,9 +356,10 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
 
               <div className="mb-2">
                 <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mức độ vận động hàng ngày</p>
-                <select value={metrics.activity} onChange={(e) => updateMetrics({ activity: e.target.value as any })}
+                <select value={metrics.activity || ""} onChange={(e) => updateMetrics({ activity: e.target.value as any })}
                   className="w-full appearance-none rounded-xl px-4 py-3 sm:py-3.5 text-sm font-semibold outline-none transition-all cursor-pointer"
                   style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0" }}>
+                  <option value="" disabled style={{ background: "#0f1117", color: "#64748b" }}>Chọn mức độ vận động</option>
                   <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, không tập)</option>
                   <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
                   <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập 3-5 ngày/tuần)</option>
@@ -423,7 +459,7 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
           
           {step < TOTAL_STEPS ? (
             <button 
-              onClick={() => setStep(s => Math.min(TOTAL_STEPS, s + 1))}
+              onClick={handleNextStep}
               className="h-11 px-6 rounded-xl text-sm font-black flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_15px_rgba(163,230,53,0.15)]"
               style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.4)" }}
             >
