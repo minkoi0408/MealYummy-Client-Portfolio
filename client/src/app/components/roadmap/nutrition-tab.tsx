@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { TrendingUp, Sparkles } from "lucide-react";
+import { TrendingUp, Sparkles, Check, ArrowLeft, ArrowRight, Save } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { jsPDF } from "jspdf";
 import { toast } from "sonner";
@@ -83,6 +83,10 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
   const [isExporting, setIsExporting] = useState(false);
   const [metricsHistory, setMetricsHistory] = useState<UserMetrics[]>([]);
   const [hasSaved, setHasSaved] = useState(false);
+  
+  // WIZARD STATE
+  const [step, setStep] = useState(1);
+  const TOTAL_STEPS = 4;
 
   useEffect(() => {
     const token = getToken();
@@ -156,7 +160,6 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
         saveMetricsLocal(metrics);
         setHasSaved(true);
         if (onGoToJourney) {
-          // If we have the navigation prop, we might want to guide them.
           toast.success("Bây giờ bạn có thể thiết kế Lộ Trình AI!");
         }
 
@@ -189,210 +192,276 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     });
   }
 
+  const renderNumberInput = (key: keyof UserMetrics, label: string, unit: string, min: number, max: number) => (
+    <div key={key}>
+      <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>{label}</p>
+      <div className="flex items-center rounded-xl overflow-hidden h-12" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+        <button onClick={() => updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })}
+          className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">−</button>
+        <div className="flex-1 text-center flex flex-col justify-center">
+          <input type="text" inputMode="numeric" pattern="[0-9]*"
+            value={(metrics as any)[key]}
+            onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); updateMetrics({ [key]: val === "" ? "" : Number(val) }); }}
+            onBlur={(e) => { let val = Number(e.target.value) || min; if (val < min) val = min; if (val > max) val = max; updateMetrics({ [key]: val }); }}
+            className="w-full bg-transparent text-center text-base sm:text-lg font-black text-white outline-none" />
+          <p className="text-[10px] -mt-1" style={{ color: "#475569" }}>{unit}</p>
+        </div>
+        <button onClick={() => updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })}
+          className="w-10 h-full flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">+</button>
+      </div>
+    </div>
+  );
+
+  const STEPS = [
+    { id: 1, title: "Chỉ số cơ thể" },
+    { id: 2, title: "Mục tiêu" },
+    { id: 3, title: "Sức khỏe" },
+    { id: 4, title: "Hoàn tất" }
+  ];
+
   return (
-    <div className="animate-in fade-in duration-500">
-      <div className="rounded-2xl p-5 mb-5" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(163,230,53,0.25)" }}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-2 text-xs font-bold uppercase tracking-widest"
-              style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)", color: "#a3e635" }}>
-              <Sparkles className="w-3.5 h-3.5" /> Hồ sơ dinh dưỡng
-            </div>
-            <h2 className="text-base sm:text-lg font-black text-white">Mục tiêu ăn uống của bạn</h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {([
-            { key: "weight" as const, label: "Cân nặng", unit: "kg", min: 30, max: 200 },
-            { key: "height" as const, label: "Chiều cao", unit: "cm", min: 100, max: 250 },
-            { key: "age" as const, label: "Tuổi", unit: "tuổi", min: 10, max: 99 },
-          ]).map(({ key, label, unit, min, max }) => (
-            <div key={key}>
-              <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>{label}</p>
-              <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                <button onClick={() => updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })}
-                  className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">−</button>
-                <div className="flex-1 text-center">
-                  <input type="text" inputMode="numeric" pattern="[0-9]*"
-                    value={(metrics as any)[key]}
-                    onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); updateMetrics({ [key]: val === "" ? "" : Number(val) }); }}
-                    onBlur={(e) => { let val = Number(e.target.value) || min; if (val < min) val = min; if (val > max) val = max; updateMetrics({ [key]: val }); }}
-                    className="w-full bg-transparent text-center text-base font-black text-white outline-none" />
-                  <p className="text-[10px]" style={{ color: "#475569" }}>{unit}</p>
-                </div>
-                <button onClick={() => updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })}
-                  className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">+</button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Giới tính</p>
-            <div className="flex gap-2">
-              {(["male", "female"] as const).map((g) => (
-                <button key={g} onClick={() => updateMetrics({ gender: g })}
-                  className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                  style={metrics.gender === g
-                    ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }
-                    : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#64748b" }}>
-                  {g === "male" ? "👨 Nam" : "👩 Nữ"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mục tiêu</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {([
-                { value: "cut", label: "Giảm mỡ", color: "#f87171" },
-                { value: "maintain", label: "Duy trì", color: "#a3e635" },
-                { value: "bulk", label: "Tăng cơ", color: "#fb923c" },
-              ] as const).map((opt) => (
-                <button key={opt.value} onClick={() => updateMetrics({ goal: opt.value })}
-                  className="py-2 rounded-xl text-[11px] font-semibold transition-all"
-                  style={metrics.goal === opt.value
-                    ? { background: `${opt.color}20`, color: opt.color, border: `1px solid ${opt.color}50` }
-                    : { background: "rgba(255,255,255,0.04)", color: "#64748b", border: "1px solid rgba(255,255,255,0.08)" }}>
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mức độ vận động</p>
-          <select value={metrics.activity} onChange={(e) => updateMetrics({ activity: e.target.value as any })}
-            className="w-full appearance-none rounded-xl px-4 py-2.5 text-[13px] font-semibold outline-none transition-all cursor-pointer"
-            style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0" }}>
-            <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, ít tập luyện)</option>
-            <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập thể dục 1-3 ngày/tuần)</option>
-            <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập thể dục 3-5 ngày/tuần)</option>
-            <option value="active" style={{ background: "#0f1117" }}>Vận động nhiều (Tập thể dục 6-7 ngày/tuần)</option>
-            <option value="very_active" style={{ background: "#0f1117" }}>Rất nhiều (VĐV, lao động tay chân)</option>
-          </select>
-        </div>
-
-        {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-          <div className="grid grid-cols-2 gap-3 mb-4 animate-in fade-in zoom-in duration-300">
-            {([
-              { key: "bodyFat" as const, label: "% Lượng mỡ (BDF)", unit: "%", min: 3, max: 100 },
-              { key: "muscleMass" as const, label: "Lượng cơ bắp", unit: "kg", min: 10, max: 120 },
-            ]).map(({ key, label, unit, min, max }) => (
-              <div key={key}>
-                <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>{label}</p>
-                <div className="flex items-center rounded-xl overflow-hidden" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                  <button onClick={() => updateMetrics({ [key]: Math.max(min, (metrics as any)[key] - 1) })}
-                    className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">−</button>
-                  <div className="flex-1 text-center">
-                    <input type="text" inputMode="numeric" value={(metrics as any)[key]}
-                      onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ""); updateMetrics({ [key]: val === "" ? "" : Number(val) }); }}
-                      className="w-full bg-transparent text-center text-base font-black text-white outline-none" />
-                    <p className="text-[10px]" style={{ color: "#475569" }}>{unit}</p>
-                  </div>
-                  <button onClick={() => updateMetrics({ [key]: Math.min(max, (metrics as any)[key] + 1) })}
-                    className="w-8 h-9 flex items-center justify-center text-lg font-bold flex-shrink-0 transition-colors text-slate-500 hover:text-lime-400">+</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="mb-5 animate-in fade-in duration-300">
-          <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Bệnh lý / Tình trạng đặc biệt</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {DISEASE_LIST.map((disease) => {
-              const isSelected = metrics.diseases?.includes(disease.code);
+    <div className="animate-in fade-in duration-500 max-w-2xl mx-auto">
+      
+      {/* STEPPER WIZARD UI */}
+      <div className="rounded-2xl p-6 sm:p-8 mb-6 relative overflow-hidden" style={{ background: "rgba(26,31,46,0.9)", border: "1px solid rgba(163,230,53,0.25)" }}>
+        {/* Glow background effect */}
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-lime-500/10 rounded-full blur-[50px] pointer-events-none" />
+        
+        {/* Progress Stepper Header */}
+        <div className="mb-8">
+          <div className="flex justify-between items-center relative z-10">
+            {STEPS.map((s, idx) => {
+              const isCompleted = step > s.id;
+              const isCurrent = step === s.id;
               return (
-                <button
-                  key={disease.code}
-                  onClick={() => {
-                    const currentDiseases = metrics.diseases || [];
-                    const newDiseases = isSelected
-                      ? currentDiseases.filter(c => c !== disease.code)
-                      : [...currentDiseases, disease.code];
-                    updateMetrics({ diseases: newDiseases });
-                  }}
-                  className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${isSelected ? 'bg-lime-400/10 border-lime-400/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}
-                >
-                  <span className="text-sm">{disease.icon}</span>
-                  <span className={`text-[10px] font-semibold text-left leading-tight ${isSelected ? 'text-lime-400' : 'text-slate-400'}`}>
-                    {disease.label}
-                  </span>
-                  {isSelected && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,0.8)]" />}
-                </button>
-              )
+                <div key={s.id} className="flex flex-col items-center flex-1 relative cursor-pointer" onClick={() => setStep(s.id)}>
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold mb-2 transition-all duration-300 z-10 
+                    ${isCompleted ? 'bg-lime-400 text-black shadow-[0_0_15px_rgba(163,230,53,0.6)] scale-100' : 
+                      isCurrent ? 'bg-slate-800 text-lime-400 border-2 border-lime-400 scale-110 shadow-[0_0_10px_rgba(163,230,53,0.3)]' : 
+                      'bg-slate-800 text-slate-500 border border-slate-700 scale-90 hover:scale-100'}`}>
+                    {isCompleted ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : s.id}
+                  </div>
+                  <span className={`text-[10px] sm:text-xs font-semibold whitespace-nowrap transition-colors duration-300 ${isCurrent ? 'text-lime-400' : isCompleted ? 'text-white' : 'text-slate-500'}`}>{s.title}</span>
+                </div>
+              );
             })}
+            
+            {/* Progress line background */}
+            <div className="absolute top-4 sm:top-5 left-[12.5%] right-[12.5%] h-1 bg-slate-800 -z-0 rounded-full" />
+            {/* Progress line foreground */}
+            <div className="absolute top-4 sm:top-5 left-[12.5%] h-1 bg-lime-400 -z-0 rounded-full transition-all duration-500 ease-out" style={{ width: \`\${((step - 1) / (TOTAL_STEPS - 1)) * 75}%\` }} />
           </div>
         </div>
 
-        <div className="rounded-xl p-4 grid grid-cols-2 sm:grid-cols-4 gap-3" style={{ background: "rgba(163,230,53,0.06)", border: "1px solid rgba(163,230,53,0.15)" }}>
-          {[
-            { label: "BMR", value: targets.bmr, unit: "kcal", color: "#94a3b8" },
-            { label: "TDEE", value: targets.tdee, unit: "kcal", color: "#fb923c" },
-            { label: "Mục tiêu", value: targets.calories, unit: "kcal", color: "#a3e635" },
-            { label: "Protein", value: targets.protein, unit: "g", color: "#4ade80" },
-          ].map((s) => (
-            <div key={s.label} className="text-center">
-              <p className="text-xs mb-0.5" style={{ color: "#475569" }}>{s.label}</p>
-              <p className="text-lg font-black" style={{ color: s.color }}>
-                {s.value.toLocaleString()} <span className="text-xs font-normal ml-0.5" style={{ color: "#475569" }}>{s.unit}</span>
-              </p>
+        {/* STEP CONTENT */}
+        <div className="min-h-[250px]">
+          {/* STEP 1: CHỈ SỐ CƠ BẢN */}
+          {step === 1 && (
+            <div className="animate-in slide-in-from-right-4 fade-in duration-300">
+              <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
+                <span className="text-xl">📏</span> Bạn hãy nhập thông tin cơ bản nhé
+              </h3>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {renderNumberInput("weight", "Cân nặng", "kg", 30, 200)}
+                {renderNumberInput("height", "Chiều cao", "cm", 100, 250)}
+                {renderNumberInput("age", "Tuổi", "tuổi", 10, 99)}
+                
+                <div>
+                  <p className="text-xs font-semibold mb-1.5" style={{ color: "#94a3b8" }}>Giới tính</p>
+                  <div className="flex gap-2 h-12">
+                    {(["male", "female"] as const).map((g) => (
+                      <button key={g} onClick={() => updateMetrics({ gender: g })}
+                        className="flex-1 rounded-xl text-sm font-semibold transition-all"
+                        style={metrics.gender === g
+                          ? { background: "linear-gradient(135deg, #a3e635, #4ade80)", color: "#0f1117" }
+                          : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#64748b" }}>
+                        {g === "male" ? "👨 Nam" : "👩 Nữ"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          ))}
+          )}
+
+          {/* STEP 2: MỤC TIÊU & VẬN ĐỘNG */}
+          {step === 2 && (
+            <div className="animate-in slide-in-from-right-4 fade-in duration-300">
+              <h3 className="text-white font-black text-lg mb-6 flex items-center gap-2">
+                <span className="text-xl">🎯</span> Mục tiêu sức khỏe của bạn là gì?
+              </h3>
+
+              <div className="mb-6">
+                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Định hướng mục tiêu</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  {([
+                    { value: "cut", label: "Giảm mỡ", icon: "🔥", color: "#f87171" },
+                    { value: "maintain", label: "Duy trì", icon: "⚖️", color: "#a3e635" },
+                    { value: "bulk", label: "Tăng cơ", icon: "💪", color: "#fb923c" },
+                  ] as const).map((opt) => (
+                    <button key={opt.value} onClick={() => updateMetrics({ goal: opt.value })}
+                      className="py-3 sm:py-4 rounded-xl text-xs sm:text-sm font-bold flex flex-col items-center gap-2 transition-all hover:-translate-y-1"
+                      style={metrics.goal === opt.value
+                        ? { background: \`\${opt.color}20\`, color: opt.color, border: \`2px solid \${opt.color}80\`, boxShadow: \`0 4px 15px \${opt.color}40\` }
+                        : { background: "rgba(255,255,255,0.04)", color: "#64748b", border: "2px solid rgba(255,255,255,0.08)" }}>
+                      <span className="text-xl sm:text-2xl">{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(metrics.goal === "cut" || metrics.goal === "bulk") && (
+                <div className="grid grid-cols-2 gap-4 mb-6 animate-in zoom-in fade-in duration-300">
+                  {renderNumberInput("bodyFat", "% Lượng mỡ (BDF)", "%", 3, 100)}
+                  {renderNumberInput("muscleMass", "Lượng cơ bắp", "kg", 10, 120)}
+                </div>
+              )}
+
+              <div className="mb-2">
+                <p className="text-xs font-semibold mb-2" style={{ color: "#94a3b8" }}>Mức độ vận động hàng ngày</p>
+                <select value={metrics.activity} onChange={(e) => updateMetrics({ activity: e.target.value as any })}
+                  className="w-full appearance-none rounded-xl px-4 py-3 sm:py-3.5 text-sm font-semibold outline-none transition-all cursor-pointer"
+                  style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0" }}>
+                  <option value="sedentary" style={{ background: "#0f1117" }}>Ít vận động (Văn phòng, không tập)</option>
+                  <option value="light" style={{ background: "#0f1117" }}>Vận động nhẹ (Tập 1-3 ngày/tuần)</option>
+                  <option value="moderate" style={{ background: "#0f1117" }}>Vận động vừa (Tập 3-5 ngày/tuần)</option>
+                  <option value="active" style={{ background: "#0f1117" }}>Vận động nhiều (Tập 6-7 ngày/tuần)</option>
+                  <option value="very_active" style={{ background: "#0f1117" }}>Rất nhiều (VĐV, lao động tay chân)</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: BỆNH LÝ & SỨC KHỎE */}
+          {step === 3 && (
+            <div className="animate-in slide-in-from-right-4 fade-in duration-300">
+              <h3 className="text-white font-black text-lg mb-2 flex items-center gap-2">
+                <span className="text-xl">🏥</span> Tình trạng y tế đặc biệt
+              </h3>
+              <p className="text-xs text-slate-400 mb-5">AI sẽ tự động lọc bỏ các nguyên liệu gây hại và điều chỉnh thực đơn dựa trên tình trạng sức khỏe của bạn.</p>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                {DISEASE_LIST.map((disease) => {
+                  const isSelected = metrics.diseases?.includes(disease.code);
+                  return (
+                    <button
+                      key={disease.code}
+                      onClick={() => {
+                        const currentDiseases = metrics.diseases || [];
+                        const newDiseases = isSelected
+                          ? currentDiseases.filter(c => c !== disease.code)
+                          : [...currentDiseases, disease.code];
+                        updateMetrics({ diseases: newDiseases });
+                      }}
+                      className={\`flex items-center gap-2 p-2.5 rounded-xl border transition-all \${isSelected ? 'bg-lime-400/15 border-lime-400/50 shadow-[0_0_10px_rgba(163,230,53,0.15)]' : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/10'}\`}
+                    >
+                      <span className="text-lg">{disease.icon}</span>
+                      <span className={\`text-[11px] font-semibold text-left leading-tight \${isSelected ? 'text-lime-400' : 'text-slate-300'}\`}>
+                        {disease.label}
+                      </span>
+                      {isSelected && <div className="ml-auto w-2 h-2 rounded-full bg-lime-400 shadow-[0_0_8px_rgba(163,230,53,1)]" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* STEP 4: TỔNG KẾT & HOÀN TẤT */}
+          {step === 4 && (
+            <div className="animate-in slide-in-from-right-4 fade-in duration-300">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-lime-400/20 flex items-center justify-center border border-lime-400/30">
+                  <Sparkles className="w-6 h-6 text-lime-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-black text-lg">Hồ sơ đã sẵn sàng!</h3>
+                  <p className="text-xs text-slate-400">Dưới đây là các chỉ số TDEE và BMR được tính toán theo khoa học.</p>
+                </div>
+              </div>
+              
+              <div className="rounded-2xl p-5 grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6" style={{ background: "rgba(163,230,53,0.08)", border: "1px solid rgba(163,230,53,0.2)" }}>
+                {[
+                  { label: "BMR (Trao đổi chất)", value: targets.bmr, unit: "kcal", color: "#94a3b8" },
+                  { label: "TDEE (Tổng tiêu thụ)", value: targets.tdee, unit: "kcal", color: "#fb923c" },
+                  { label: "Calo Mục Tiêu AI", value: targets.calories, unit: "kcal", color: "#a3e635", isMain: true },
+                  { label: "Nhu cầu Protein", value: targets.protein, unit: "g", color: "#4ade80" },
+                ].map((s, i) => (
+                  <div key={i} className={\`text-center p-3 rounded-xl \${s.isMain ? 'bg-lime-400/10 border border-lime-400/30' : 'bg-black/20'}\`}>
+                    <p className="text-[10px] sm:text-xs mb-1 font-semibold" style={{ color: "#94a3b8" }}>{s.label}</p>
+                    <p className={\`font-black \${s.isMain ? 'text-2xl text-lime-400 drop-shadow-[0_0_8px_rgba(163,230,53,0.5)]' : 'text-lg text-white'}\`}>
+                      {s.value.toLocaleString()} <span className="text-xs font-normal opacity-70">{s.unit}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {(metrics.goal === "cut" || metrics.goal === "bulk") && (
+                <div className="flex justify-center">
+                  <button onClick={handleExportPDF} disabled={isExporting}
+                    className="h-9 px-5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    style={{ border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc" }}>
+                    {isExporting ? "Đang xử lý..." : "📄 Tải xuống Báo Cáo InBody PDF"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="mt-5 flex justify-end gap-3">
-          {(metrics.goal === "cut" || metrics.goal === "bulk") && (
-            <button onClick={handleExportPDF} disabled={isExporting}
-              className="h-10 px-5 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-              style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f8fafc" }}>
-              {isExporting ? "Đang xuất..." : "📄 Xuất InBody (PDF)"}
-            </button>
-          )}
-
-          {onGoToJourney && (
-            <button
-              onClick={onGoToJourney}
-              disabled={!hasSaved}
-              title={!hasSaved ? "Hãy lưu chỉ số trước" : "Thiết kế Lộ Trình AI"}
-              className="h-10 px-5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all"
-              style={hasSaved
-                ? { background: "rgba(163,230,53,0.12)", border: "1px solid rgba(163,230,53,0.4)", color: "#a3e635", cursor: "pointer" }
-                : { background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#475569", cursor: "not-allowed" }
-              }
-              onMouseEnter={(e) => { if (hasSaved) (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)"; }}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Thiết kế Lộ Trình
-            </button>
-          )}
-
-          <button onClick={handleSaveMetrics} disabled={isSavingMetrics}
-            className="h-10 px-6 rounded-xl text-xs font-black flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-            style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117", boxShadow: "0 4px 16px rgba(163,230,53,0.3)" }}>
-            {isSavingMetrics ? "Đang lưu..." : "Lưu thay đổi"}
+        {/* NAVIGATION CONTROLS */}
+        <div className="mt-6 pt-5 border-t border-slate-800 flex justify-between items-center">
+          <button 
+            onClick={() => setStep(s => Math.max(1, s - 1))}
+            disabled={step === 1}
+            className={\`h-11 px-5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all \${step === 1 ? 'opacity-0 pointer-events-none' : 'hover:bg-white/10 text-slate-300'}\`}
+          >
+            <ArrowLeft className="w-4 h-4" /> Quay lại
           </button>
+          
+          {step < TOTAL_STEPS ? (
+            <button 
+              onClick={() => setStep(s => Math.min(TOTAL_STEPS, s + 1))}
+              className="h-11 px-6 rounded-xl text-sm font-black flex items-center gap-2 transition-all hover:scale-105 shadow-[0_0_15px_rgba(163,230,53,0.15)]"
+              style={{ background: "rgba(163,230,53,0.15)", color: "#a3e635", border: "1px solid rgba(163,230,53,0.4)" }}
+            >
+              Tiếp tục <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button 
+              onClick={handleSaveMetrics} 
+              disabled={isSavingMetrics}
+              className="h-11 px-8 rounded-xl text-sm font-black flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-[0_4px_20px_rgba(163,230,53,0.4)]"
+              style={{ background: "linear-gradient(135deg,#a3e635,#4ade80)", color: "#0f1117" }}
+            >
+              {isSavingMetrics ? (
+                "Đang lưu..."
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> Lưu Hồ Sơ & Tiếp Tục
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
+      {/* CHART HISTORY */}
       {metricsHistory.length > 0 && (
-        <div className="mt-8 pt-6" style={{ borderTop: "1px dashed rgba(255,255,255,0.1)" }}>
+        <div className="mt-8 pt-6 border-t border-white/10">
           <div className="flex items-center gap-2 mb-6">
             <TrendingUp className="w-4 h-4 text-lime-400" />
-            <h3 className="text-sm font-black text-white">Lịch sử thành phần cấu tạo cơ thể</h3>
+            <h3 className="text-sm font-black text-white">Tiến độ thay đổi vóc dáng của bạn</h3>
           </div>
-          <div className="h-[280px] w-full bg-[#0f1117] p-2 rounded-xl">
+          <div className="h-[300px] w-full bg-slate-900/50 p-4 rounded-2xl border border-white/5">
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <LineChart data={metricsHistory} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="updatedAt" tickFormatter={(t) => t ? new Date(t).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }) : ''} stroke="#475569" fontSize={11} tickMargin={12} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => `${v}kg`} axisLine={false} tickLine={false} />
-                <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="left" stroke="#a3e635" fontSize={10} tickFormatter={(v) => \`\${v}kg\`} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" stroke="#f87171" fontSize={10} tickFormatter={(v) => \`\${v}%\`} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background: '#0f1117', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }} labelFormatter={(l) => new Date(l).toLocaleDateString('vi-VN')} />
                 <Line yAxisId="left" type="monotone" name="Trọng lượng (kg)" dataKey="weight" stroke="#a3e635" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
                 <Line yAxisId="left" type="monotone" name="Cơ bắp (kg)" dataKey="muscleMass" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4, fill: '#0f1117', strokeWidth: 2 }} activeDot={{ r: 6 }} />
