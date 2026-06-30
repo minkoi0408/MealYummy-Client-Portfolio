@@ -253,7 +253,12 @@ export function BundleManagementPage() {
                       <InputNumber placeholder="Số ngày" className="w-full" />
                     </Form.Item>
                     <Form.Item {...restField} name={[name, 'price']} rules={[{ required: true, message: 'Thiếu giá' }]} className="mb-0 flex-1">
-                      <InputNumber placeholder="Giá (VNĐ)" className="w-full" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+                      <InputNumber 
+                        placeholder="Giá (VNĐ)" 
+                        className="w-full" 
+                        formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
+                        parser={(value) => value!.replace(/\$\s?|(,*)/g, '') as unknown as number}
+                      />
                     </Form.Item>
                     <Button danger onClick={() => remove(name)} icon={<Zap className="w-4 h-4" />} />
                   </div>
