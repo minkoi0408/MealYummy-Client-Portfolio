@@ -68,6 +68,28 @@ export function UserSubscriptionPage() {
       }
     },
     {
+      title: 'Thời gian còn lại',
+      key: 'remainingTime',
+      render: (_, record: UserSubscription) => {
+        if (!record.endDate) return "-";
+        const now = new Date();
+        const end = new Date(record.endDate);
+        const diffMs = end.getTime() - now.getTime();
+        
+        if (diffMs <= 0) {
+          return <span className="text-red-500 font-medium">Đã hết hạn</span>;
+        }
+        
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        
+        if (diffDays > 0) {
+          return <span className="text-blue-600 font-medium">{diffDays} ngày {diffHours} giờ</span>;
+        }
+        return <span className="text-orange-500 font-medium">{diffHours} giờ</span>;
+      }
+    },
+    {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
