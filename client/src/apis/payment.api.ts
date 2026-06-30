@@ -8,11 +8,15 @@ export interface PaymentHistory {
   txId: string;
   userId: string;
   bundleId: string;
+  durationCode: string;
   username?: string;
   bundleName?: string;
   amount: number;
-  status: string;
+  paymentStatus: string;
+  transactionId?: string;
+  paidAt?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export const paymentApi = {

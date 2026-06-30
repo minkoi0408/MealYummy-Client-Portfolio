@@ -61,14 +61,14 @@ export function PaymentHistoryPage() {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => {
+      dataIndex: 'paymentStatus',
+      key: 'paymentStatus',
+      render: (paymentStatus: string) => {
         let color = 'default';
         let text = 'Khởi tạo';
-        if (status === 'SUCCESS') { color = 'success'; text = 'Thành công'; }
-        if (status === 'PENDING') { color = 'warning'; text = 'Đang xử lý'; }
-        if (status === 'FAILED') { color = 'error'; text = 'Thất bại'; }
+        if (paymentStatus === 'SUCCESS') { color = 'success'; text = 'Thành công'; }
+        if (paymentStatus === 'PENDING') { color = 'warning'; text = 'Đang xử lý'; }
+        if (paymentStatus === 'FAILED') { color = 'error'; text = 'Thất bại'; }
 
         return <Tag color={color} className="font-medium">{text}</Tag>
       }
@@ -172,9 +172,9 @@ export function PaymentHistoryPage() {
                 {selectedPayment.amount?.toLocaleString()} <span className="text-xl text-gray-400 font-bold">VNĐ</span>
               </div>
               <div className="mt-4">
-                {selectedPayment.status === 'SUCCESS' && <div className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-100"><CheckCircle2 className="w-4 h-4"/> Giao dịch Thành công</div>}
-                {selectedPayment.status === 'PENDING' && <div className="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-amber-100"><AlertCircle className="w-4 h-4"/> Đang xử lý</div>}
-                {selectedPayment.status === 'FAILED' && <div className="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-rose-100"><XCircle className="w-4 h-4"/> Giao dịch Thất bại</div>}
+                {selectedPayment.paymentStatus === 'SUCCESS' && <div className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-100"><CheckCircle2 className="w-4 h-4"/> Giao dịch Thành công</div>}
+                {selectedPayment.paymentStatus === 'PENDING' && <div className="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-amber-100"><AlertCircle className="w-4 h-4"/> Đang xử lý</div>}
+                {selectedPayment.paymentStatus === 'FAILED' && <div className="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-rose-100"><XCircle className="w-4 h-4"/> Giao dịch Thất bại</div>}
               </div>
             </div>
 
