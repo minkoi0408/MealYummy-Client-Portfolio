@@ -5,6 +5,7 @@ import { paymentApi, type PaymentHistory } from "../../../../apis/payment.api";
 
 export function PaymentHistoryPage() {
   const [data, setData] = useState<PaymentHistory[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentHistory | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
@@ -86,8 +87,11 @@ export function PaymentHistoryPage() {
     {
       title: 'Chi tiết',
       key: 'action',
-      render: () => (
-        <button className="text-gray-400 hover:text-blue-500 transition-colors">
+      render: (_, record: PaymentHistory) => (
+        <button 
+          className="text-gray-400 hover:text-blue-500 transition-colors"
+          onClick={() => setSelectedPayment(record)}
+        >
           <ExternalLink className="w-4 h-4" />
         </button>
       ),
@@ -141,6 +145,59 @@ export function PaymentHistoryPage() {
         }}
         className="[&_.ant-table-thead_th]:bg-gray-50 [&_.ant-table-thead_th]:text-gray-500 [&_.ant-table-thead_th]:font-semibold border border-gray-100 rounded-lg overflow-hidden"
       />
+
+      <Modal
+        title="Chi tiết giao dịch"
+        open={!!selectedPayment}
+        onCancel={() => setSelectedPayment(null)}
+        footer={[
+          <Button key="close" onClick={() => setSelectedPayment(null)}>
+            Đóng
+          </Button>
+        ]}
+        width={600}
+      >
+        {selectedPayment && (
+          <div className="space-y-4 mt-4">
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Mã giao dịch (TxID)</span>
+              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">{selectedPayment.txId}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Người dùng</span>
+              <span className="font-medium text-gray-800">{selectedPayment.username || selectedPayment.userId}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Gói dịch vụ</span>
+              <span className="font-medium text-[#10B981]">{selectedPayment.bundleName || selectedPayment.bundleId}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Thời hạn</span>
+              <span className="font-medium">{selectedPayment.durationCode || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Số tiền</span>
+              <span className="font-bold">{selectedPayment.amount?.toLocaleString()} VNĐ</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Trạng thái</span>
+              <span>
+                {selectedPayment.status === 'SUCCESS' && <Tag color="success">Thành công</Tag>}
+                {selectedPayment.status === 'PENDING' && <Tag color="warning">Đang xử lý</Tag>}
+                {selectedPayment.status === 'FAILED' && <Tag color="error">Thất bại</Tag>}
+              </span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Ngày tạo</span>
+              <span>{new Date(selectedPayment.createdAt).toLocaleString('vi-VN')}</span>
+            </div>
+            <div className="flex justify-between border-b pb-2">
+              <span className="text-gray-500">Cập nhật cuối</span>
+              <span>{new Date(selectedPayment.updatedAt).toLocaleString('vi-VN')}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
