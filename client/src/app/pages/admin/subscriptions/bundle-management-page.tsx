@@ -36,12 +36,20 @@ export function BundleManagementPage() {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
+      
+      // Transform active to isActive for backend parsing
+      const payload = {
+        ...values,
+        isActive: values.active
+      };
+      delete payload.active;
+
       setLoading(true);
       if (editingBundle?.id) {
-        await bundleApi.update(editingBundle.id, values);
+        await bundleApi.update(editingBundle.id, payload);
         message.success('Cập nhật gói thành công');
       } else {
-        await bundleApi.create(values);
+        await bundleApi.create(payload);
         message.success('Tạo gói mới thành công');
       }
       setIsModalOpen(false);
