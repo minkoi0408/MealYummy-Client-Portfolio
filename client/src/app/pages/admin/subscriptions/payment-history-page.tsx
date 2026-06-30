@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table, Input, Tag, message, Button, Modal } from "antd";
-import { Search, ExternalLink, ShieldAlert } from "lucide-react";
+import { Search, ExternalLink, ShieldAlert, ReceiptText, Calendar, Clock, CreditCard, User, Package, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { paymentApi, type PaymentHistory } from "../../../../apis/payment.api";
 
 export function PaymentHistoryPage() {
@@ -147,53 +147,92 @@ export function PaymentHistoryPage() {
       />
 
       <Modal
-        title="Chi tiết giao dịch"
+        title={
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-6 bg-[#10B981] rounded-full"></div>
+            <span className="text-lg font-bold">Chi tiết giao dịch</span>
+          </div>
+        }
         open={!!selectedPayment}
         onCancel={() => setSelectedPayment(null)}
-        footer={[
-          <Button key="close" onClick={() => setSelectedPayment(null)}>
-            Đóng
-          </Button>
-        ]}
-        width={600}
+        footer={null}
+        width={700}
+        centered
+        className="[&_.ant-modal-content]:rounded-2xl [&_.ant-modal-content]:p-0 [&_.ant-modal-header]:px-6 [&_.ant-modal-header]:pt-6 [&_.ant-modal-header]:pb-4 [&_.ant-modal-header]:border-b [&_.ant-modal-header]:border-gray-100 [&_.ant-modal-body]:p-6 [&_.ant-modal-close]:top-6"
       >
         {selectedPayment && (
-          <div className="space-y-4 mt-4">
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Mã giao dịch (TxID)</span>
-              <span className="font-mono bg-gray-100 px-2 py-1 rounded text-xs">{selectedPayment.txId}</span>
+          <div className="flex flex-col gap-6">
+            {/* Header / Amount */}
+            <div className="bg-gradient-to-br from-[#10B981]/10 to-[#10B981]/5 rounded-2xl p-6 flex flex-col items-center justify-center border border-[#10B981]/20">
+              <div className="bg-white p-3 rounded-full shadow-sm mb-3">
+                <ReceiptText className="w-8 h-8 text-[#10B981]" />
+              </div>
+              <h3 className="text-gray-500 text-sm mb-1 font-medium">Tổng thanh toán</h3>
+              <div className="text-4xl font-black text-gray-800 tracking-tight">
+                {selectedPayment.amount?.toLocaleString()} <span className="text-xl text-gray-400 font-bold">VNĐ</span>
+              </div>
+              <div className="mt-4">
+                {selectedPayment.status === 'SUCCESS' && <div className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-100"><CheckCircle2 className="w-4 h-4"/> Giao dịch Thành công</div>}
+                {selectedPayment.status === 'PENDING' && <div className="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-amber-100"><AlertCircle className="w-4 h-4"/> Đang xử lý</div>}
+                {selectedPayment.status === 'FAILED' && <div className="bg-rose-100 text-rose-700 px-4 py-1.5 rounded-full text-sm font-bold flex items-center gap-1.5 shadow-sm shadow-rose-100"><XCircle className="w-4 h-4"/> Giao dịch Thất bại</div>}
+              </div>
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Người dùng</span>
-              <span className="font-medium text-gray-800">{selectedPayment.username || selectedPayment.userId}</span>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div className="bg-gray-50/50 rounded-xl p-5 border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5 flex items-center gap-2"><User className="w-4 h-4 text-gray-400"/> Thông tin dịch vụ</h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Khách hàng</div>
+                    <div className="font-semibold text-gray-800 text-base">{selectedPayment.username || selectedPayment.userId}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Gói đăng ký</div>
+                    <div className="font-bold text-[#10B981] flex items-center gap-1.5 text-base">
+                      <Package className="w-4 h-4"/> {selectedPayment.bundleName || selectedPayment.bundleId}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Thời hạn</div>
+                    <div className="font-semibold text-gray-700 bg-gray-200/50 inline-block px-3 py-1 rounded-md text-sm">{selectedPayment.durationCode?.replace('_', ' ') || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50/50 rounded-xl p-5 border border-gray-100">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-5 flex items-center gap-2"><CreditCard className="w-4 h-4 text-gray-400"/> Chi tiết giao dịch</h4>
+                
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Mã tham chiếu (TxID)</div>
+                    <div className="font-mono text-xs bg-white border border-gray-200 p-2 rounded-lg text-gray-600 break-all shadow-sm">
+                      {selectedPayment.txId}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                    <div className="flex-1 border-r border-gray-100 pr-2">
+                      <div className="text-[11px] text-gray-400 mb-1 flex items-center gap-1 uppercase font-semibold tracking-wider"><Calendar className="w-3 h-3"/> Ngày tạo</div>
+                      <div className="font-bold text-sm text-gray-700">{new Date(selectedPayment.createdAt).toLocaleDateString('vi-VN')}</div>
+                      <div className="text-xs text-gray-500 font-medium">{new Date(selectedPayment.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <div className="flex-1 pl-2">
+                      <div className="text-[11px] text-gray-400 mb-1 flex items-center gap-1 uppercase font-semibold tracking-wider"><Clock className="w-3 h-3"/> Cập nhật</div>
+                      <div className="font-bold text-sm text-gray-700">{new Date(selectedPayment.updatedAt).toLocaleDateString('vi-VN')}</div>
+                      <div className="text-xs text-gray-500 font-medium">{new Date(selectedPayment.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Gói dịch vụ</span>
-              <span className="font-medium text-[#10B981]">{selectedPayment.bundleName || selectedPayment.bundleId}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Thời hạn</span>
-              <span className="font-medium">{selectedPayment.durationCode || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Số tiền</span>
-              <span className="font-bold">{selectedPayment.amount?.toLocaleString()} VNĐ</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Trạng thái</span>
-              <span>
-                {selectedPayment.status === 'SUCCESS' && <Tag color="success">Thành công</Tag>}
-                {selectedPayment.status === 'PENDING' && <Tag color="warning">Đang xử lý</Tag>}
-                {selectedPayment.status === 'FAILED' && <Tag color="error">Thất bại</Tag>}
-              </span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Ngày tạo</span>
-              <span>{new Date(selectedPayment.createdAt).toLocaleString('vi-VN')}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-500">Cập nhật cuối</span>
-              <span>{new Date(selectedPayment.updatedAt).toLocaleString('vi-VN')}</span>
+            
+            <div className="flex justify-end pt-2">
+              <Button size="large" className="rounded-xl px-8" onClick={() => setSelectedPayment(null)}>
+                Đóng
+              </Button>
             </div>
           </div>
         )}
