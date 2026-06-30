@@ -6,6 +6,8 @@ import type { Bundle } from "../../../../types/bundle.types";
 
 export function BundleManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<Bundle | null>(null);
+  const [form] = Form.useForm();
   const [data, setData] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -26,6 +28,27 @@ export function BundleManagementPage() {
       const errorMsg = error.response?.data?.message || "Lỗi khi tải danh sách gói dịch vụ";
       message.error({ content: errorMsg, key: 'fetch-error' });
       setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      const values = await form.validateFields();
+      setLoading(true);
+      if (editingBundle?.id) {
+        await bundleApi.update(editingBundle.id, values);
+        message.success('Cập nhật gói thành công');
+      } else {
+        await bundleApi.create(values);
+        message.success('Tạo gói mới thành công');
+      }
+      setIsModalOpen(false);
+      fetchBundles(currentPage, pageSize);
+    } catch (error: any) {
+      if (error.errorFields) return; // Validation failed
+      message.error(error.response?.data?.message || 'Có lỗi xảy ra');
     } finally {
       setLoading(false);
     }
@@ -120,9 +143,18 @@ export function BundleManagementPage() {
     {
       title: 'Thao tác',
       key: 'action',
-      render: () => (
+      render: (_, record: Bundle) => (
         <Space size="middle">
-          <Button type="text" className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" icon={<Edit2 className="w-4 h-4" />} />
+          <Button 
+            type="text" 
+            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" 
+            icon={<Edit2 className="w-4 h-4" />} 
+            onClick={() => {
+              setEditingBundle(record);
+              form.setFieldsValue(record);
+              setIsModalOpen(true);
+            }}
+          />
         </Space>
       ),
     },
@@ -153,7 +185,11 @@ export function BundleManagementPage() {
           type="primary"
           icon={<Plus className="w-4 h-4" />}
           className="bg-[#10B981] hover:bg-[#059669] h-10 px-6 rounded-lg font-medium shadow-md shadow-[#10B981]/20"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setEditingBundle(null);
+            form.resetFields();
+            setIsModalOpen(true);
+          }}
         >
           Tạo gói mới
         </Button>
@@ -185,17 +221,18 @@ export function BundleManagementPage() {
       />
 
       <Modal
-        title="Tạo gói dịch vụ mới"
+        title={editingBundle ? "Cập nhật gói dịch vụ" : "Tạo gói dịch vụ mới"}
         open={isModalOpen}
-        onOk={() => setIsModalOpen(false)}
+        onOk={handleSave}
         onCancel={() => setIsModalOpen(false)}
         width={700}
+        confirmLoading={loading}
         okButtonProps={{ className: "bg-[#10B981] hover:bg-[#059669]" }}
         okText="Lưu"
         cancelText="Hủy"
       >
-        <Form layout="vertical" className="mt-4" initialValues={{ active: true, durations: [{}], features: [''] }}>
-          <Form.Item label="Tên gói" name="name" required>
+        <Form form={form} layout="vertical" className="mt-4" initialValues={{ active: true, durations: [{}], features: [''] }}>
+          <Form.Item label="Tên gói" name="name" rules={[{ required: true, message: 'Vui lòng nhập tên gói' }]}>
             <Input placeholder="VD: Gói Premium" size="large" className="rounded-lg" />
           </Form.Item>
 
