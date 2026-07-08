@@ -10,6 +10,7 @@ import { useMealPlan, type MealPlanItem } from "../contexts/meal-plan-context";
 import { toast } from "sonner";
 import { useBrightness } from "../contexts/brightness-context";
 import { ThreeGlobe } from "../components/three-globe";
+import { axiosInstance } from "../../../apis/axios.client";
 
 // Preload earth textures so they're cached before the globe overlay opens
 const EARTH_TEXTURES = [
@@ -155,12 +156,8 @@ export function ShoppingPage() {
         try {
           setTimeout(() => setLocationMessage("🔍 Đang tải dữ liệu các chợ lân cận..."), 1200);
           
-          const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-          const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-          const res = await fetch(`${API_URL}/map/nearby-markets?lat=${coords.lat}&lng=${coords.lng}`, {
-            headers: { "Authorization": token ? `Bearer ${token}` : "" }
-          });
-          const data = await res.json();
+          const res = await axiosInstance.get(`/map/nearby-markets?lat=${coords.lat}&lng=${coords.lng}`);
+          const data = res.data;
           const markets = data.results || [];
 
           setTimeout(() => {

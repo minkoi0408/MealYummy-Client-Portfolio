@@ -5,8 +5,7 @@ import { useAuth } from "../../contexts/auth-context";
 import { useMealPlan } from "../../contexts/meal-plan-context";
 import { motion, AnimatePresence } from "framer-motion";
 import { RoadmapDisplay, DurationDialog, type DurationLabel, type DietRoadmapDTO } from "./journey-components";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
+import { axiosInstance } from "../../../apis/axios.client";
 
 function getToken() {
   return localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken") || "";
@@ -30,10 +29,9 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
     }
 
     // Check if user has saved metrics
-    fetch(`${API_BASE}/users/metrics/history`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        if (data?.data && data.data.length > 0) {
+    axiosInstance.get('/users/metrics/history')
+      .then(res => {
+        if (res.data?.data && res.data.data.length > 0) {
           setHasSavedMetrics(true);
         } else {
           setHasSavedMetrics(false);
@@ -42,10 +40,9 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
       .catch(() => setHasSavedMetrics(false));
 
     // Load existing roadmap
-    fetch(`${API_BASE}/diet-roadmap`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        if (data?.data) setRoadmap(data.data);
+    axiosInstance.get('/diet-roadmap')
+      .then(res => {
+        if (res.data?.data) setRoadmap(res.data.data);
       })
       .catch(() => {})
       .finally(() => setIsLoading(false));
@@ -57,21 +54,17 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
 
     setIsGenerating(true);
     try {
-      const res = await fetch(`${API_BASE}/diet-roadmap/generate`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ durationLabel: duration }),
-      });
-      const data = await res.json();
-      if (res.ok && data?.data) {
+      const res = await axiosInstance.post('/diet-roadmap/generate', { durationLabel: duration });
+      const data = res.data;
+      if ((res.status === 200 || res.status === 201) && data?.data) {
         setRoadmap(data.data);
         setShowDurationDialog(false);
         toast.success("🎉 Lộ trình cá nhân hóa đã được tạo thành công!");
       } else {
         toast.error(data.message || "Không thể tạo lộ trình. Thử lại sau.");
       }
-    } catch {
-      toast.error("Lỗi kết nối server khi tạo lộ trình.");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Lỗi kết nối server khi tạo lộ trình.");
     } finally {
       setIsGenerating(false);
     }
@@ -82,10 +75,7 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
     const token = getToken();
     if (!token) return;
     try {
-      await fetch(`${API_BASE}/diet-roadmap/${roadmap.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axiosInstance.delete(`/diet-roadmap/${roadmap.id}`);
       setRoadmap(null);
       toast.success("Đã xóa lộ trình");
     } catch {
@@ -105,20 +95,19 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
 
     setIsSyncing(true);
     try {
-      const res = await fetch(`${API_BASE}/diet-roadmap/${roadmap.id}/sync-to-meal-plan?days=${days}`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await axiosInstance.post(`/diet-roadmap/${roadmap.id}/sync-to-meal-plan`, null, {
+        params: { days }
       });
-      const data = await res.json();
-      if (res.ok) {
+      const data = res.data;
+      if (res.status === 200 || res.status === 201) {
         toast.success(`Đã đồng bộ toàn bộ lộ trình (${days} ngày) vào Lịch ăn!`);
         refreshMealPlan();
         onGoToMealPlan();
       } else {
         toast.error(data.message || "Lỗi khi đồng bộ lộ trình");
       }
-    } catch {
-      toast.error("Lỗi kết nối server khi đồng bộ lộ trình");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Lỗi kết nối server khi đồng bộ lộ trình");
     } finally {
       setIsSyncing(false);
     }
@@ -165,7 +154,14 @@ export function JourneyTab({ onGoToNutrition, onGoToMealPlan }: { onGoToNutritio
 
           {/* Roadmap Result */}
           {roadmap ? (
-            <RoadmapDisplay roadmap={roadmap} onDelete={handleDeleteRoadmap} onSync={handleSyncRoadmap} isSyncing={isSyncing} />
+            <RoadmapDisplay
+              roadmap={roadmap}
+              onDelete={handleDeleteRoadmap}
+              onSync={handleSyncRoadmap}
+              isSyncing={isSyncing}
+              onRoadmapUpdate={(updatedRoadmap) => setRoadmap(updatedRoadmap)}
+              onGoToNutrition={onGoToNutrition}
+            />
           ) : (
             <div className="rounded-2xl p-10 text-center" style={{ background: "rgba(26,31,46,0.6)", border: "1px dashed rgba(163,230,53,0.2)" }}>
               <Sparkles className="w-10 h-10 text-lime-400 mx-auto mb-4 opacity-50" />

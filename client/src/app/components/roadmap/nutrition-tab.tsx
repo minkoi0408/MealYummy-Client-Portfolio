@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { jsPDF } from "jspdf";
 import { toast } from "sonner";
 import { useAuth } from "../../contexts/auth-context";
+import { axiosInstance } from "../../../apis/axios.client";
 
 type UserMetrics = {
   weight?: number | string;
@@ -96,16 +97,14 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     const token = getToken();
     if (!token) return;
 
-    fetch(`${API_BASE}/users/metrics`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => { if (data?.data) setMetrics(prev => ({ ...prev, ...data.data })); })
+    axiosInstance.get('/users/metrics')
+      .then(res => { if (res.data?.data) setMetrics(prev => ({ ...prev, ...res.data.data })); })
       .catch(() => { });
 
-    fetch(`${API_BASE}/users/metrics/history`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(data => {
-        if (data?.data) {
-          const sorted = data.data.sort((a: any, b: any) =>
+    axiosInstance.get('/users/metrics/history')
+      .then(res => {
+        if (res.data?.data) {
+          const sorted = res.data.data.sort((a: any, b: any) =>
             new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime()
           );
           setMetricsHistory(sorted);
@@ -180,13 +179,9 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
     setIsSavingMetrics(true);
     const toastId = toast.loading("Đang lưu chỉ số...");
     try {
-      const res = await fetch(`${API_BASE}/users/metrics`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(metrics),
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const res = await axiosInstance.post('/users/metrics', metrics);
+      const data = res.data;
+      if (res.status === 200 || res.status === 201) {
         toast.success(data.message || "Đã lưu chỉ số thành công", { id: toastId });
         saveMetricsLocal(metrics);
         setHasSaved(true);
@@ -194,11 +189,10 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
           toast.success("Bây giờ bạn có thể thiết kế Lộ Trình AI!");
         }
 
-        fetch(`${API_BASE}/users/metrics/history`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.json())
-          .then(d => {
-            if (d?.data) {
-              const sorted = d.data.sort((a: any, b: any) =>
+        axiosInstance.get('/users/metrics/history')
+          .then(r => {
+            if (r.data?.data) {
+              const sorted = r.data.data.sort((a: any, b: any) =>
                 new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime()
               );
               setMetricsHistory(sorted);
@@ -208,8 +202,8 @@ export function NutritionTab({ onGoToJourney }: { onGoToJourney?: () => void }) 
       } else {
         toast.error(data.message || "Lỗi khi lưu chỉ số", { id: toastId });
       }
-    } catch {
-      toast.error("Lỗi kết nối server", { id: toastId });
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Lỗi kết nối server", { id: toastId });
     } finally {
       setIsSavingMetrics(false);
     }

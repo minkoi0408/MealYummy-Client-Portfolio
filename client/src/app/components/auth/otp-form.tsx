@@ -157,6 +157,12 @@ export function OtpForm({ email, onSuccess, context = "register", rememberMe = f
               maxLength={1}
               value={digit}
               onChange={(e) => handleOtpChange(idx, e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Backspace' && !digit && idx > 0) {
+                  const prevInput = document.getElementById(`otp-${idx - 1}`);
+                  prevInput?.focus();
+                }
+              }}
               onPaste={handleInputPaste}
               className="w-12 h-16 text-center text-2xl font-bold bg-stitch-surface-bright/40 border border-stitch-outline-variant rounded-lg text-white focus:border-stitch-primary focus:ring-2 focus:ring-stitch-primary/20 outline-none transition-all placeholder:text-gray-500"
             />

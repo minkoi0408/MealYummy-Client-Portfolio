@@ -4,6 +4,7 @@ import {
   Sparkles, Clock, Heart, ArrowUp, X, Flame, ChefHat,
   RotateCcw, SlidersHorizontal, Search, Zap, ChevronDown, Check, Bot
 } from "lucide-react";
+import { axiosInstance } from "../../apis/axios.client";
 import { AppHeader } from "../components/app-header";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useFavorites } from "../contexts/favorites-context";
@@ -110,12 +111,9 @@ export function MainAppPage() {
     try {
       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
       if (!token) return;
-      const headers: HeadersInit = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-      const res = await fetch(`${API_URL}/ai/knowledge/quota`, { headers });
-      if (res.ok) {
-        const d = await res.json();
-        if (d.data) setQuota(d.data);
+      const res = await axiosInstance.get('/ai/knowledge/quota');
+      if (res.status === 200 || res.status === 201) {
+        if (res.data.data) setQuota(res.data.data);
       }
     } catch (e) {
       console.error(e);
@@ -139,29 +137,11 @@ export function MainAppPage() {
     setIsAiLoading(true);
 
     try {
-      const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-      const headers: HeadersInit = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-      const response = await fetch(`${API_URL}/ai/knowledge/chat`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          question: question
-        })
+      const response = await axiosInstance.post('/ai/knowledge/chat', {
+        question: question
       });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 429 || errorData.code === 429) {
-           toast.error("Bạn đã vượt quá số lần hỏi AI trong ngày. Vui lòng nâng cấp tài khoản để dùng tiếp.");
-        } else {
-           toast.error(errorData.message || "Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
-        }
-        return;
-      }
-
-      const data = await response.json();
+      
+      const data = response.data;
       if (data.data && data.data.suggestedMeals) {
         const mappedData = data.data.suggestedMeals.map(mapMealResponseToRecipe);
         setResults(mappedData);
@@ -172,7 +152,11 @@ export function MainAppPage() {
       }
     } catch (error: any) {
       console.error("Lỗi gọi AI:", error);
-      toast.error("Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
+      if (error.response?.status === 429 || error.response?.data?.code === 429) {
+         toast.error("Bạn đã vượt quá số lần hỏi AI trong ngày. Vui lòng nâng cấp tài khoản để dùng tiếp.");
+      } else {
+         toast.error(error.response?.data?.message || "Hệ thống AI đang gặp sự cố. Vui lòng thử lại sau.");
+      }
     } finally {
       setIsAiLoading(false);
     }

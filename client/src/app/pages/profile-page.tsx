@@ -21,6 +21,7 @@ import { useAuth } from "../contexts/auth-context";
 import { useFavorites } from '../contexts/favorites-context';
 import { subscriptionApi } from '../../apis/subscription.api';
 import type { UserSubscription } from '../../apis/subscription.api';
+import { axiosInstance } from '../../apis/axios.client';
 
 function parseDateLabel(dateStr: string) {
   const today = new Date().toISOString().split("T")[0];
@@ -525,40 +526,30 @@ export function ProfilePage() {
     const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
     if (!token) return;
 
-    const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-    fetch(`${API_URL}/users/metrics`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const m = data.data;
+    axiosInstance.get('/users/metrics')
+      .then(res => {
+        if (res.data && res.data.data) {
+          const m = res.data.data;
           setMetrics(prev => ({ ...prev, ...m }));
         }
       })
       .catch(() => { });
 
     // Fetch history
-    fetch(`${API_URL}/users/metrics/history`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          const sorted = data.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
+    axiosInstance.get('/users/metrics/history')
+      .then(res => {
+        if (res.data && res.data.data) {
+          const sorted = res.data.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
           setMetricsHistory(sorted);
         }
       })
       .catch(() => { });
 
     // Fetch quota
-    fetch(`${API_URL}/ai/knowledge/quota`, {
-      headers: { "Authorization": `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.data) {
-          setQuota(data.data);
+    axiosInstance.get('/ai/knowledge/quota')
+      .then(res => {
+        if (res.data && res.data.data) {
+          setQuota(res.data.data);
         }
       })
       .catch(() => { });
@@ -574,27 +565,16 @@ export function ProfilePage() {
     setIsSavingMetrics(true);
     const toastId = toast.loading("Đang lưu chỉ số...");
     try {
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-      const res = await fetch(`${API_URL}/users/metrics`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(metrics)
-      });
-      const data = await res.json();
-      if (res.ok) {
+      const res = await axiosInstance.post('/users/metrics', metrics);
+      const data = res.data;
+      if (res.status === 200 || res.status === 201) {
         toast.success(data.message || "Đã lưu chỉ số thành công", { id: toastId });
         saveMetrics(metrics);
         // Re-fetch history to update chart
-        fetch(`${API_URL}/users/metrics/history`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        })
-          .then(r => r.json())
-          .then(d => {
-            if (d && d.data) {
-              const sorted = d.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
+        axiosInstance.get('/users/metrics/history')
+          .then(r => {
+            if (r.data && r.data.data) {
+              const sorted = r.data.data.sort((a: any, b: any) => new Date(a.updatedAt || a.createdAt).getTime() - new Date(b.updatedAt || b.createdAt).getTime());
               setMetricsHistory(sorted);
             }
           })
@@ -648,17 +628,14 @@ export function ProfilePage() {
 
     const toastId = toast.loading("Đang tải ảnh lên...");
     try {
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8082/api/v1";
-      const res = await fetch(`${API_URL}/users/avatar`, {
-        method: "POST",
+      const res = await axiosInstance.post('/users/avatar', formData, {
         headers: {
-          "Authorization": `Bearer ${token}`
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      const data = await res.json();
-      if (res.ok) {
+      const data = res.data;
+      if (res.status === 200 || res.status === 201) {
         toast.success(data.message || "Cập nhật avatar thành công", { id: toastId });
         setProfile(prev => {
           const next = { ...prev, avatarUrl: data.data };
