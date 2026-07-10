@@ -9,17 +9,20 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: SSH vào VPS và rebuild Frontend
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd ~/mealyummy-server/client
-            git pull origin main
-            cd ..
-            docker compose build --no-cache frontend
-            docker compose up -d frontend
-            docker image prune -f
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Deploy Frontend
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USERNAME }}@${{ secrets.VPS_HOST }} "
+            cd ~/mealyummy-server/client &&
+            git pull origin main &&
+            cd .. &&
+            docker compose build --no-cache frontend &&
+            docker compose up -d frontend &&
+            docker image prune -f
+          "
