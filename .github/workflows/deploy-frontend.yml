@@ -8,18 +8,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USERNAME }}
     steps:
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
       - name: Deploy Frontend
         run: |
+          VPS_HOST=$(printf '%s' "${{ secrets.VPS_HOST }}" | tr -d '[:space:]')
+          VPS_USER=$(printf '%s' "${{ secrets.VPS_USERNAME }}" | tr -d '[:space:]')
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
