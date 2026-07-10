@@ -9,39 +9,16 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build React Vite
-        run: |
-          cd client
-          echo "VITE_API_URL=https://api.mealyummy.io.vn/api/v1" > .env
-          echo "VITE_GOOGLE_CLIENT_ID=75030109103-q0p7u9bihen5jrm73l8n3c4s8m6ihonj.apps.googleusercontent.com" >> .env
-          npm install --legacy-peer-deps
-          npm run build
-
-      - name: Copy built files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USERNAME }}
-          key: ${{ secrets.VPS_SSH_KEY }}
-          source: "client/dist/,client/nginx.conf,client/Dockerfile.frontend"
-          target: "/root/mealyummy-server/client/client"
-          strip_components: 1
-
-      - name: Restart Frontend Docker
+      - name: SSH vào VPS và rebuild Frontend
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /root/mealyummy-server
-            docker compose up -d --build frontend
+            cd ~/mealyummy-server/client
+            git pull origin main
+            cd ..
+            docker compose build --no-cache frontend
+            docker compose up -d frontend
             docker image prune -f
