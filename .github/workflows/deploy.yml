@@ -1,9 +1,7 @@
-name: Deploy Frontend to VPS
+name: Deploy Frontend to VPS (SSH only - disabled in favor of deploy-frontend.yml)
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
