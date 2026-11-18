@@ -9,18 +9,44 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Deploy Frontend
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build React Vite
+        env:
+          VITE_API_URL: https://mealyummy.io.vn/api/v1
+          VITE_GOOGLE_CLIENT_ID: 75030109103-q0p7u9bihen5jrm73l8n3c4s8m6ihonj.apps.googleusercontent.com
         run: |
-          VPS_HOST=$(printf '%s' "${{ secrets.VPS_HOST }}" | tr -d '[:space:]')
-          VPS_USER=$(printf '%s' "${{ secrets.VPS_USERNAME }}" | tr -d '[:space:]')
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            ${VPS_USER}@${VPS_HOST} \
-            "cd ~/mealyummy-server/client && git pull origin main && cd .. && docker compose build --no-cache frontend && docker compose up -d frontend && docker image prune -f"
+          cd client
+          cat << EOF > .env.production
+          ${{ secrets.PROD_ENV_FILE }}
+          EOF
+          npm install --legacy-peer-deps
+          npm run build
+
+      - name: Copy Files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "client/dist/*,client/Dockerfile.frontend,client/nginx.conf"
+          target: "/root/meal-yummi"
+
+      - name: Restart Frontend Docker
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /root/meal-yummi
+            # Force remove old container if it exists from another folder
+            docker rm -f mealyummy_frontend || true
+            # Restart frontend container
+            docker compose up -d --build frontend
