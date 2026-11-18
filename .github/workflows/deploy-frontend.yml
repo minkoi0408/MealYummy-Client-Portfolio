@@ -18,6 +18,9 @@ jobs:
           node-version: '20'
 
       - name: Build React Vite
+        env:
+          VITE_API_URL: https://mealyummy.io.vn/api/v1
+          VITE_GOOGLE_CLIENT_ID: 75030109103-q0p7u9bihen5jrm73l8n3c4s8m6ihonj.apps.googleusercontent.com
         run: |
           cd client
           cat << EOF > .env.production
