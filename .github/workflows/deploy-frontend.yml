@@ -34,7 +34,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           source: "client/dist/*,client/Dockerfile.frontend,client/nginx.conf"
           target: "/root/meal-yummi"
 
@@ -43,7 +43,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
-          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /root/meal-yummi
             # Force remove old container if it exists from another folder
